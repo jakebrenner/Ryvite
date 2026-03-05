@@ -206,6 +206,8 @@ var form=document.getElementById("rsvpForm");form.addEventListener("submit",func
 function ok(){
   document.getElementById("loadingMsg").style.display="none";
   form.style.display="none";
+  document.querySelector(".rsvp-title").style.display="none";
+  document.querySelector(".rsvp-subtitle").style.display="none";
   document.getElementById("successMsg").classList.add("show");
   setupCal();
   var cc2=document.getElementById("confetti");
