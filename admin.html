@@ -472,7 +472,7 @@ function updateInviteSlug() {
   var name = document.getElementById("eventName").value.trim();
   var slug = name ? slugify(name) : "";
   var base = "https://ryvite.com";
-  var url = slug ? base + "/" + slug : base;
+  var url = slug ? base + "/event/" + slug : base;
   document.getElementById("inviteUrl").value = url;
   document.getElementById("inviteUrlDisplay").value = url;
 }
