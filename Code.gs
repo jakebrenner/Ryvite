@@ -257,23 +257,27 @@ function handleGetAdmins(eventId) {
 var SETTINGS_HEADERS = ["eventId", "eventName", "zapierWebhook", "invitePageUrl", "customFields", "smsMessage"];
 
 function handleGetSettings(eventId) {
+  var numCols = SETTINGS_HEADERS.length; // 6
   var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
   if (sheet.getLastRow() < 2) return {};
 
+  // Always read the exact number of columns we expect (avoids getDataRange cutting short)
+  var lastRow = sheet.getLastRow();
+  var data = sheet.getRange(1, 1, lastRow, numCols).getValues();
+
   // If eventId provided, search for matching row
   if (eventId) {
-    var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === eventId) {
         var customFields = [];
         try { customFields = JSON.parse(data[i][4] || "[]"); } catch (e) { customFields = []; }
         return {
-          eventId:        data[i][0] || "",
-          eventName:      data[i][1] || "",
-          zapierWebhook:  data[i][2] || "",
-          invitePageUrl:  data[i][3] || "",
+          eventId:        String(data[i][0] || ""),
+          eventName:      String(data[i][1] || ""),
+          zapierWebhook:  String(data[i][2] || ""),
+          invitePageUrl:  String(data[i][3] || ""),
           customFields:   customFields,
-          smsMessage:     data[i][5] || ""
+          smsMessage:     String(data[i][5] || "")
         };
       }
     }
@@ -281,21 +285,22 @@ function handleGetSettings(eventId) {
   }
 
   // Fallback: return first row (backwards compat)
-  var row = sheet.getRange("A2:F2").getValues()[0];
+  var row = data[1];
   var customFields = [];
   try { customFields = JSON.parse(row[4] || "[]"); } catch (e) { customFields = []; }
 
   return {
-    eventId:        row[0] || "",
-    eventName:      row[1] || "",
-    zapierWebhook:  row[2] || "",
-    invitePageUrl:  row[3] || "",
+    eventId:        String(row[0] || ""),
+    eventName:      String(row[1] || ""),
+    zapierWebhook:  String(row[2] || ""),
+    invitePageUrl:  String(row[3] || ""),
     customFields:   customFields,
-    smsMessage:     row[5] || ""
+    smsMessage:     String(row[5] || "")
   };
 }
 
 function handleSaveSettings(data) {
+  var numCols = SETTINGS_HEADERS.length; // 6
   var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
 
   var customFields = "";
@@ -317,10 +322,10 @@ function handleSaveSettings(data) {
 
   // Search for existing row with this eventId
   if (eventId && sheet.getLastRow() >= 2) {
-    var existing = sheet.getDataRange().getValues();
+    var existing = sheet.getRange(1, 1, sheet.getLastRow(), numCols).getValues();
     for (var i = 1; i < existing.length; i++) {
       if (String(existing[i][0]) === eventId) {
-        sheet.getRange(i + 1, 1, 1, 6).setValues([values]);
+        sheet.getRange(i + 1, 1, 1, numCols).setValues([values]);
         return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
           .setMimeType(ContentService.MimeType.JSON);
       }
