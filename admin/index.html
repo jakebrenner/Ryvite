@@ -71,6 +71,13 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 .contact-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.04); border:2px solid var(--light-sage); margin-bottom:16px; }
 .contact-card h3 { font-size:1.1rem; color:var(--teal); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
 .contact-card h3::before { content:''; display:inline-block; width:4px; height:18px; background:var(--teal); border-radius:2px; }
+
+/* Collapsible add-contact cards */
+.add-card-collapsible h3 { cursor:pointer; user-select:none; margin-bottom:16px; }
+.add-card-collapsible h3 .chevron { margin-left:auto; font-size:0.75rem; transition:transform 0.3s; }
+.add-card-collapsible.collapsed h3 { margin-bottom:0; }
+.add-card-collapsible.collapsed .card-body { display:none; }
+.add-card-collapsible.collapsed h3 .chevron { transform:rotate(-90deg); }
 .form-row { display:flex; gap:10px; margin-bottom:12px; }
 .form-row .form-field { flex:1; }
 .form-field label { display:block; font-weight:500; font-size:0.85rem; color:var(--dark); margin-bottom:4px; }
@@ -294,37 +301,41 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
       </div>
     </div>
 
-    <!-- Bulk Paste Contacts -->
-    <div class="bulk-card">
-      <h3>Add Multiple Contacts</h3>
-      <p>Paste names and phone numbers — one contact per line.</p>
-      <textarea class="bulk-textarea" id="bulkInput" placeholder="Jane Doe (555) 123-4567&#10;John Smith 555-987-6543&#10;Mary Johnson 5551234567"></textarea>
-      <p class="bulk-example">Accepts most formats: "Name Phone", "Name, Phone", or "Name - Phone"</p>
-      <button class="bulk-btn" onclick="parseBulkContacts()">Add All to List</button>
+    <!-- Manual Add -->
+    <div class="contact-card add-card-collapsible collapsed" id="manualAddCard">
+      <h3 onclick="toggleAddCard('manualAddCard')">Add Manually <span class="chevron">&#9660;</span></h3>
+      <div class="card-body">
+        <form id="addContactForm" onsubmit="addContact(event)">
+          <div class="form-row">
+            <div class="form-field">
+              <label>First Name</label>
+              <input type="text" id="firstName" required placeholder="Jane">
+            </div>
+            <div class="form-field">
+              <label>Last Name</label>
+              <input type="text" id="lastName" placeholder="Doe">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Phone Number</label>
+              <input type="tel" id="phoneNumber" required placeholder="(555) 123-4567">
+            </div>
+          </div>
+          <button type="submit" class="add-btn">Add to List</button>
+        </form>
+      </div>
     </div>
 
-    <!-- Manual Add -->
-    <div class="contact-card">
-      <h3>Add Manually</h3>
-      <form id="addContactForm" onsubmit="addContact(event)">
-        <div class="form-row">
-          <div class="form-field">
-            <label>First Name</label>
-            <input type="text" id="firstName" required placeholder="Jane">
-          </div>
-          <div class="form-field">
-            <label>Last Name</label>
-            <input type="text" id="lastName" placeholder="Doe">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>Phone Number</label>
-            <input type="tel" id="phoneNumber" required placeholder="(555) 123-4567">
-          </div>
-        </div>
-        <button type="submit" class="add-btn">Add to List</button>
-      </form>
+    <!-- Bulk Paste Contacts -->
+    <div class="bulk-card add-card-collapsible collapsed" id="bulkAddCard">
+      <h3 onclick="toggleAddCard('bulkAddCard')">Add Multiple Contacts <span class="chevron">&#9660;</span></h3>
+      <div class="card-body">
+        <p>Paste names and phone numbers — one contact per line.</p>
+        <textarea class="bulk-textarea" id="bulkInput" placeholder="Jane Doe (555) 123-4567&#10;John Smith 555-987-6543&#10;Mary Johnson 5551234567"></textarea>
+        <p class="bulk-example">Accepts most formats: "Name Phone", "Name, Phone", or "Name - Phone"</p>
+        <button class="bulk-btn" onclick="parseBulkContacts()">Add All to List</button>
+      </div>
     </div>
 
     <!-- Pending Contacts -->
@@ -718,6 +729,11 @@ function getCustomFieldsConfig() {
 function loadCustomFieldsConfig(fields) {
   customFields = fields || [];
   renderCustomFields();
+}
+
+// ---- Collapsible Add Cards ----
+function toggleAddCard(id) {
+  document.getElementById(id).classList.toggle("collapsed");
 }
 
 // ---- Tabs ----
