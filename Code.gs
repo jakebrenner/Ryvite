@@ -15,9 +15,11 @@ function getOrCreateSheet(name, headers) {
     }
   } else if (headers && headers.length) {
     // Ensure all expected headers exist (handles schema migrations)
-    var existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn() || 1).getValues()[0];
-    if (existingHeaders.length < headers.length) {
-      for (var h = existingHeaders.length; h < headers.length; h++) {
+    // Check each position individually — fills in missing intermediate headers too
+    var maxCol = Math.max(sheet.getLastColumn() || 1, headers.length);
+    var existingHeaders = sheet.getRange(1, 1, 1, maxCol).getValues()[0];
+    for (var h = 0; h < headers.length; h++) {
+      if (String(existingHeaders[h] || "").trim() !== headers[h]) {
         sheet.getRange(1, h + 1).setValue(headers[h]).setFontWeight("bold");
       }
     }
@@ -330,7 +332,8 @@ function handleSaveSettings(data) {
         return ContentService.createTextOutput(JSON.stringify({
           status: "ok",
           savedColumns: numCols,
-          smsMessageSaved: smsMessage ? true : false
+          smsMessageReceived: smsMessage.substring(0, 50),
+          row: i + 1
         })).setMimeType(ContentService.MimeType.JSON);
       }
     }
@@ -342,7 +345,8 @@ function handleSaveSettings(data) {
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",
     savedColumns: numCols,
-    smsMessageSaved: smsMessage ? true : false
+    smsMessageReceived: smsMessage.substring(0, 50),
+    row: "appended"
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
