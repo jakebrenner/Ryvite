@@ -58,15 +58,23 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 .add-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(232,119,88,0.4); }
 .add-btn:disabled { opacity:0.5; transform:none; box-shadow:none; cursor:not-allowed; }
 
-/* Import contacts */
-.import-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.04); border:2px solid var(--light-sage); margin-bottom:16px; }
-.import-card h3 { font-size:1.1rem; color:var(--blue); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
-.import-card h3::before { content:''; display:inline-block; width:4px; height:18px; background:var(--blue); border-radius:2px; }
-.import-card p { font-size:0.85rem; color:#888; margin-bottom:16px; line-height:1.5; }
-.import-btn { width:100%; padding:14px; background:linear-gradient(135deg,var(--blue),var(--teal)); color:white; border:none; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s; display:flex; align-items:center; justify-content:center; gap:8px; }
-.import-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(100,149,199,0.4); }
-.import-btn:disabled { opacity:0.5; transform:none; box-shadow:none; cursor:not-allowed; }
-.import-unsupported { background:var(--cream); border-radius:10px; padding:14px; text-align:center; font-size:0.9rem; color:var(--coral); display:none; }
+/* Bulk paste contacts */
+.bulk-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.04); border:2px solid var(--light-sage); margin-bottom:16px; }
+.bulk-card h3 { font-size:1.1rem; color:var(--blue); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.bulk-card h3::before { content:''; display:inline-block; width:4px; height:18px; background:var(--blue); border-radius:2px; }
+.bulk-card p { font-size:0.85rem; color:#888; margin-bottom:12px; line-height:1.5; }
+.bulk-textarea { width:100%; min-height:100px; padding:12px 14px; border:2px solid #e8e8e0; border-radius:10px; font-family:'Fredoka',sans-serif; font-size:0.9rem; background:var(--cream); outline:none; resize:vertical; transition:border-color 0.3s; line-height:1.6; }
+.bulk-textarea:focus { border-color:var(--teal); }
+.bulk-textarea::placeholder { color:#bbb; }
+.bulk-btn { width:100%; padding:14px; background:linear-gradient(135deg,var(--blue),var(--teal)); color:white; border:none; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s; margin-top:10px; }
+.bulk-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(100,149,199,0.4); }
+.bulk-btn:disabled { opacity:0.5; transform:none; box-shadow:none; cursor:not-allowed; }
+.bulk-example { font-size:0.78rem; color:#bbb; margin-top:8px; line-height:1.5; }
+
+/* Contact Picker (Chrome Android only) */
+.picker-btn { width:100%; padding:12px; background:white; border:2px dashed var(--light-sage); border-radius:12px; font-family:'Fredoka',sans-serif; font-size:0.9rem; font-weight:500; color:var(--teal); cursor:pointer; transition:all 0.2s; margin-bottom:16px; display:none; }
+.picker-btn:hover { border-color:var(--teal); background:var(--cream); }
+.or-divider { text-align:center; color:#ccc; font-size:0.82rem; margin:12px 0; display:none; }
 
 /* Pending contacts list */
 .pending-section { margin-top:16px; }
@@ -200,17 +208,15 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
   <!-- Add Contacts Tab -->
   <div class="tab-content active" id="tab-add">
 
-    <!-- Import from Phone -->
-    <div class="import-card">
-      <h3>Select Contacts</h3>
-      <p>Import contacts directly from your phone. You'll be asked for permission to access your contacts, then you can pick which ones to invite.</p>
-      <button class="import-btn" id="importBtn" onclick="importContacts()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-        Select From Contacts
-      </button>
-      <div class="import-unsupported" id="importUnsupported">
-        Contact Picker isn't supported on this browser. Try Chrome on Android, or add contacts manually below.
-      </div>
+    <!-- Bulk Paste Contacts -->
+    <div class="bulk-card">
+      <h3>Add Multiple Contacts</h3>
+      <p>Paste names and phone numbers — one contact per line.</p>
+      <button class="picker-btn" id="pickerBtn" onclick="importContacts()">Or Select From Phone Contacts</button>
+      <div class="or-divider" id="pickerDivider">— or paste below —</div>
+      <textarea class="bulk-textarea" id="bulkInput" placeholder="Jane Doe (555) 123-4567&#10;John Smith 555-987-6543&#10;Mary Johnson 5551234567"></textarea>
+      <p class="bulk-example">Accepts most formats: "Name Phone", "Name, Phone", or "Name - Phone"</p>
+      <button class="bulk-btn" onclick="parseBulkContacts()">Add All to List</button>
     </div>
 
     <!-- Manual Add -->
@@ -358,11 +364,11 @@ function switchTab(tab) {
   document.getElementById("tab-" + tab).classList.add("active");
 }
 
-// ---- Contact Picker API ----
+// ---- Contact Picker (Chrome Android only — shown as bonus when supported) ----
 function checkContactPickerSupport() {
-  if (!("contacts" in navigator && "ContactsManager" in window)) {
-    document.getElementById("importBtn").style.display = "none";
-    document.getElementById("importUnsupported").style.display = "block";
+  if ("contacts" in navigator && "ContactsManager" in window) {
+    document.getElementById("pickerBtn").style.display = "block";
+    document.getElementById("pickerDivider").style.display = "block";
   }
 }
 
@@ -379,9 +385,9 @@ async function importContacts() {
       var parts = name.split(" ");
       var first = parts[0] || "";
       var last = parts.slice(1).join(" ") || "";
-      // Check for duplicates
-      var isDup = pendingContacts.some(function(p) { return p.phone === phone; }) ||
-                  sentContacts.some(function(s) { return s.phone === phone; });
+      var normalPhone = normalizePhone(phone);
+      var isDup = pendingContacts.some(function(p) { return normalizePhone(p.phone) === normalPhone; }) ||
+                  sentContacts.some(function(s) { return normalizePhone(s.phone) === normalPhone; });
       if (!isDup) {
         pendingContacts.push({ first: first, last: last, phone: phone });
         added++;
@@ -398,6 +404,67 @@ async function importContacts() {
       showToast("Couldn't access contacts: " + err.message, "error");
     }
   }
+}
+
+// ---- Bulk Paste Parser ----
+function normalizePhone(str) {
+  return str.replace(/[^0-9]/g, "");
+}
+
+function parseBulkContacts() {
+  var raw = document.getElementById("bulkInput").value.trim();
+  if (!raw) {
+    showToast("Paste some contacts first!", "error");
+    return;
+  }
+  var lines = raw.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+  var added = 0;
+  var skipped = 0;
+  var failed = 0;
+
+  lines.forEach(function(line) {
+    var parsed = parseContactLine(line);
+    if (!parsed) { failed++; return; }
+    var normalPhone = normalizePhone(parsed.phone);
+    if (normalPhone.length < 7) { failed++; return; }
+    var isDup = pendingContacts.some(function(p) { return normalizePhone(p.phone) === normalPhone; }) ||
+                sentContacts.some(function(s) { return normalizePhone(s.phone) === normalPhone; });
+    if (isDup) { skipped++; return; }
+    pendingContacts.push(parsed);
+    added++;
+  });
+
+  renderPendingList();
+  if (added > 0) document.getElementById("bulkInput").value = "";
+  var msg = added + " added";
+  if (skipped > 0) msg += ", " + skipped + " duplicate" + (skipped > 1 ? "s" : "");
+  if (failed > 0) msg += ", " + failed + " couldn't be parsed";
+  showToast(msg, added > 0 ? "success" : "error");
+}
+
+function parseContactLine(line) {
+  // Remove common separators: comma, dash, pipe, tab → normalize to space
+  line = line.replace(/[,|\t]/g, " ").replace(/\s+/g, " ").trim();
+
+  // Strategy: find the phone number (sequence of digits, spaces, dashes, parens)
+  // Phone pattern: optional +/1, then area code (with or without parens), then 7 digits
+  var phoneMatch = line.match(/(\+?1?\s*)?(\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/);
+  if (!phoneMatch) {
+    // Try: just 10+ raw digits at end
+    phoneMatch = line.match(/(\d{10,})\s*$/);
+  }
+  if (!phoneMatch) return null;
+
+  var phone = phoneMatch[0].trim();
+  var name = line.replace(phone, "").replace(/[-–—]\s*$/, "").trim();
+  if (!name) return null;
+
+  var parts = name.split(" ");
+  return {
+    first: parts[0] || "",
+    last: parts.slice(1).join(" ") || "",
+    phone: phone
+  };
 }
 
 // ---- Manual Add ----
