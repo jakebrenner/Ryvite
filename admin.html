@@ -204,12 +204,15 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
       <input type="url" class="config-input" id="zapierUrl" placeholder="https://hooks.zapier.com/hooks/catch/...">
       <p class="config-hint">Zapier webhook that receives {name, phone, inviteUrl} and sends an SMS.</p>
       <input type="hidden" id="inviteUrl" value="https://ryvite.com">
+      <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Event Name</label>
+      <input type="text" class="config-input" id="eventName" placeholder="e.g. Rylan's 1st Birthday" oninput="updateInviteSlug()">
+      <p class="config-hint">Name your event — a unique invite link will be generated below.</p>
       <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Invite Page URL</label>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="text" class="config-input" id="inviteUrlDisplay" value="https://ryvite.com" readonly style="background:#f0ede5;color:#666;cursor:default;flex:1;margin-bottom:0;">
         <button type="button" onclick="copyInviteUrl()" style="padding:8px 14px;border:2px solid var(--teal);background:white;color:var(--teal);border-radius:10px;font-family:'Fredoka',sans-serif;font-size:0.82rem;font-weight:500;cursor:pointer;white-space:nowrap;">Copy</button>
       </div>
-      <p class="config-hint">Your invite page domain. Unique links are generated automatically per guest.</p>
+      <p class="config-hint">Auto-generated from event name. Unique guest links are appended when sending invites.</p>
       <div style="display:flex;align-items:center;">
         <button class="save-config-btn" onclick="saveConfig()">Save Settings</button>
         <span class="config-saved" id="configSaved">Saved!</span>
@@ -387,6 +390,7 @@ function saveConfig() {
     body: JSON.stringify({
       action: "saveSettings",
       eventId: eventId,
+      eventName: document.getElementById("eventName").value.trim(),
       zapierWebhook: document.getElementById("zapierUrl").value.trim(),
       invitePageUrl: document.getElementById("inviteUrl").value.trim()
     })
@@ -429,6 +433,10 @@ function loadConfig() {
       currentEventId = data.eventId;
     }
     if (data.zapierWebhook) document.getElementById("zapierUrl").value = data.zapierWebhook;
+    if (data.eventName) {
+      document.getElementById("eventName").value = data.eventName;
+      updateInviteSlug();
+    }
   };
 
   var script = document.createElement("script");
@@ -453,12 +461,27 @@ function getConfig() {
   };
 }
 
+function slugify(text) {
+  return text.toString().toLowerCase()
+    .replace(/['\u2019]/g, "")          // remove apostrophes
+    .replace(/[^a-z0-9]+/g, "-")        // non-alphanumeric → hyphens
+    .replace(/^-+|-+$/g, "");           // trim leading/trailing hyphens
+}
+
+function updateInviteSlug() {
+  var name = document.getElementById("eventName").value.trim();
+  var slug = name ? slugify(name) : "";
+  var base = "https://ryvite.com";
+  var url = slug ? base + "/" + slug : base;
+  document.getElementById("inviteUrl").value = url;
+  document.getElementById("inviteUrlDisplay").value = url;
+}
+
 function copyInviteUrl() {
   var url = document.getElementById("inviteUrlDisplay").value;
   navigator.clipboard.writeText(url).then(function() {
     showToast("URL copied!", "success");
   }).catch(function() {
-    // Fallback for older browsers
     var input = document.getElementById("inviteUrlDisplay");
     input.select();
     document.execCommand("copy");
