@@ -71,10 +71,24 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 .bulk-btn:disabled { opacity:0.5; transform:none; box-shadow:none; cursor:not-allowed; }
 .bulk-example { font-size:0.78rem; color:#bbb; margin-top:8px; line-height:1.5; }
 
-/* Contact Picker (Chrome Android only) */
-.picker-btn { width:100%; padding:12px; background:white; border:2px dashed var(--light-sage); border-radius:12px; font-family:'Fredoka',sans-serif; font-size:0.9rem; font-weight:500; color:var(--teal); cursor:pointer; transition:all 0.2s; margin-bottom:16px; display:none; }
-.picker-btn:hover { border-color:var(--teal); background:var(--cream); }
+/* Contact Picker button */
+.picker-btn { width:100%; padding:14px; background:linear-gradient(135deg,var(--teal),var(--sage)); color:white; border:none; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s; margin-bottom:12px; display:none; }
+.picker-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(88,166,164,0.4); }
 .or-divider { text-align:center; color:#ccc; font-size:0.82rem; margin:12px 0; display:none; }
+
+/* Safari setup instructions */
+.safari-setup { display:none; background:white; border:2px solid var(--mustard); border-radius:12px; padding:16px; margin-bottom:12px; }
+.safari-setup-header { display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+.safari-setup-header h4 { font-size:0.95rem; color:var(--mustard); font-weight:600; margin:0; }
+.safari-setup-toggle { background:none; border:none; font-size:1.2rem; color:var(--mustard); cursor:pointer; transition:transform 0.2s; padding:0 4px; }
+.safari-setup-toggle.open { transform:rotate(180deg); }
+.safari-steps { display:none; margin-top:12px; padding:0; }
+.safari-steps.open { display:block; }
+.safari-step { display:flex; gap:10px; align-items:flex-start; padding:8px 0; font-size:0.88rem; color:var(--dark); line-height:1.4; }
+.safari-step:not(:last-child) { border-bottom:1px solid #f0ede5; }
+.step-num { width:22px; height:22px; border-radius:50%; background:var(--mustard); color:white; font-size:0.75rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.safari-step strong { color:var(--dark); }
+.safari-done-note { font-size:0.82rem; color:var(--sage); margin-top:10px; font-weight:500; }
 
 /* Pending contacts list */
 .pending-section { margin-top:16px; }
@@ -208,12 +222,31 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
   <!-- Add Contacts Tab -->
   <div class="tab-content active" id="tab-add">
 
+    <!-- Contact Picker (shown when supported or with Safari setup instructions) -->
+    <div class="bulk-card" id="pickerCard" style="display:none;">
+      <h3>Select From Contacts</h3>
+      <button class="picker-btn" id="pickerBtn" onclick="importContacts()">Open Contacts</button>
+      <div class="safari-setup" id="safariSetup">
+        <div class="safari-setup-header" onclick="toggleSafariSteps()">
+          <h4>Enable Contact Picker on Safari</h4>
+          <button class="safari-setup-toggle" id="safariToggle">&#9660;</button>
+        </div>
+        <div class="safari-steps" id="safariSteps">
+          <div class="safari-step"><span class="step-num">1</span><span>Open the <strong>Settings</strong> app on your iPhone</span></div>
+          <div class="safari-step"><span class="step-num">2</span><span>Tap <strong>Safari</strong></span></div>
+          <div class="safari-step"><span class="step-num">3</span><span>Scroll down and tap <strong>Advanced</strong></span></div>
+          <div class="safari-step"><span class="step-num">4</span><span>Tap <strong>Feature Flags</strong></span></div>
+          <div class="safari-step"><span class="step-num">5</span><span>Find and enable <strong>Contact Picker API</strong></span></div>
+          <div class="safari-step"><span class="step-num">6</span><span>Come back here and tap <strong>Open Contacts</strong> above</span></div>
+          <p class="safari-done-note">You only need to do this once!</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Bulk Paste Contacts -->
     <div class="bulk-card">
       <h3>Add Multiple Contacts</h3>
       <p>Paste names and phone numbers — one contact per line.</p>
-      <button class="picker-btn" id="pickerBtn" onclick="importContacts()">Or Select From Phone Contacts</button>
-      <div class="or-divider" id="pickerDivider">— or paste below —</div>
       <textarea class="bulk-textarea" id="bulkInput" placeholder="Jane Doe (555) 123-4567&#10;John Smith 555-987-6543&#10;Mary Johnson 5551234567"></textarea>
       <p class="bulk-example">Accepts most formats: "Name Phone", "Name, Phone", or "Name - Phone"</p>
       <button class="bulk-btn" onclick="parseBulkContacts()">Add All to List</button>
@@ -364,11 +397,39 @@ function switchTab(tab) {
   document.getElementById("tab-" + tab).classList.add("active");
 }
 
-// ---- Contact Picker (Chrome Android only — shown as bonus when supported) ----
+// ---- Contact Picker ----
+function isSafariMobile() {
+  var ua = navigator.userAgent;
+  return /iPhone|iPad|iPod/.test(ua) && /WebKit/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
+}
+
 function checkContactPickerSupport() {
-  if ("contacts" in navigator && "ContactsManager" in window) {
+  var hasAPI = ("contacts" in navigator && "ContactsManager" in window);
+  var card = document.getElementById("pickerCard");
+
+  if (hasAPI) {
+    // API is available — show the button directly
+    card.style.display = "block";
     document.getElementById("pickerBtn").style.display = "block";
-    document.getElementById("pickerDivider").style.display = "block";
+  } else if (isSafariMobile()) {
+    // Safari iOS without the flag enabled — show setup instructions
+    card.style.display = "block";
+    document.getElementById("pickerBtn").style.display = "block";
+    document.getElementById("safariSetup").style.display = "block";
+  }
+  // Desktop/other browsers without API: card stays hidden, bulk paste is primary
+}
+
+function toggleSafariSteps() {
+  var steps = document.getElementById("safariSteps");
+  var toggle = document.getElementById("safariToggle");
+  var isOpen = steps.classList.contains("open");
+  if (isOpen) {
+    steps.classList.remove("open");
+    toggle.classList.remove("open");
+  } else {
+    steps.classList.add("open");
+    toggle.classList.add("open");
   }
 }
 
