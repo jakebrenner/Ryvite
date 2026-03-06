@@ -729,10 +729,12 @@ function checkContactPickerSupport() {
     card.style.display = "block";
     document.getElementById("pickerBtn").style.display = "block";
   } else if (isSafariMobile()) {
-    // Safari iOS without the flag enabled — show setup instructions
+    // Safari iOS without the flag enabled — show setup instructions expanded
     card.style.display = "block";
     document.getElementById("pickerBtn").style.display = "block";
     document.getElementById("safariSetup").style.display = "block";
+    document.getElementById("safariSteps").classList.add("open");
+    document.getElementById("safariToggle").classList.add("open");
   }
   // Desktop/other browsers without API: card stays hidden, bulk paste is primary
 }
