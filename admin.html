@@ -38,6 +38,16 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 .save-config-btn:hover { background:#4a9290; }
 .config-saved { color:var(--sage); font-size:0.85rem; margin-left:10px; display:none; }
 
+/* Custom Fields Editor */
+.custom-field-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+.custom-field-row input, .custom-field-row select { padding:8px 10px; border:2px solid #e8e8e0; border-radius:8px; font-family:'Fredoka',sans-serif; font-size:0.85rem; }
+.custom-field-row input[type="text"] { flex:1; min-width:0; }
+.custom-field-row select { width:100px; }
+.custom-field-row .remove-field-btn { background:none; border:none; color:#ccc; font-size:1.2rem; cursor:pointer; padding:4px 6px; }
+.custom-field-row .remove-field-btn:hover { color:var(--coral); }
+.add-field-btn { background:none; border:2px dashed #d0cdc4; color:#999; border-radius:8px; padding:8px 14px; font-family:'Fredoka',sans-serif; font-size:0.85rem; cursor:pointer; width:100%; margin-top:4px; }
+.add-field-btn:hover { border-color:var(--teal); color:var(--teal); }
+
 /* Tabs */
 .tab-bar { display:flex; gap:8px; margin-bottom:20px; }
 .tab-btn { flex:1; padding:12px; border:2px solid var(--light-sage); border-radius:12px; background:white; font-family:'Fredoka',sans-serif; font-size:0.95rem; font-weight:500; color:#888; cursor:pointer; transition:all 0.3s; text-align:center; }
@@ -213,7 +223,14 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
         <button type="button" onclick="copyInviteUrl()" style="padding:8px 14px;border:2px solid var(--teal);background:white;color:var(--teal);border-radius:10px;font-family:'Fredoka',sans-serif;font-size:0.82rem;font-weight:500;cursor:pointer;white-space:nowrap;">Copy</button>
       </div>
       <p class="config-hint">Auto-generated from event name. Unique guest links are appended when sending invites.</p>
-      <div style="display:flex;align-items:center;">
+
+      <!-- Custom RSVP Fields -->
+      <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;margin-top:12px;">RSVP Fields</label>
+      <p class="config-hint" style="margin-bottom:8px;">Define custom fields guests fill out when they RSVP (e.g. Adults, Kids, Dietary Needs).</p>
+      <div id="customFieldsList"></div>
+      <button type="button" class="add-field-btn" onclick="addCustomField()">+ Add Field</button>
+
+      <div style="display:flex;align-items:center;margin-top:16px;">
         <button class="save-config-btn" onclick="saveConfig()">Save Settings</button>
         <span class="config-saved" id="configSaved">Saved!</span>
       </div>
@@ -392,7 +409,8 @@ function saveConfig() {
       eventId: eventId,
       eventName: document.getElementById("eventName").value.trim(),
       zapierWebhook: document.getElementById("zapierUrl").value.trim(),
-      invitePageUrl: document.getElementById("inviteUrl").value.trim()
+      invitePageUrl: document.getElementById("inviteUrl").value.trim(),
+      customFields: getCustomFieldsConfig()
     })
   }).then(function() {
     btn.disabled = false;
@@ -436,6 +454,15 @@ function loadConfig() {
     if (data.eventName) {
       document.getElementById("eventName").value = data.eventName;
       updateInviteSlug();
+    }
+    if (data.customFields && data.customFields.length) {
+      loadCustomFieldsConfig(data.customFields);
+    } else {
+      // Default fields for new events
+      loadCustomFieldsConfig([
+        { key: "adults", label: "Adults", type: "number" },
+        { key: "kids", label: "Kids", type: "number" }
+      ]);
     }
   };
 
@@ -487,6 +514,55 @@ function copyInviteUrl() {
     document.execCommand("copy");
     showToast("URL copied!", "success");
   });
+}
+
+// ---- Custom Fields Editor ----
+var customFields = [];
+
+function addCustomField(field) {
+  field = field || { key: "", label: "", type: "text" };
+  customFields.push(field);
+  renderCustomFields();
+}
+
+function removeCustomField(i) {
+  customFields.splice(i, 1);
+  renderCustomFields();
+}
+
+function renderCustomFields() {
+  var list = document.getElementById("customFieldsList");
+  list.innerHTML = "";
+  customFields.forEach(function(f, i) {
+    var row = document.createElement("div");
+    row.className = "custom-field-row";
+    row.innerHTML =
+      '<input type="text" placeholder="Label (e.g. Adults)" value="' + escapeHtml(f.label) + '" onchange="updateCustomField(' + i + ',\'label\',this.value)">' +
+      '<select onchange="updateCustomField(' + i + ',\'type\',this.value)">' +
+        '<option value="number"' + (f.type === "number" ? " selected" : "") + '>Number</option>' +
+        '<option value="text"' + (f.type === "text" ? " selected" : "") + '>Text</option>' +
+        '<option value="checkbox"' + (f.type === "checkbox" ? " selected" : "") + '>Yes/No</option>' +
+      '</select>' +
+      '<button class="remove-field-btn" onclick="removeCustomField(' + i + ')" title="Remove">&times;</button>';
+    list.appendChild(row);
+  });
+}
+
+function updateCustomField(i, prop, value) {
+  customFields[i][prop] = value;
+  if (prop === "label") {
+    // Auto-generate key from label: lowercase, camelCase-ish
+    customFields[i].key = value.toLowerCase().replace(/[^a-z0-9]+(.)/g, function(_, c) { return c.toUpperCase(); }).replace(/[^a-zA-Z0-9]/g, "");
+  }
+}
+
+function getCustomFieldsConfig() {
+  return customFields.filter(function(f) { return f.label.trim() !== ""; });
+}
+
+function loadCustomFieldsConfig(fields) {
+  customFields = fields || [];
+  renderCustomFields();
 }
 
 // ---- Tabs ----
@@ -874,7 +950,7 @@ function fetchGuestList() {
 }
 
 function parseGuestRows(rows) {
-  // Each row: { timestamp, uuid, name, status, adults, kids }
+  // Each row: { timestamp, inviteId, name, phone, status, responseData }
   // Status values from sheet: "Sent", "Attending", "Not Attending"
   return rows.map(function(r) {
     var status = (r.status || "").toLowerCase().trim();
@@ -889,8 +965,7 @@ function parseGuestRows(rows) {
       phone: r.phone || "",
       invitedAt: r.timestamp || "",
       rsvpStatus: rsvpStatus,
-      adults: r.adults || "",
-      kids: r.kids || ""
+      responseData: r.responseData || {}
     };
   }).sort(function(a, b) {
     var order = { yes: 0, pending: 1, no: 2 };
@@ -948,9 +1023,13 @@ function renderGuestList() {
 
     var metaParts = [];
     if (g.phone) metaParts.push('<span>' + escapeHtml(g.phone) + '</span>');
-    if (g.rsvpStatus === "yes") {
-      if (g.adults) metaParts.push('<span>' + escapeHtml(g.adults) + ' adult' + (g.adults !== "1" ? "s" : "") + '</span>');
-      if (g.kids && g.kids !== "0") metaParts.push('<span>' + escapeHtml(g.kids) + ' kid' + (g.kids !== "1" ? "s" : "") + '</span>');
+    if (g.rsvpStatus === "yes" && g.responseData) {
+      customFields.forEach(function(field) {
+        var val = g.responseData[field.key];
+        if (val !== undefined && val !== "" && val !== 0 && val !== "0") {
+          metaParts.push('<span>' + escapeHtml(String(val)) + ' ' + escapeHtml(field.label) + '</span>');
+        }
+      });
     }
     if (g.invitedAt) {
       var d = new Date(g.invitedAt);

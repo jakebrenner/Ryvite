@@ -65,31 +65,50 @@ function doPost(e) {
 // ============================================================
 // Settings
 // ============================================================
-// Sheet columns: eventId | eventName | zapierWebhook | invitePageUrl
+// Sheet columns: eventId | eventName | zapierWebhook | invitePageUrl | customFields
+//
+// customFields is a JSON string defining RSVP form fields, e.g.:
+// [{"key":"adults","label":"Adults","type":"number"},{"key":"kids","label":"Kids","type":"number"}]
+//
+// Supported field types: text, number, select, checkbox
+
+var SETTINGS_HEADERS = ["eventId", "eventName", "zapierWebhook", "invitePageUrl", "customFields"];
 
 function handleGetSettings() {
-  var sheet = getOrCreateSheet("Settings", ["eventId", "eventName", "zapierWebhook", "invitePageUrl"]);
+  var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
   if (sheet.getLastRow() < 2) return {};
 
-  var row = sheet.getRange("A2:D2").getValues()[0];
+  var row = sheet.getRange("A2:E2").getValues()[0];
+  var customFields = [];
+  try { customFields = JSON.parse(row[4] || "[]"); } catch (e) { customFields = []; }
+
   return {
     eventId:        row[0] || "",
     eventName:      row[1] || "",
     zapierWebhook:  row[2] || "",
-    invitePageUrl:  row[3] || ""
+    invitePageUrl:  row[3] || "",
+    customFields:   customFields
   };
 }
 
 function handleSaveSettings(data) {
-  var sheet = getOrCreateSheet("Settings", ["eventId", "eventName", "zapierWebhook", "invitePageUrl"]);
+  var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
+
+  var customFields = "";
+  if (data.customFields) {
+    customFields = typeof data.customFields === "string"
+      ? data.customFields
+      : JSON.stringify(data.customFields);
+  }
 
   var values = [[
     data.eventId       || "",
     data.eventName     || "",
     data.zapierWebhook || "",
-    data.invitePageUrl || ""
+    data.invitePageUrl || "",
+    customFields
   ]];
-  sheet.getRange("A2:D2").setValues(values);
+  sheet.getRange("A2:E2").setValues(values);
 
   return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -98,12 +117,15 @@ function handleSaveSettings(data) {
 // ============================================================
 // Invites
 // ============================================================
-// Sheet columns: Timestamp | EventID | InviteID | Name | Phone | Status | Adults | Kids
+// Sheet columns: Timestamp | EventID | InviteID | Name | Phone | Status | ResponseData
+//
+// ResponseData is a JSON string holding all RSVP custom field values, e.g.:
+// {"adults":2,"kids":1,"dietaryRestrictions":"none","songRequest":"Baby Shark"}
+
+var INVITES_HEADERS = ["Timestamp", "EventID", "InviteID", "Name", "Phone", "Status", "ResponseData"];
 
 function handleInvite(data) {
-  var sheet = getOrCreateSheet("Invites", [
-    "Timestamp", "EventID", "InviteID", "Name", "Phone", "Status", "Adults", "Kids"
-  ]);
+  var sheet = getOrCreateSheet("Invites", INVITES_HEADERS);
 
   sheet.appendRow([
     new Date(),
@@ -112,7 +134,6 @@ function handleInvite(data) {
     data.name     || "",
     data.phone    || "",
     "Sent",
-    "",
     ""
   ]);
 
@@ -125,9 +146,7 @@ function handleInvite(data) {
 // ============================================================
 
 function handleRsvp(data) {
-  var sheet = getOrCreateSheet("Invites", [
-    "Timestamp", "EventID", "InviteID", "Name", "Phone", "Status", "Adults", "Kids"
-  ]);
+  var sheet = getOrCreateSheet("Invites", INVITES_HEADERS);
 
   var inviteId = data.inviteId || data.id || "";
   if (!inviteId) {
@@ -144,8 +163,14 @@ function handleRsvp(data) {
     if (values[i][2] === inviteId) {
       var status = data.attending ? "Attending" : "Not Attending";
       sheet.getRange(i + 1, 6).setValue(status);
-      sheet.getRange(i + 1, 7).setValue(data.adults || "");
-      sheet.getRange(i + 1, 8).setValue(data.kids || "");
+
+      // Store all custom field responses as JSON in ResponseData (column G)
+      var responseData = {};
+      if (data.responseData && typeof data.responseData === "object") {
+        responseData = data.responseData;
+      }
+      sheet.getRange(i + 1, 7).setValue(JSON.stringify(responseData));
+
       found = true;
       break;
     }
@@ -171,14 +196,16 @@ function handleGuestList(eventId) {
     var row = data[i];
     if (eventId && row[1] !== eventId) continue;
 
+    var responseData = {};
+    try { responseData = JSON.parse(row[6] || "{}"); } catch (e) { responseData = {}; }
+
     guests.push({
-      timestamp: row[0] ? new Date(row[0]).toISOString() : "",
-      inviteId:  row[2] || "",
-      name:      row[3] || "",
-      phone:     row[4] || "",
-      status:    row[5] || "",
-      adults:    row[6] ? String(row[6]) : "",
-      kids:      row[7] ? String(row[7]) : ""
+      timestamp:    row[0] ? new Date(row[0]).toISOString() : "",
+      inviteId:     row[2] || "",
+      name:         row[3] || "",
+      phone:        row[4] || "",
+      status:       row[5] || "",
+      responseData: responseData
     });
   }
 
