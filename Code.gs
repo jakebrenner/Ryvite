@@ -3,8 +3,6 @@
 // Deploy as: Execute as ME, Anyone can access
 // ============================================================
 
-var SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-
 // ---- Sheet helpers ----
 function getOrCreateSheet(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -85,7 +83,6 @@ function handleGetSettings() {
 function handleSaveSettings(data) {
   var sheet = getOrCreateSheet("Settings", ["eventId", "eventName", "zapierWebhook", "invitePageUrl"]);
 
-  // Always write to row 2 (single-event setup)
   var values = [[
     data.eventId       || "",
     data.eventName     || "",
@@ -101,19 +98,19 @@ function handleSaveSettings(data) {
 // ============================================================
 // Invites
 // ============================================================
-// Sheet columns: Timestamp | EventUUID | InviteUUID | Name | Phone | Status | Adults | Kids
+// Sheet columns: Timestamp | EventID | InviteID | Name | Phone | Status | Adults | Kids
 
 function handleInvite(data) {
   var sheet = getOrCreateSheet("Invites", [
-    "Timestamp", "EventUUID", "InviteUUID", "Name", "Phone", "Status", "Adults", "Kids"
+    "Timestamp", "EventID", "InviteID", "Name", "Phone", "Status", "Adults", "Kids"
   ]);
 
   sheet.appendRow([
     new Date(),
-    data.eventUuid  || "",
-    data.inviteUuid || "",
-    data.name       || "",
-    data.phone      || "",
+    data.eventId  || "",
+    data.inviteId || "",
+    data.name     || "",
+    data.phone    || "",
     "Sent",
     "",
     ""
@@ -129,26 +126,26 @@ function handleInvite(data) {
 
 function handleRsvp(data) {
   var sheet = getOrCreateSheet("Invites", [
-    "Timestamp", "EventUUID", "InviteUUID", "Name", "Phone", "Status", "Adults", "Kids"
+    "Timestamp", "EventID", "InviteID", "Name", "Phone", "Status", "Adults", "Kids"
   ]);
 
-  var inviteUuid = data.inviteUuid || data.id || "";
-  if (!inviteUuid) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Missing inviteUuid" }))
+  var inviteId = data.inviteId || data.id || "";
+  if (!inviteId) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Missing inviteId" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Find the row by InviteUUID (column C)
+  // Find the row by InviteID (column C)
   var dataRange = sheet.getDataRange();
   var values = dataRange.getValues();
   var found = false;
 
   for (var i = 1; i < values.length; i++) {
-    if (values[i][2] === inviteUuid) {
+    if (values[i][2] === inviteId) {
       var status = data.attending ? "Attending" : "Not Attending";
-      sheet.getRange(i + 1, 6).setValue(status);               // Status
-      sheet.getRange(i + 1, 7).setValue(data.adults || "");     // Adults
-      sheet.getRange(i + 1, 8).setValue(data.kids || "");       // Kids
+      sheet.getRange(i + 1, 6).setValue(status);
+      sheet.getRange(i + 1, 7).setValue(data.adults || "");
+      sheet.getRange(i + 1, 8).setValue(data.kids || "");
       found = true;
       break;
     }
@@ -168,17 +165,15 @@ function handleGuestList(eventId) {
   if (!sheet || sheet.getLastRow() < 2) return { guests: [] };
 
   var data = sheet.getDataRange().getValues();
-  var headers = data[0];
   var guests = [];
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    // If eventId filter is provided, only include matching rows
     if (eventId && row[1] !== eventId) continue;
 
     guests.push({
       timestamp: row[0] ? new Date(row[0]).toISOString() : "",
-      uuid:      row[2] || "",
+      inviteId:  row[2] || "",
       name:      row[3] || "",
       phone:     row[4] || "",
       status:    row[5] || "",

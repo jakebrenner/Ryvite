@@ -726,8 +726,8 @@ async function sendAllInvites() {
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
           action: "invite",
-          eventUuid: config.eventId,
-          inviteUuid: uuid,
+          eventId: config.eventId,
+          inviteId: uuid,
           name: fullName,
           phone: contact.phone
         })
@@ -885,7 +885,7 @@ function parseGuestRows(rows) {
 
     return {
       name: r.name || "",
-      uuid: r.uuid || "",
+      inviteId: r.inviteId || "",
       phone: r.phone || "",
       invitedAt: r.timestamp || "",
       rsvpStatus: rsvpStatus,
