@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rylan's Party - Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+:root { --coral:#E87758; --mustard:#E4BA42; --teal:#58A6A4; --sage:#9CB482; --orange:#ED923C; --blue:#6495C7; --cream:#FDF8F0; --dark:#3A3A3A; --light-sage:#E8EDDF; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dark); min-height:100vh; display:flex; justify-content:center; padding:16px; }
+.admin-frame { width:100%; max-width:600px; background:var(--cream); border:6px solid var(--sage); border-radius:24px; box-shadow:0 0 0 4px white,0 0 0 10px var(--sage),0 12px 40px rgba(0,0,0,0.15); overflow:hidden; padding:30px 25px; }
+
+/* Login gate */
+.login-section { max-width:400px; margin:60px auto; text-align:center; }
+.login-section h1 { font-family:'Playfair Display',serif; font-size:2rem; color:var(--coral); margin-bottom:8px; }
+.login-section p { color:#888; font-size:0.95rem; margin-bottom:30px; }
+.login-input { width:100%; padding:14px 18px; border:2px solid #e8e8e0; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:1rem; background:white; outline:none; transition:border-color 0.3s; text-align:center; }
+.login-input:focus { border-color:var(--teal); }
+.login-btn { width:100%; padding:14px; background:linear-gradient(135deg,var(--teal),var(--sage)); color:white; border:none; border-radius:14px; font-family:'Fredoka',sans-serif; font-size:1.1rem; font-weight:600; cursor:pointer; margin-top:12px; transition:all 0.3s; }
+.login-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(88,166,164,0.4); }
+.login-error { color:var(--coral); font-size:0.85rem; margin-top:10px; display:none; }
+
+/* Admin panel */
+.admin-panel { display:none; }
+.admin-header { text-align:center; margin-bottom:25px; }
+.admin-header h1 { font-family:'Playfair Display',serif; font-size:1.8rem; color:var(--coral); }
+.admin-header p { color:#888; font-size:0.9rem; margin-top:4px; }
+
+/* Config section */
+.config-section { background:white; border-radius:16px; padding:20px; margin-bottom:20px; border:2px solid var(--light-sage); }
+.config-section h3 { font-size:1rem; color:var(--teal); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.config-section h3::before { content:''; display:inline-block; width:4px; height:18px; background:var(--teal); border-radius:2px; }
+.config-input { width:100%; padding:10px 14px; border:2px solid #e8e8e0; border-radius:10px; font-family:'Fredoka',sans-serif; font-size:0.9rem; background:var(--cream); outline:none; margin-bottom:8px; transition:border-color 0.3s; }
+.config-input:focus { border-color:var(--teal); }
+.config-hint { font-size:0.78rem; color:#aaa; margin-bottom:10px; line-height:1.4; }
+.save-config-btn { padding:10px 24px; background:var(--teal); color:white; border:none; border-radius:10px; font-family:'Fredoka',sans-serif; font-size:0.9rem; font-weight:500; cursor:pointer; transition:all 0.2s; }
+.save-config-btn:hover { background:#4a9290; }
+.config-saved { color:var(--sage); font-size:0.85rem; margin-left:10px; display:none; }
+
+/* Tabs */
+.tab-bar { display:flex; gap:8px; margin-bottom:20px; }
+.tab-btn { flex:1; padding:12px; border:2px solid var(--light-sage); border-radius:12px; background:white; font-family:'Fredoka',sans-serif; font-size:0.95rem; font-weight:500; color:#888; cursor:pointer; transition:all 0.3s; text-align:center; }
+.tab-btn.active { border-color:var(--teal); background:var(--teal); color:white; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* Add contact form */
+.contact-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.04); border:2px solid var(--light-sage); margin-bottom:16px; }
+.contact-card h3 { font-size:1.1rem; color:var(--teal); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.contact-card h3::before { content:''; display:inline-block; width:4px; height:18px; background:var(--teal); border-radius:2px; }
+.form-row { display:flex; gap:10px; margin-bottom:12px; }
+.form-row .form-field { flex:1; }
+.form-field label { display:block; font-weight:500; font-size:0.85rem; color:var(--dark); margin-bottom:4px; }
+.form-field input { width:100%; padding:10px 14px; border:2px solid #e8e8e0; border-radius:10px; font-family:'Fredoka',sans-serif; font-size:0.95rem; background:var(--cream); outline:none; transition:border-color 0.3s; }
+.form-field input:focus { border-color:var(--teal); }
+.add-btn { width:100%; padding:14px; background:linear-gradient(135deg,var(--coral),var(--orange)); color:white; border:none; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s; }
+.add-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(232,119,88,0.4); }
+.add-btn:disabled { opacity:0.5; transform:none; box-shadow:none; cursor:not-allowed; }
+
+/* Import contacts */
+.import-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.04); border:2px solid var(--light-sage); margin-bottom:16px; }
+.import-card h3 { font-size:1.1rem; color:var(--blue); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.import-card h3::before { content:''; display:inline-block; width:4px; height:18px; background:var(--blue); border-radius:2px; }
+.import-card p { font-size:0.85rem; color:#888; margin-bottom:16px; line-height:1.5; }
+.import-btn { width:100%; padding:14px; background:linear-gradient(135deg,var(--blue),var(--teal)); color:white; border:none; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.import-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(100,149,199,0.4); }
+.import-btn:disabled { opacity:0.5; transform:none; box-shadow:none; cursor:not-allowed; }
+.import-unsupported { background:var(--cream); border-radius:10px; padding:14px; text-align:center; font-size:0.9rem; color:var(--coral); display:none; }
+
+/* Pending contacts list */
+.pending-section { margin-top:16px; }
+.pending-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.pending-header h3 { font-size:1rem; color:var(--dark); }
+.pending-count { background:var(--coral); color:white; padding:2px 10px; border-radius:20px; font-size:0.8rem; font-weight:600; }
+.pending-list { max-height:300px; overflow-y:auto; }
+.pending-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:white; border:2px solid var(--light-sage); border-radius:10px; margin-bottom:8px; }
+.pending-info { flex:1; }
+.pending-name { font-weight:600; font-size:0.95rem; }
+.pending-phone { color:#888; font-size:0.85rem; }
+.remove-btn { width:28px; height:28px; border-radius:50%; border:none; background:var(--cream); color:var(--coral); font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.remove-btn:hover { background:var(--coral); color:white; }
+.send-all-btn { width:100%; padding:14px; background:linear-gradient(135deg,var(--mustard),var(--orange)); color:white; border:none; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s; margin-top:12px; }
+.send-all-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(228,186,66,0.4); }
+.send-all-btn:disabled { opacity:0.5; transform:none; box-shadow:none; cursor:not-allowed; }
+
+/* Sent contacts */
+.sent-list { max-height:400px; overflow-y:auto; }
+.sent-item { display:flex; align-items:center; padding:10px 14px; background:white; border:2px solid var(--light-sage); border-radius:10px; margin-bottom:8px; }
+.sent-info { flex:1; }
+.sent-name { font-weight:600; font-size:0.95rem; }
+.sent-phone { color:#888; font-size:0.85rem; }
+.sent-time { color:#aaa; font-size:0.78rem; }
+.sent-badge { padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; background:#e8f5e9; color:#4caf50; }
+.sent-badge.failed { background:#fce4ec; color:var(--coral); }
+.empty-state { text-align:center; padding:40px 20px; color:#bbb; }
+.empty-state .empty-icon { font-size:2.5rem; margin-bottom:10px; opacity:0.5; }
+.empty-state p { font-size:0.95rem; }
+
+/* Toast */
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--dark); color:white; padding:12px 24px; border-radius:12px; font-family:'Fredoka',sans-serif; font-size:0.9rem; z-index:1000; transition:transform 0.3s ease; pointer-events:none; text-align:center; max-width:90%; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast.error { background:var(--coral); }
+.toast.success { background:var(--teal); }
+
+/* Progress bar */
+.progress-bar { width:100%; height:6px; background:#e8e8e0; border-radius:3px; margin-top:12px; overflow:hidden; display:none; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--mustard),var(--orange)); border-radius:3px; transition:width 0.3s; width:0%; }
+.progress-text { text-align:center; font-size:0.85rem; color:#888; margin-top:6px; display:none; }
+
+/* Back link */
+.back-link { display:inline-block; margin-top:20px; color:var(--teal); font-size:0.9rem; text-decoration:none; font-weight:500; }
+.back-link:hover { text-decoration:underline; }
+
+@media (max-width:480px) {
+  .form-row { flex-direction:column; gap:8px; }
+  .admin-frame { padding:20px 16px; }
+  .tab-btn { font-size:0.85rem; padding:10px 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="admin-frame">
+
+<!-- Login Gate -->
+<div class="login-section" id="loginSection">
+  <h1>Party Admin</h1>
+  <p>Enter the password to manage invites</p>
+  <input type="password" class="login-input" id="loginPassword" placeholder="Password" autocomplete="off">
+  <button class="login-btn" id="loginBtn" onclick="attemptLogin()">Enter</button>
+  <p class="login-error" id="loginError">Wrong password, try again!</p>
+</div>
+
+<!-- Admin Panel -->
+<div class="admin-panel" id="adminPanel">
+  <div class="admin-header">
+    <h1>Manage Invites</h1>
+    <p>Add contacts and send invite texts</p>
+  </div>
+
+  <!-- Configuration -->
+  <div class="config-section" id="configSection">
+    <h3>Setup</h3>
+    <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Zapier Webhook URL</label>
+    <input type="url" class="config-input" id="zapierUrl" placeholder="https://hooks.zapier.com/hooks/catch/...">
+    <p class="config-hint">Create a Zapier webhook that receives {name, phone, inviteUrl} and sends an SMS via Twilio, etc.</p>
+    <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Google Apps Script URL</label>
+    <input type="url" class="config-input" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" value="https://script.google.com/macros/s/AKfycbz782NeWmlTEyQqnpp4eseacAPc5ClXKVdV_Rxy8ZqapIjtzQAwFH4yyi-626apdsyQyw/exec">
+    <p class="config-hint">Your existing Apps Script URL. Contacts will be added to a "Contacts" sheet.</p>
+    <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Invite Page URL</label>
+    <input type="url" class="config-input" id="inviteUrl" placeholder="https://yourdomain.com/index.html">
+    <p class="config-hint">The public URL of your invitation page. This link gets sent in the text message.</p>
+    <div style="display:flex;align-items:center;">
+      <button class="save-config-btn" onclick="saveConfig()">Save Settings</button>
+      <span class="config-saved" id="configSaved">Saved!</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="add" onclick="switchTab('add')">Add Contacts</button>
+    <button class="tab-btn" data-tab="sent" onclick="switchTab('sent')">Sent Invites</button>
+  </div>
+
+  <!-- Add Contacts Tab -->
+  <div class="tab-content active" id="tab-add">
+
+    <!-- Import from Phone -->
+    <div class="import-card">
+      <h3>Select Contacts</h3>
+      <p>Import contacts directly from your phone. You'll be asked for permission to access your contacts, then you can pick which ones to invite.</p>
+      <button class="import-btn" id="importBtn" onclick="importContacts()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Select From Contacts
+      </button>
+      <div class="import-unsupported" id="importUnsupported">
+        Contact Picker isn't supported on this browser. Try Chrome on Android, or add contacts manually below.
+      </div>
+    </div>
+
+    <!-- Manual Add -->
+    <div class="contact-card">
+      <h3>Add Manually</h3>
+      <form id="addContactForm" onsubmit="addContact(event)">
+        <div class="form-row">
+          <div class="form-field">
+            <label>First Name</label>
+            <input type="text" id="firstName" required placeholder="Jane">
+          </div>
+          <div class="form-field">
+            <label>Last Name</label>
+            <input type="text" id="lastName" placeholder="Doe">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Phone Number</label>
+            <input type="tel" id="phoneNumber" required placeholder="(555) 123-4567">
+          </div>
+        </div>
+        <button type="submit" class="add-btn">Add to List</button>
+      </form>
+    </div>
+
+    <!-- Pending Contacts -->
+    <div class="pending-section" id="pendingSection" style="display:none;">
+      <div class="pending-header">
+        <h3>Ready to Send</h3>
+        <span class="pending-count" id="pendingCount">0</span>
+      </div>
+      <div class="pending-list" id="pendingList"></div>
+      <button class="send-all-btn" id="sendAllBtn" onclick="sendAllInvites()">
+        Send Invites &amp; Add to Sheet
+      </button>
+      <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="progress-text" id="progressText"></p>
+    </div>
+  </div>
+
+  <!-- Sent Invites Tab -->
+  <div class="tab-content" id="tab-sent">
+    <div class="sent-list" id="sentList">
+      <div class="empty-state" id="sentEmpty">
+        <div class="empty-icon">&#128233;</div>
+        <p>No invites sent yet</p>
+      </div>
+    </div>
+  </div>
+
+  <a href="index.html" class="back-link">&larr; Back to Invitation</a>
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- Config & State ----
+var ADMIN_PASSWORD = "rylan1";
+var pendingContacts = [];
+var sentContacts = JSON.parse(localStorage.getItem("rylan_sent_contacts") || "[]");
+
+// ---- Login ----
+function attemptLogin() {
+  var pw = document.getElementById("loginPassword").value;
+  if (pw === ADMIN_PASSWORD) {
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("adminPanel").style.display = "block";
+    loadConfig();
+    renderSentList();
+    checkContactPickerSupport();
+  } else {
+    document.getElementById("loginError").style.display = "block";
+    document.getElementById("loginPassword").value = "";
+  }
+}
+document.getElementById("loginPassword").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") attemptLogin();
+});
+
+// ---- Config ----
+function saveConfig() {
+  var config = {
+    zapierUrl: document.getElementById("zapierUrl").value.trim(),
+    scriptUrl: document.getElementById("scriptUrl").value.trim(),
+    inviteUrl: document.getElementById("inviteUrl").value.trim()
+  };
+  localStorage.setItem("rylan_admin_config", JSON.stringify(config));
+  var saved = document.getElementById("configSaved");
+  saved.style.display = "inline";
+  setTimeout(function() { saved.style.display = "none"; }, 2000);
+  showToast("Settings saved!", "success");
+}
+
+function loadConfig() {
+  var config = JSON.parse(localStorage.getItem("rylan_admin_config") || "{}");
+  if (config.zapierUrl) document.getElementById("zapierUrl").value = config.zapierUrl;
+  if (config.scriptUrl) document.getElementById("scriptUrl").value = config.scriptUrl;
+  if (config.inviteUrl) document.getElementById("inviteUrl").value = config.inviteUrl;
+}
+
+function getConfig() {
+  return {
+    zapierUrl: document.getElementById("zapierUrl").value.trim(),
+    scriptUrl: document.getElementById("scriptUrl").value.trim(),
+    inviteUrl: document.getElementById("inviteUrl").value.trim()
+  };
+}
+
+// ---- Tabs ----
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+  document.querySelectorAll(".tab-content").forEach(function(c) { c.classList.remove("active"); });
+  document.querySelector('[data-tab="' + tab + '"]').classList.add("active");
+  document.getElementById("tab-" + tab).classList.add("active");
+}
+
+// ---- Contact Picker API ----
+function checkContactPickerSupport() {
+  if (!("contacts" in navigator && "ContactsManager" in window)) {
+    document.getElementById("importBtn").style.display = "none";
+    document.getElementById("importUnsupported").style.display = "block";
+  }
+}
+
+async function importContacts() {
+  try {
+    var props = ["name", "tel"];
+    var opts = { multiple: true };
+    var contacts = await navigator.contacts.select(props, opts);
+    var added = 0;
+    contacts.forEach(function(c) {
+      var name = (c.name && c.name[0]) || "Unknown";
+      var phone = (c.tel && c.tel[0]) || "";
+      if (!phone) return;
+      var parts = name.split(" ");
+      var first = parts[0] || "";
+      var last = parts.slice(1).join(" ") || "";
+      // Check for duplicates
+      var isDup = pendingContacts.some(function(p) { return p.phone === phone; }) ||
+                  sentContacts.some(function(s) { return s.phone === phone; });
+      if (!isDup) {
+        pendingContacts.push({ first: first, last: last, phone: phone });
+        added++;
+      }
+    });
+    renderPendingList();
+    if (added > 0) {
+      showToast(added + " contact" + (added > 1 ? "s" : "") + " added!", "success");
+    } else if (contacts.length > 0) {
+      showToast("All selected contacts already in list", "");
+    }
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      showToast("Couldn't access contacts: " + err.message, "error");
+    }
+  }
+}
+
+// ---- Manual Add ----
+function addContact(e) {
+  e.preventDefault();
+  var first = document.getElementById("firstName").value.trim();
+  var last = document.getElementById("lastName").value.trim();
+  var phone = document.getElementById("phoneNumber").value.trim();
+  if (!first || !phone) return;
+  // Check for duplicates
+  var isDup = pendingContacts.some(function(p) { return p.phone === phone; }) ||
+              sentContacts.some(function(s) { return s.phone === phone; });
+  if (isDup) {
+    showToast("This phone number is already in the list", "error");
+    return;
+  }
+  pendingContacts.push({ first: first, last: last, phone: phone });
+  document.getElementById("addContactForm").reset();
+  renderPendingList();
+  showToast(first + " added to list!", "success");
+}
+
+// ---- Pending List ----
+function renderPendingList() {
+  var section = document.getElementById("pendingSection");
+  var list = document.getElementById("pendingList");
+  var count = document.getElementById("pendingCount");
+  if (pendingContacts.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "block";
+  count.textContent = pendingContacts.length;
+  list.innerHTML = "";
+  pendingContacts.forEach(function(c, i) {
+    var item = document.createElement("div");
+    item.className = "pending-item";
+    item.innerHTML = '<div class="pending-info"><div class="pending-name">' +
+      escapeHtml(c.first + " " + c.last) + '</div><div class="pending-phone">' +
+      escapeHtml(c.phone) + '</div></div><button class="remove-btn" onclick="removePending(' +
+      i + ')">&times;</button>';
+    list.appendChild(item);
+  });
+}
+
+function removePending(i) {
+  pendingContacts.splice(i, 1);
+  renderPendingList();
+}
+
+// ---- Send Invites ----
+async function sendAllInvites() {
+  var config = getConfig();
+  if (!config.zapierUrl) {
+    showToast("Please set your Zapier Webhook URL in Setup first", "error");
+    return;
+  }
+  if (pendingContacts.length === 0) return;
+
+  var btn = document.getElementById("sendAllBtn");
+  var bar = document.getElementById("progressBar");
+  var fill = document.getElementById("progressFill");
+  var text = document.getElementById("progressText");
+  btn.disabled = true;
+  bar.style.display = "block";
+  text.style.display = "block";
+  fill.style.width = "0%";
+
+  var total = pendingContacts.length;
+  var processed = 0;
+  var results = [];
+
+  for (var i = 0; i < total; i++) {
+    var contact = pendingContacts[i];
+    var fullName = (contact.first + " " + contact.last).trim();
+    text.textContent = "Sending to " + fullName + "... (" + (i + 1) + "/" + total + ")";
+
+    var success = true;
+
+    // 1. Add to Google Sheet (Contacts sheet)
+    if (config.scriptUrl) {
+      try {
+        await fetch(config.scriptUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            sheetName: "Contacts",
+            name: fullName,
+            firstName: contact.first,
+            lastName: contact.last,
+            phone: contact.phone,
+            inviteSentAt: new Date().toISOString()
+          })
+        });
+      } catch (err) {
+        console.error("Sheet error for " + fullName, err);
+      }
+    }
+
+    // 2. Fire Zapier webhook to send SMS
+    try {
+      await fetch(config.zapierUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName,
+          firstName: contact.first,
+          lastName: contact.last,
+          phone: contact.phone,
+          inviteUrl: config.inviteUrl || window.location.href.replace("admin.html", "index.html")
+        })
+      });
+    } catch (err) {
+      console.error("Zapier error for " + fullName, err);
+      success = false;
+    }
+
+    results.push({
+      first: contact.first,
+      last: contact.last,
+      phone: contact.phone,
+      sentAt: new Date().toISOString(),
+      status: success ? "sent" : "failed"
+    });
+
+    processed++;
+    fill.style.width = Math.round((processed / total) * 100) + "%";
+  }
+
+  // Save to sent history
+  sentContacts = sentContacts.concat(results);
+  localStorage.setItem("rylan_sent_contacts", JSON.stringify(sentContacts));
+
+  // Clear pending
+  pendingContacts = [];
+  renderPendingList();
+  renderSentList();
+
+  // Reset UI
+  btn.disabled = false;
+  setTimeout(function() {
+    bar.style.display = "none";
+    text.style.display = "none";
+  }, 1500);
+
+  var sentCount = results.filter(function(r) { return r.status === "sent"; }).length;
+  var failCount = results.length - sentCount;
+  if (failCount === 0) {
+    showToast("All " + sentCount + " invites sent!", "success");
+  } else {
+    showToast(sentCount + " sent, " + failCount + " failed", "error");
+  }
+
+  // Switch to sent tab
+  switchTab("sent");
+}
+
+// ---- Sent List ----
+function renderSentList() {
+  var list = document.getElementById("sentList");
+  var empty = document.getElementById("sentEmpty");
+  if (sentContacts.length === 0) {
+    empty.style.display = "block";
+    list.innerHTML = "";
+    list.appendChild(empty);
+    return;
+  }
+  empty.style.display = "none";
+  list.innerHTML = "";
+  // Show most recent first
+  var reversed = sentContacts.slice().reverse();
+  reversed.forEach(function(c) {
+    var item = document.createElement("div");
+    item.className = "sent-item";
+    var time = c.sentAt ? new Date(c.sentAt).toLocaleDateString("en-US", { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" }) : "";
+    var badgeClass = c.status === "failed" ? "sent-badge failed" : "sent-badge";
+    var badgeText = c.status === "failed" ? "Failed" : "Sent";
+    item.innerHTML = '<div class="sent-info"><div class="sent-name">' +
+      escapeHtml((c.first + " " + c.last).trim()) + '</div><div class="sent-phone">' +
+      escapeHtml(c.phone) + '</div><div class="sent-time">' + time +
+      '</div></div><span class="' + badgeClass + '">' + badgeText + '</span>';
+    list.appendChild(item);
+  });
+}
+
+// ---- Helpers ----
+function escapeHtml(text) {
+  var div = document.createElement("div");
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+
+function showToast(msg, type) {
+  var toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.className = "toast" + (type ? " " + type : "");
+  toast.classList.add("show");
+  setTimeout(function() { toast.classList.remove("show"); }, 3000);
+}
+</script>
+
+</body>
+</html>
