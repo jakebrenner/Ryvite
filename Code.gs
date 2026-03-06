@@ -311,13 +311,14 @@ function handleSaveSettings(data) {
   }
 
   var eventId = data.eventId || "";
+  var smsMessage = data.smsMessage || "";
   var values = [
     eventId,
     data.eventName     || "",
     data.zapierWebhook || "",
     data.invitePageUrl || "",
     customFields,
-    data.smsMessage    || ""
+    smsMessage
   ];
 
   // Search for existing row with this eventId
@@ -326,8 +327,11 @@ function handleSaveSettings(data) {
     for (var i = 1; i < existing.length; i++) {
       if (String(existing[i][0]) === eventId) {
         sheet.getRange(i + 1, 1, 1, numCols).setValues([values]);
-        return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
-          .setMimeType(ContentService.MimeType.JSON);
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "ok",
+          savedColumns: numCols,
+          smsMessageSaved: smsMessage ? true : false
+        })).setMimeType(ContentService.MimeType.JSON);
       }
     }
   }
@@ -335,8 +339,11 @@ function handleSaveSettings(data) {
   // No existing row — append new one
   sheet.appendRow(values);
 
-  return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "ok",
+    savedColumns: numCols,
+    smsMessageSaved: smsMessage ? true : false
+  })).setMimeType(ContentService.MimeType.JSON);
 }
 
 // ============================================================
