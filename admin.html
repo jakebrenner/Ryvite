@@ -197,18 +197,21 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
   <!-- Configuration -->
   <div class="config-section" id="configSection">
     <h3>Setup</h3>
-    <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Zapier Webhook URL</label>
-    <input type="url" class="config-input" id="zapierUrl" placeholder="https://hooks.zapier.com/hooks/catch/...">
-    <p class="config-hint">Create a Zapier webhook that receives {name, phone, inviteUrl} and sends an SMS via Twilio, etc.</p>
-    <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Google Apps Script URL</label>
-    <input type="url" class="config-input" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" value="https://script.google.com/macros/s/AKfycbz782NeWmlTEyQqnpp4eseacAPc5ClXKVdV_Rxy8ZqapIjtzQAwFH4yyi-626apdsyQyw/exec">
-    <p class="config-hint">Your existing Apps Script URL. Contacts will be added to a "Contacts" sheet.</p>
-    <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Invite Page URL</label>
-    <input type="url" class="config-input" id="inviteUrl" placeholder="https://yourdomain.com/index.html">
-    <p class="config-hint">The public URL of your invitation page. This link gets sent in the text message.</p>
-    <div style="display:flex;align-items:center;">
-      <button class="save-config-btn" onclick="saveConfig()">Save Settings</button>
-      <span class="config-saved" id="configSaved">Saved!</span>
+    <div id="configLoading" style="text-align:center;padding:10px;color:#aaa;font-size:0.9rem;">Loading settings...</div>
+    <div id="configFields" style="display:none;">
+      <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Event ID</label>
+      <input type="text" class="config-input" id="eventId" readonly style="background:#f0ede5;color:#888;cursor:default;">
+      <p class="config-hint">Unique identifier for this event. Auto-generated on first save.</p>
+      <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Zapier Webhook URL</label>
+      <input type="url" class="config-input" id="zapierUrl" placeholder="https://hooks.zapier.com/hooks/catch/...">
+      <p class="config-hint">Zapier webhook that receives {name, phone, inviteUrl} and sends an SMS.</p>
+      <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;">Invite Page URL</label>
+      <input type="url" class="config-input" id="inviteUrl" placeholder="https://yourdomain.com/index.html">
+      <p class="config-hint">Public URL of your invitation page. This link gets sent in the text message.</p>
+      <div style="display:flex;align-items:center;">
+        <button class="save-config-btn" onclick="saveConfig()">Save Settings</button>
+        <span class="config-saved" id="configSaved">Saved!</span>
+      </div>
     </div>
   </div>
 
@@ -339,8 +342,10 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 <script>
 // ---- Config & State ----
 var ADMIN_PASSWORD = "rylan1";
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz782NeWmlTEyQqnpp4eseacAPc5ClXKVdV_Rxy8ZqapIjtzQAwFH4yyi-626apdsyQyw/exec";
 var pendingContacts = [];
 var sentContacts = JSON.parse(localStorage.getItem("rylan_sent_contacts") || "[]");
+var currentEventId = "";
 
 // ---- Login ----
 function attemptLogin() {
@@ -360,32 +365,90 @@ document.getElementById("loginPassword").addEventListener("keydown", function(e)
   if (e.key === "Enter") attemptLogin();
 });
 
-// ---- Config ----
+// ---- Config (stored in Google Sheet "Admin Settings" tab) ----
 function saveConfig() {
-  var config = {
-    zapierUrl: document.getElementById("zapierUrl").value.trim(),
-    scriptUrl: document.getElementById("scriptUrl").value.trim(),
-    inviteUrl: document.getElementById("inviteUrl").value.trim()
-  };
-  localStorage.setItem("rylan_admin_config", JSON.stringify(config));
-  var saved = document.getElementById("configSaved");
-  saved.style.display = "inline";
-  setTimeout(function() { saved.style.display = "none"; }, 2000);
-  showToast("Settings saved!", "success");
+  var eventId = document.getElementById("eventId").value.trim();
+  if (!eventId) {
+    eventId = generateUUID();
+    document.getElementById("eventId").value = eventId;
+  }
+  currentEventId = eventId;
+
+  var btn = document.querySelector(".save-config-btn");
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({
+      action: "saveSettings",
+      eventId: eventId,
+      zapierWebhook: document.getElementById("zapierUrl").value.trim(),
+      invitePageUrl: document.getElementById("inviteUrl").value.trim()
+    })
+  }).then(function() {
+    btn.disabled = false;
+    btn.textContent = "Save Settings";
+    var saved = document.getElementById("configSaved");
+    saved.style.display = "inline";
+    setTimeout(function() { saved.style.display = "none"; }, 2000);
+    showToast("Settings saved to sheet!", "success");
+  }).catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = "Save Settings";
+    console.error("Save settings error", err);
+    showToast("Couldn't save settings", "error");
+  });
 }
 
 function loadConfig() {
-  var config = JSON.parse(localStorage.getItem("rylan_admin_config") || "{}");
-  if (config.zapierUrl) document.getElementById("zapierUrl").value = config.zapierUrl;
-  if (config.scriptUrl) document.getElementById("scriptUrl").value = config.scriptUrl;
-  if (config.inviteUrl) document.getElementById("inviteUrl").value = config.inviteUrl;
+  var callbackName = "_settingsCb_" + Date.now();
+  var timeout = setTimeout(function() {
+    delete window[callbackName];
+    var old = document.getElementById("jsonp_settings");
+    if (old) old.remove();
+    document.getElementById("configLoading").textContent = "Couldn't load settings. Save to initialize.";
+    document.getElementById("configFields").style.display = "block";
+  }, 10000);
+
+  window[callbackName] = function(data) {
+    clearTimeout(timeout);
+    delete window[callbackName];
+    var old = document.getElementById("jsonp_settings");
+    if (old) old.remove();
+
+    document.getElementById("configLoading").style.display = "none";
+    document.getElementById("configFields").style.display = "block";
+
+    if (data.eventId) {
+      document.getElementById("eventId").value = data.eventId;
+      currentEventId = data.eventId;
+    }
+    if (data.zapierWebhook) document.getElementById("zapierUrl").value = data.zapierWebhook;
+    if (data.invitePageUrl) document.getElementById("inviteUrl").value = data.invitePageUrl;
+  };
+
+  var script = document.createElement("script");
+  script.id = "jsonp_settings";
+  script.src = SCRIPT_URL + "?action=getSettings&callback=" + callbackName;
+  script.onerror = function() {
+    clearTimeout(timeout);
+    delete window[callbackName];
+    script.remove();
+    document.getElementById("configLoading").textContent = "Couldn't load settings.";
+    document.getElementById("configFields").style.display = "block";
+  };
+  document.head.appendChild(script);
 }
 
 function getConfig() {
   return {
+    eventId: currentEventId || document.getElementById("eventId").value.trim(),
     zapierUrl: document.getElementById("zapierUrl").value.trim(),
-    scriptUrl: document.getElementById("scriptUrl").value.trim(),
-    inviteUrl: document.getElementById("inviteUrl").value.trim()
+    inviteUrl: document.getElementById("inviteUrl").value.trim(),
+    scriptUrl: SCRIPT_URL
   };
 }
 
@@ -615,25 +678,25 @@ async function sendAllInvites() {
 
     var success = true;
     var baseUrl = config.inviteUrl || window.location.href.replace("admin.html", "index.html");
-    var inviteLink = baseUrl + (baseUrl.indexOf("?") > -1 ? "&" : "?") + "id=" + uuid;
+    var sep = baseUrl.indexOf("?") > -1 ? "&" : "?";
+    var inviteLink = baseUrl + sep + "id=" + uuid + "&eid=" + encodeURIComponent(config.eventId);
 
-    // 1. Add row to Google Sheet with UUID and Status=Sent
-    if (config.scriptUrl) {
-      try {
-        await fetch(config.scriptUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({
-            action: "invite",
-            uuid: uuid,
-            name: fullName,
-            phone: contact.phone
-          })
-        });
-      } catch (err) {
-        console.error("Sheet error for " + fullName, err);
-      }
+    // 1. Add row to Google Sheet with Event UUID, Invite UUID, Status=Sent
+    try {
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          action: "invite",
+          eventUuid: config.eventId,
+          inviteUuid: uuid,
+          name: fullName,
+          phone: contact.phone
+        })
+      });
+    } catch (err) {
+      console.error("Sheet error for " + fullName, err);
     }
 
     // 2. Fire Zapier webhook to send SMS (with UUID invite link)
@@ -730,20 +793,16 @@ var currentFilter = "all";
 
 function fetchGuestList() {
   var config = getConfig();
-  if (!config.scriptUrl) {
-    showToast("Set your Google Apps Script URL in Setup first", "error");
-    return;
-  }
   var btn = document.getElementById("refreshGuestsBtn");
   var icon = document.getElementById("refreshIcon");
   btn.disabled = true;
   icon.innerHTML = '<span class="spinner"></span>';
 
-  // Use JSONP to bypass CORS (Google Apps Script doesn't send CORS headers)
+  // Use JSONP to bypass CORS
   var callbackName = "_guestCb_" + Date.now();
   var timeout = setTimeout(function() {
     cleanup();
-    showToast("Request timed out. Check your Apps Script URL and redeploy.", "error");
+    showToast("Request timed out. Check your Apps Script deployment.", "error");
   }, 15000);
 
   function cleanup() {
@@ -765,13 +824,14 @@ function fetchGuestList() {
     showToast("Guest list loaded!", "success");
   };
 
+  var eventParam = config.eventId ? "&eventId=" + encodeURIComponent(config.eventId) : "";
   var script = document.createElement("script");
   script.id = "jsonp_guest";
-  script.src = config.scriptUrl + "?action=guestList&callback=" + callbackName;
+  script.src = SCRIPT_URL + "?action=guestList&callback=" + callbackName + eventParam;
   script.onerror = function() {
     clearTimeout(timeout);
     cleanup();
-    showToast("Couldn't load guest list. Check your Apps Script URL and redeploy with doGet.", "error");
+    showToast("Couldn't load guest list. Redeploy your Apps Script.", "error");
   };
   document.head.appendChild(script);
 }
