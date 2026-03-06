@@ -1,5 +1,22 @@
 const GAS_URL = process.env.GAS_URL;
 
+function parseResponse(text) {
+  // Try plain JSON first
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  // Strip JSONP wrapper: callback({...}) → {...}
+  const match = text.match(/^[a-zA-Z_]\w*\(([\s\S]+)\)$/);
+  if (match) {
+    try {
+      return JSON.parse(match[1]);
+    } catch {}
+  }
+
+  return null;
+}
+
 export default async function handler(req, res) {
   if (!GAS_URL) {
     return res.status(500).json({ error: 'GAS_URL not configured' });
@@ -24,16 +41,14 @@ export default async function handler(req, res) {
     }
 
     const text = await gasResponse.text();
+    const data = parseResponse(text);
 
-    // Try to parse as JSON
-    try {
-      const data = JSON.parse(text);
+    if (data) {
       return res.status(200).json(data);
-    } catch {
-      // GAS might return HTML error page or unexpected format
-      console.error('GAS non-JSON response:', text.substring(0, 500));
-      return res.status(200).json({ status: 'ok', raw: text.substring(0, 200) });
     }
+
+    console.error('GAS unparseable response:', text.substring(0, 500));
+    return res.status(502).json({ error: 'Invalid response from backend' });
   } catch (error) {
     console.error('GAS proxy error:', error.message || error);
     return res.status(502).json({ error: 'Failed to reach backend', detail: error.message });
