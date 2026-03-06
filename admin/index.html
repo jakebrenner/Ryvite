@@ -52,6 +52,14 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 .add-field-btn { background:none; border:2px dashed #d0cdc4; color:#999; border-radius:8px; padding:8px 14px; font-family:'Fredoka',sans-serif; font-size:0.85rem; cursor:pointer; width:100%; margin-top:4px; }
 .add-field-btn:hover { border-color:var(--teal); color:var(--teal); }
 
+/* Event URL bar (top of admin) */
+.event-url-bar { background:white; border-radius:14px; padding:14px 16px; margin-bottom:20px; border:2px solid var(--teal); display:none; }
+.event-url-bar label { font-size:0.78rem; font-weight:600; color:var(--teal); text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px; }
+.event-url-bar .url-row { display:flex; align-items:center; gap:8px; }
+.event-url-bar .url-display { flex:1; font-size:0.88rem; color:var(--dark); background:var(--cream); padding:8px 12px; border-radius:8px; border:1px solid #e8e8e0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:'Fredoka',sans-serif; }
+.event-url-bar .copy-url-btn { padding:8px 14px; border:2px solid var(--teal); background:white; color:var(--teal); border-radius:10px; font-family:'Fredoka',sans-serif; font-size:0.82rem; font-weight:500; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+.event-url-bar .copy-url-btn:hover { background:var(--teal); color:white; }
+
 /* Tabs */
 .tab-bar { display:flex; gap:8px; margin-bottom:20px; }
 .tab-btn { flex:1; padding:12px; border:2px solid var(--light-sage); border-radius:12px; background:white; font-family:'Fredoka',sans-serif; font-size:0.95rem; font-weight:500; color:#888; cursor:pointer; transition:all 0.3s; text-align:center; }
@@ -208,6 +216,15 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
     <p>Add contacts and send invite texts</p>
   </div>
 
+  <!-- Event Invite URL (shown when settings loaded) -->
+  <div class="event-url-bar" id="eventUrlBar">
+    <label>Event Invite Link</label>
+    <div class="url-row">
+      <div class="url-display" id="eventUrlDisplay">https://ryvite.com</div>
+      <button type="button" class="copy-url-btn" onclick="copyEventUrl()">Copy</button>
+    </div>
+  </div>
+
   <!-- Tabs -->
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="add" onclick="switchTab('add')">Add Contacts</button>
@@ -360,7 +377,7 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
     </div>
   </div>
 
-  <a href="index.html" class="back-link">&larr; Back to Invitation</a>
+  <a href="/" class="back-link">&larr; Back to Ryvite</a>
 </div>
 
 </div>
@@ -417,6 +434,12 @@ function applySettings(data) {
   if (data.eventName) {
     document.getElementById("eventName").value = data.eventName;
     updateInviteSlug();
+  }
+  if (data.invitePageUrl) {
+    document.getElementById("inviteUrl").value = data.invitePageUrl;
+    document.getElementById("inviteUrlDisplay").value = data.invitePageUrl;
+    document.getElementById("eventUrlDisplay").textContent = data.invitePageUrl;
+    document.getElementById("eventUrlBar").style.display = "block";
   }
   if (data.customFields && data.customFields.length) {
     loadCustomFieldsConfig(data.customFields);
@@ -547,9 +570,12 @@ function updateInviteSlug() {
   var name = document.getElementById("eventName").value.trim();
   var slug = name ? slugify(name) : "";
   var base = "https://ryvite.com";
-  var url = slug ? base + "/event/" + slug : base;
+  var url = slug ? base + "/event/" + slug + "/" : base;
   document.getElementById("inviteUrl").value = url;
   document.getElementById("inviteUrlDisplay").value = url;
+  // Also update the top URL bar
+  document.getElementById("eventUrlDisplay").textContent = url;
+  document.getElementById("eventUrlBar").style.display = slug ? "block" : "none";
 }
 
 function copyInviteUrl() {
@@ -561,6 +587,22 @@ function copyInviteUrl() {
     input.select();
     document.execCommand("copy");
     showToast("URL copied!", "success");
+  });
+}
+
+function copyEventUrl() {
+  var url = document.getElementById("eventUrlDisplay").textContent;
+  navigator.clipboard.writeText(url).then(function() {
+    showToast("Invite link copied!", "success");
+  }).catch(function() {
+    // Fallback for older browsers
+    var ta = document.createElement("textarea");
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("Invite link copied!", "success");
   });
 }
 
@@ -838,9 +880,10 @@ async function sendAllInvites() {
     text.textContent = "Sending to " + fullName + "... (" + (i + 1) + "/" + total + ")";
 
     var success = true;
-    var baseUrl = config.inviteUrl || window.location.href.replace("admin.html", "index.html");
-    var sep = baseUrl.indexOf("?") > -1 ? "&" : "?";
-    var inviteLink = baseUrl + sep + "id=" + uuid + "&eid=" + encodeURIComponent(config.eventId);
+    var baseUrl = config.inviteUrl || "https://ryvite.com";
+    // Ensure trailing slash before query params
+    if (baseUrl.charAt(baseUrl.length - 1) !== "/") baseUrl += "/";
+    var inviteLink = baseUrl + "?id=" + uuid + "&eid=" + encodeURIComponent(config.eventId);
 
     // 1. Add row to Google Sheet with Event UUID, Invite UUID, Status=Sent
     try {
