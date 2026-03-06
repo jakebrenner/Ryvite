@@ -368,9 +368,15 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
         <h3 style="font-size:0.95rem;color:var(--teal);margin-bottom:12px;">Add an Organizer</h3>
         <div class="form-row">
           <div class="form-field">
-            <label>Name</label>
-            <input type="text" id="newAdminName" placeholder="Jane Doe">
+            <label>First Name</label>
+            <input type="text" id="newAdminFirst" placeholder="Jane">
           </div>
+          <div class="form-field">
+            <label>Last Name</label>
+            <input type="text" id="newAdminLast" placeholder="Doe">
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-field">
             <label>Phone Number</label>
             <input type="tel" id="newAdminPhone" placeholder="(555) 123-4567">
@@ -1250,7 +1256,8 @@ function renderAdminsList(admins) {
 }
 
 function addAdmin() {
-  var name = document.getElementById("newAdminName").value.trim();
+  var adminFirst = document.getElementById("newAdminFirst").value.trim();
+  var adminLast = document.getElementById("newAdminLast").value.trim();
   var phone = document.getElementById("newAdminPhone").value.trim();
 
   if (!phone || normalizePhone(phone).length < 10) {
@@ -1258,7 +1265,7 @@ function addAdmin() {
     return;
   }
 
-  var eventName = document.getElementById("eventName").value.trim();
+  var displayName = (adminFirst + " " + adminLast).trim();
 
   fetch(SCRIPT_URL, {
     method: "POST",
@@ -1268,12 +1275,13 @@ function addAdmin() {
       action: "addAdmin",
       phone: normalizePhone(phone),
       eventId: currentEventId,
-      eventName: eventName,
-      name: name
+      adminFirst: adminFirst,
+      adminLast: adminLast
     })
   }).then(function() {
-    showToast(name ? name + " added as organizer!" : "Organizer added!", "success");
-    document.getElementById("newAdminName").value = "";
+    showToast(displayName ? displayName + " added as organizer!" : "Organizer added!", "success");
+    document.getElementById("newAdminFirst").value = "";
+    document.getElementById("newAdminLast").value = "";
     document.getElementById("newAdminPhone").value = "";
     // Refresh admin list after a short delay (no-cors means we can't read response)
     setTimeout(fetchAdmins, 1500);

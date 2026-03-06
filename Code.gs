@@ -84,12 +84,13 @@ function doPost(e) {
 // ============================================================
 // Admins
 // ============================================================
-// Sheet columns: Phone | EventID | EventName | Name | AddedAt
+// Sheet columns: phone | eventId | adminFirst | adminLast | addedAt
 //
 // Each row maps one phone number to one event they can admin.
 // A phone can appear in multiple rows (one per event).
+// eventName is resolved via the Settings table join on eventId.
 
-var ADMINS_HEADERS = ["Phone", "EventID", "EventName", "Name", "AddedAt"];
+var ADMINS_HEADERS = ["phone", "eventId", "adminFirst", "adminLast", "addedAt"];
 
 function handleAdminLogin(rawPhone) {
   var phone = normalizePhone(rawPhone);
@@ -103,7 +104,7 @@ function handleAdminLogin(rawPhone) {
   }
 
   var data = sheet.getDataRange().getValues();
-  var events = [];
+  var eventIds = [];
   var seen = {};
 
   for (var i = 1; i < data.length; i++) {
@@ -112,11 +113,27 @@ function handleAdminLogin(rawPhone) {
       var eventId = String(data[i][1] || "");
       if (eventId && !seen[eventId]) {
         seen[eventId] = true;
-        events.push({
-          eventId: eventId,
-          eventName: String(data[i][2] || eventId)
-        });
+        eventIds.push(eventId);
       }
+    }
+  }
+
+  // Resolve eventName from Settings table
+  var events = [];
+  if (eventIds.length > 0) {
+    var settingsSheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
+    var settingsMap = {};
+    if (settingsSheet.getLastRow() >= 2) {
+      var sData = settingsSheet.getDataRange().getValues();
+      for (var j = 1; j < sData.length; j++) {
+        settingsMap[String(sData[j][0])] = String(sData[j][1] || "");
+      }
+    }
+    for (var k = 0; k < eventIds.length; k++) {
+      events.push({
+        eventId: eventIds[k],
+        eventName: settingsMap[eventIds[k]] || eventIds[k]
+      });
     }
   }
 
@@ -126,8 +143,8 @@ function handleAdminLogin(rawPhone) {
 function handleAddAdmin(data) {
   var phone = normalizePhone(data.phone || "");
   var eventId = (data.eventId || "").trim();
-  var eventName = (data.eventName || "").trim();
-  var name = (data.name || "").trim();
+  var adminFirst = (data.adminFirst || "").trim();
+  var adminLast = (data.adminLast || "").trim();
 
   if (phone.length < 10) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Invalid phone number" }))
@@ -151,7 +168,7 @@ function handleAddAdmin(data) {
     }
   }
 
-  sheet.appendRow([phone, eventId, eventName, name, new Date()]);
+  sheet.appendRow([phone, eventId, adminFirst, adminLast, new Date()]);
 
   return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -196,9 +213,13 @@ function handleGetAdmins(eventId) {
 
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][1]) === eventId) {
+      var first = String(data[i][2] || "");
+      var last = String(data[i][3] || "");
       admins.push({
         phone: String(data[i][0] || ""),
-        name: String(data[i][3] || ""),
+        adminFirst: first,
+        adminLast: last,
+        name: (first + " " + last).trim(),
         addedAt: data[i][4] ? new Date(data[i][4]).toISOString() : ""
       });
     }
