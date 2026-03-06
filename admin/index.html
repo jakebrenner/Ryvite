@@ -454,6 +454,7 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
         <div id="smsPreview" style="display:none;margin-top:8px;padding:12px 14px;background:white;border:2px solid var(--light-sage);border-radius:10px;">
           <label style="font-size:0.78rem;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Preview</label>
           <p id="smsPreviewText" style="font-size:0.88rem;color:var(--dark);margin:0;line-height:1.5;word-break:break-word;"></p>
+          <button type="button" id="sendTestSmsBtn" onclick="sendTestSms()" style="margin-top:10px;padding:8px 16px;background:linear-gradient(135deg,var(--mustard),var(--orange));color:white;border:none;border-radius:10px;font-family:'Fredoka',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all 0.2s;">Send Test SMS to Me</button>
         </div>
 
         <div style="display:flex;align-items:center;margin-top:16px;">
@@ -1045,7 +1046,8 @@ async function sendAllInvites() {
           lastName: contact.last,
           phone: contact.phone,
           inviteUrl: inviteLink,
-          message: smsBody
+          message: smsBody,
+          senderPhone: currentAdminPhone
         })
       });
     } catch (err) {
@@ -1266,6 +1268,51 @@ function updateSmsPreview() {
   var sample = template.replace(/\{name\}/g, "Jane").replace(/\{link\}/g, "https://ryvite.com/event/example/?id=abc123&eid=demo");
   previewText.textContent = sample;
   preview.style.display = "block";
+}
+
+// ---- Send Test SMS ----
+function sendTestSms() {
+  var config = getConfig();
+  if (!config.zapierUrl) {
+    showToast("Set your Zapier Webhook URL first", "error");
+    return;
+  }
+  var template = document.getElementById("smsMessage").value.trim();
+  if (!template) {
+    showToast("Write an SMS message first", "error");
+    return;
+  }
+
+  var testLink = (config.inviteUrl || "https://ryvite.com") + "?id=test123&eid=" + encodeURIComponent(config.eventId);
+  var testMessage = template.replace(/\{name\}/g, "Test").replace(/\{link\}/g, testLink);
+
+  var btn = document.getElementById("sendTestSmsBtn");
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+
+  fetch(config.zapierUrl, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "Test User",
+      firstName: "Test",
+      lastName: "User",
+      phone: currentAdminPhone,
+      inviteUrl: testLink,
+      message: testMessage,
+      senderPhone: currentAdminPhone
+    })
+  }).then(function() {
+    btn.disabled = false;
+    btn.textContent = "Send Test SMS to Me";
+    showToast("Test SMS sent to your phone!", "success");
+  }).catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = "Send Test SMS to Me";
+    console.error("Test SMS error", err);
+    showToast("Failed to send test SMS", "error");
+  });
 }
 
 // ---- View Live Event Page ----
