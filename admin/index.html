@@ -1271,7 +1271,14 @@ function updateSmsPreview() {
 }
 
 // ---- Send Test SMS ----
+// IMPORTANT: Test SMS must ONLY ever be sent to the logged-in admin's own phone number.
+// Never send test messages to guest numbers or any other recipient.
 function sendTestSms() {
+  // Safety check: must have the admin's phone from login
+  if (!currentAdminPhone) {
+    showToast("Could not determine your phone number. Please log in again.", "error");
+    return;
+  }
   var config = getConfig();
   if (!config.zapierUrl) {
     showToast("Set your Zapier Webhook URL first", "error");
@@ -1290,6 +1297,7 @@ function sendTestSms() {
   btn.disabled = true;
   btn.textContent = "Sending...";
 
+  // Send ONLY to the admin's own phone — both phone and senderPhone are the admin
   fetch(config.zapierUrl, {
     method: "POST",
     mode: "no-cors",
