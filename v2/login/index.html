@@ -136,8 +136,16 @@
 
     // On page load: check for Supabase auth callback (magic link redirect)
     (async function init() {
-      // Check URL hash for Supabase auth tokens (magic link callback)
       const hash = window.location.hash;
+
+      // Handle #signup deep link from homepage
+      if (hash === '#signup') {
+        window.history.replaceState(null, '', window.location.pathname);
+        toggleMode('signup');
+        // Don't return — still check for existing session below
+      }
+
+      // Check URL hash for Supabase auth tokens (magic link callback)
       if (hash && hash.includes('access_token')) {
         showMessage('Verifying your login...', 'info');
 
