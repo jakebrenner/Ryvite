@@ -13,8 +13,26 @@ function getOrCreateSheet(name, headers) {
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
     }
+  } else if (headers && headers.length) {
+    // Ensure all expected headers exist (handles schema migrations)
+    // Check each position individually — fills in missing intermediate headers too
+    var maxCol = Math.max(sheet.getLastColumn() || 1, headers.length);
+    var existingHeaders = sheet.getRange(1, 1, 1, maxCol).getValues()[0];
+    for (var h = 0; h < headers.length; h++) {
+      if (String(existingHeaders[h] || "").trim() !== headers[h]) {
+        sheet.getRange(1, h + 1).setValue(headers[h]).setFontWeight("bold");
+      }
+    }
   }
   return sheet;
+}
+
+// ---- One-time migration: run this manually to add missing columns ----
+// Open Apps Script editor > Run > migrateSettingsColumns
+function migrateSettingsColumns() {
+  var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
+  Logger.log("Settings sheet now has headers: " + SETTINGS_HEADERS.join(", "));
+  Logger.log("Done! You can delete this function after running it.");
 }
 
 function normalizePhone(str) {
@@ -238,25 +256,30 @@ function handleGetAdmins(eventId) {
 //
 // Supported field types: text, number, select, checkbox
 
-var SETTINGS_HEADERS = ["eventId", "eventName", "zapierWebhook", "invitePageUrl", "customFields"];
+var SETTINGS_HEADERS = ["eventId", "eventName", "zapierWebhook", "invitePageUrl", "customFields", "smsMessage"];
 
 function handleGetSettings(eventId) {
+  var numCols = SETTINGS_HEADERS.length; // 6
   var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
   if (sheet.getLastRow() < 2) return {};
 
+  // Always read the exact number of columns we expect (avoids getDataRange cutting short)
+  var lastRow = sheet.getLastRow();
+  var data = sheet.getRange(1, 1, lastRow, numCols).getValues();
+
   // If eventId provided, search for matching row
   if (eventId) {
-    var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === eventId) {
         var customFields = [];
         try { customFields = JSON.parse(data[i][4] || "[]"); } catch (e) { customFields = []; }
         return {
-          eventId:        data[i][0] || "",
-          eventName:      data[i][1] || "",
-          zapierWebhook:  data[i][2] || "",
-          invitePageUrl:  data[i][3] || "",
-          customFields:   customFields
+          eventId:        String(data[i][0] || ""),
+          eventName:      String(data[i][1] || ""),
+          zapierWebhook:  String(data[i][2] || ""),
+          invitePageUrl:  String(data[i][3] || ""),
+          customFields:   customFields,
+          smsMessage:     String(data[i][5] || "")
         };
       }
     }
@@ -264,20 +287,22 @@ function handleGetSettings(eventId) {
   }
 
   // Fallback: return first row (backwards compat)
-  var row = sheet.getRange("A2:E2").getValues()[0];
+  var row = data[1];
   var customFields = [];
   try { customFields = JSON.parse(row[4] || "[]"); } catch (e) { customFields = []; }
 
   return {
-    eventId:        row[0] || "",
-    eventName:      row[1] || "",
-    zapierWebhook:  row[2] || "",
-    invitePageUrl:  row[3] || "",
-    customFields:   customFields
+    eventId:        String(row[0] || ""),
+    eventName:      String(row[1] || ""),
+    zapierWebhook:  String(row[2] || ""),
+    invitePageUrl:  String(row[3] || ""),
+    customFields:   customFields,
+    smsMessage:     String(row[5] || "")
   };
 }
 
 function handleSaveSettings(data) {
+  var numCols = SETTINGS_HEADERS.length; // 6
   var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
 
   var customFields = "";
@@ -288,22 +313,28 @@ function handleSaveSettings(data) {
   }
 
   var eventId = data.eventId || "";
+  var smsMessage = data.smsMessage || "";
   var values = [
     eventId,
     data.eventName     || "",
     data.zapierWebhook || "",
     data.invitePageUrl || "",
-    customFields
+    customFields,
+    smsMessage
   ];
 
   // Search for existing row with this eventId
   if (eventId && sheet.getLastRow() >= 2) {
-    var existing = sheet.getDataRange().getValues();
+    var existing = sheet.getRange(1, 1, sheet.getLastRow(), numCols).getValues();
     for (var i = 1; i < existing.length; i++) {
       if (String(existing[i][0]) === eventId) {
-        sheet.getRange(i + 1, 1, 1, 5).setValues([values]);
-        return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
-          .setMimeType(ContentService.MimeType.JSON);
+        sheet.getRange(i + 1, 1, 1, numCols).setValues([values]);
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "ok",
+          savedColumns: numCols,
+          smsMessageReceived: smsMessage.substring(0, 50),
+          row: i + 1
+        })).setMimeType(ContentService.MimeType.JSON);
       }
     }
   }
@@ -311,8 +342,12 @@ function handleSaveSettings(data) {
   // No existing row — append new one
   sheet.appendRow(values);
 
-  return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "ok",
+    savedColumns: numCols,
+    smsMessageReceived: smsMessage.substring(0, 50),
+    row: "appended"
+  })).setMimeType(ContentService.MimeType.JSON);
 }
 
 // ============================================================

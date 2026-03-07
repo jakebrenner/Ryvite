@@ -71,6 +71,13 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 .contact-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.04); border:2px solid var(--light-sage); margin-bottom:16px; }
 .contact-card h3 { font-size:1.1rem; color:var(--teal); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
 .contact-card h3::before { content:''; display:inline-block; width:4px; height:18px; background:var(--teal); border-radius:2px; }
+
+/* Collapsible add-contact cards */
+.add-card-collapsible h3 { cursor:pointer; user-select:none; margin-bottom:16px; }
+.add-card-collapsible h3 .chevron { margin-left:auto; font-size:0.75rem; transition:transform 0.3s; }
+.add-card-collapsible.collapsed h3 { margin-bottom:0; }
+.add-card-collapsible.collapsed .card-body { display:none; }
+.add-card-collapsible.collapsed h3 .chevron { transform:rotate(-90deg); }
 .form-row { display:flex; gap:10px; margin-bottom:12px; }
 .form-row .form-field { flex:1; }
 .form-field label { display:block; font-weight:500; font-size:0.85rem; color:var(--dark); margin-bottom:4px; }
@@ -252,6 +259,7 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
       <div class="url-display" id="eventUrlDisplay">https://ryvite.com</div>
       <button type="button" class="copy-url-btn" onclick="copyEventUrl()">Copy</button>
     </div>
+    <a href="#" id="viewLivePageBtn" target="_blank" onclick="return openLiveEventPage()" style="display:inline-block;margin-top:8px;padding:8px 16px;background:linear-gradient(135deg,var(--teal),var(--sage));color:white;border-radius:10px;font-family:'Fredoka',sans-serif;font-size:0.85rem;font-weight:500;text-decoration:none;transition:all 0.2s;">View Live Event Page</a>
   </div>
 
   <!-- Tabs -->
@@ -293,37 +301,41 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
       </div>
     </div>
 
-    <!-- Bulk Paste Contacts -->
-    <div class="bulk-card">
-      <h3>Add Multiple Contacts</h3>
-      <p>Paste names and phone numbers — one contact per line.</p>
-      <textarea class="bulk-textarea" id="bulkInput" placeholder="Jane Doe (555) 123-4567&#10;John Smith 555-987-6543&#10;Mary Johnson 5551234567"></textarea>
-      <p class="bulk-example">Accepts most formats: "Name Phone", "Name, Phone", or "Name - Phone"</p>
-      <button class="bulk-btn" onclick="parseBulkContacts()">Add All to List</button>
+    <!-- Manual Add -->
+    <div class="contact-card add-card-collapsible collapsed" id="manualAddCard">
+      <h3 onclick="toggleAddCard('manualAddCard')">Add Manually <span class="chevron">&#9660;</span></h3>
+      <div class="card-body">
+        <form id="addContactForm" onsubmit="addContact(event)">
+          <div class="form-row">
+            <div class="form-field">
+              <label>First Name</label>
+              <input type="text" id="firstName" required placeholder="Jane">
+            </div>
+            <div class="form-field">
+              <label>Last Name</label>
+              <input type="text" id="lastName" placeholder="Doe">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Phone Number</label>
+              <input type="tel" id="phoneNumber" required placeholder="(555) 123-4567">
+            </div>
+          </div>
+          <button type="submit" class="add-btn">Add to List</button>
+        </form>
+      </div>
     </div>
 
-    <!-- Manual Add -->
-    <div class="contact-card">
-      <h3>Add Manually</h3>
-      <form id="addContactForm" onsubmit="addContact(event)">
-        <div class="form-row">
-          <div class="form-field">
-            <label>First Name</label>
-            <input type="text" id="firstName" required placeholder="Jane">
-          </div>
-          <div class="form-field">
-            <label>Last Name</label>
-            <input type="text" id="lastName" placeholder="Doe">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>Phone Number</label>
-            <input type="tel" id="phoneNumber" required placeholder="(555) 123-4567">
-          </div>
-        </div>
-        <button type="submit" class="add-btn">Add to List</button>
-      </form>
+    <!-- Bulk Paste Contacts -->
+    <div class="bulk-card add-card-collapsible collapsed" id="bulkAddCard">
+      <h3 onclick="toggleAddCard('bulkAddCard')">Add Multiple Contacts <span class="chevron">&#9660;</span></h3>
+      <div class="card-body">
+        <p>Paste names and phone numbers — one contact per line.</p>
+        <textarea class="bulk-textarea" id="bulkInput" placeholder="Jane Doe (555) 123-4567&#10;John Smith 555-987-6543&#10;Mary Johnson 5551234567"></textarea>
+        <p class="bulk-example">Accepts most formats: "Name Phone", "Name, Phone", or "Name - Phone"</p>
+        <button class="bulk-btn" onclick="parseBulkContacts()">Add All to List</button>
+      </div>
     </div>
 
     <!-- Pending Contacts -->
@@ -435,6 +447,16 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
         <div id="customFieldsList"></div>
         <button type="button" class="add-field-btn" onclick="addCustomField()">+ Add Field</button>
 
+        <!-- SMS Message Template -->
+        <label style="font-size:0.85rem;font-weight:500;display:block;margin-bottom:4px;margin-top:16px;">SMS Message Template</label>
+        <p class="config-hint" style="margin-bottom:6px;">Customize the text message guests receive. Use <strong>{name}</strong> for their first name and <strong>{link}</strong> for the invite link.</p>
+        <textarea class="config-input" id="smsMessage" rows="3" placeholder="Hey {name}! You're invited! RSVP here: {link}" style="resize:vertical;min-height:60px;font-family:'Fredoka',sans-serif;font-size:0.9rem;line-height:1.4;"></textarea>
+        <div id="smsPreview" style="display:none;margin-top:8px;padding:12px 14px;background:white;border:2px solid var(--light-sage);border-radius:10px;">
+          <label style="font-size:0.78rem;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Preview</label>
+          <p id="smsPreviewText" style="font-size:0.88rem;color:var(--dark);margin:0;line-height:1.5;word-break:break-word;"></p>
+          <button type="button" id="sendTestSmsBtn" onclick="sendTestSms()" style="margin-top:10px;padding:8px 16px;background:linear-gradient(135deg,var(--mustard),var(--orange));color:white;border:none;border-radius:10px;font-family:'Fredoka',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all 0.2s;">Send Test SMS to Me</button>
+        </div>
+
         <div style="display:flex;align-items:center;margin-top:16px;">
           <button class="save-config-btn" onclick="saveConfig()">Save Settings</button>
           <span class="config-saved" id="configSaved">Saved!</span>
@@ -522,6 +544,10 @@ function applySettings(data) {
       { key: "kids", label: "Kids", type: "number" }
     ]);
   }
+  if (data.smsMessage) {
+    document.getElementById("smsMessage").value = data.smsMessage;
+    updateSmsPreview();
+  }
   // Auto-collapse setup when settings are loaded
   if (data.eventId) {
     document.getElementById("configSection").classList.add("collapsed");
@@ -541,7 +567,8 @@ function saveConfig() {
     eventName: document.getElementById("eventName").value.trim(),
     zapierWebhook: document.getElementById("zapierUrl").value.trim(),
     invitePageUrl: document.getElementById("inviteUrl").value.trim(),
-    customFields: getCustomFieldsConfig()
+    customFields: getCustomFieldsConfig(),
+    smsMessage: document.getElementById("smsMessage").value.trim()
   };
 
   // Always save locally so settings survive even if the sheet call fails
@@ -551,18 +578,26 @@ function saveConfig() {
   btn.disabled = true;
   btn.textContent = "Saving...";
 
+  var payload = Object.assign({ action: "saveSettings" }, settings);
+  console.log("[saveConfig] Sending payload:", JSON.stringify(payload));
+
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(Object.assign({ action: "saveSettings" }, settings))
+    body: JSON.stringify(payload)
   }).then(function(res) { return res.json(); })
-  .then(function() {
+  .then(function(data) {
+    console.log("[saveConfig] Response:", JSON.stringify(data));
     btn.disabled = false;
     btn.textContent = "Save Settings";
-    var saved = document.getElementById("configSaved");
-    saved.style.display = "inline";
-    setTimeout(function() { saved.style.display = "none"; }, 2000);
-    showToast("Settings saved!", "success");
+    if (data.error) {
+      showToast("Save failed: " + data.error, "error");
+    } else {
+      var saved = document.getElementById("configSaved");
+      saved.style.display = "inline";
+      setTimeout(function() { saved.style.display = "none"; }, 2000);
+      showToast("Settings saved!", "success");
+    }
   }).catch(function(err) {
     btn.disabled = false;
     btn.textContent = "Save Settings";
@@ -703,6 +738,11 @@ function getCustomFieldsConfig() {
 function loadCustomFieldsConfig(fields) {
   customFields = fields || [];
   renderCustomFields();
+}
+
+// ---- Collapsible Add Cards ----
+function toggleAddCard(id) {
+  document.getElementById(id).classList.toggle("collapsed");
 }
 
 // ---- Tabs ----
@@ -947,7 +987,12 @@ function generateUUID() {
 }
 
 // ---- Send Invites ----
+// senderPhone is always the logged-in admin's phone number
 async function sendAllInvites() {
+  if (!currentAdminPhone) {
+    showToast("Could not determine your phone number. Please log in again.", "error");
+    return;
+  }
   var config = getConfig();
   if (!config.zapierUrl) {
     showToast("Please set your Zapier Webhook URL in Setup first", "error");
@@ -997,20 +1042,32 @@ async function sendAllInvites() {
       console.error("Sheet error for " + fullName, err);
     }
 
-    // 2. Fire Zapier webhook to send SMS (with UUID invite link)
+    // 2. Fire Zapier webhook to send SMS (with UUID invite link + message)
+    var smsTemplate = document.getElementById("smsMessage").value.trim();
+    var smsBody = "";
+    if (smsTemplate) {
+      smsBody = smsTemplate.replace(/\{name\}/g, contact.first || fullName).replace(/\{link\}/g, inviteLink);
+    }
     try {
-      await fetch(config.zapierUrl, {
+      var webhookRes = await fetch("/api/webhook", {
         method: "POST",
-        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          webhookUrl: config.zapierUrl,
           name: fullName,
           firstName: contact.first,
           lastName: contact.last,
           phone: contact.phone,
-          inviteUrl: inviteLink
+          inviteUrl: inviteLink,
+          message: smsBody,
+          senderPhone: currentAdminPhone
         })
       });
+      var webhookData = await webhookRes.json();
+      if (webhookData.status !== "ok") {
+        console.error("Zapier error for " + fullName, webhookData);
+        success = false;
+      }
     } catch (err) {
       console.error("Zapier error for " + fullName, err);
       success = false;
@@ -1213,6 +1270,92 @@ function renderGuestList() {
       '<span class="' + badgeClass + '">' + badgeText + '</span>';
     list.appendChild(item);
   });
+}
+
+// ---- SMS Preview ----
+document.getElementById("smsMessage").addEventListener("input", updateSmsPreview);
+
+function updateSmsPreview() {
+  var template = document.getElementById("smsMessage").value.trim();
+  var preview = document.getElementById("smsPreview");
+  var previewText = document.getElementById("smsPreviewText");
+  if (!template) {
+    preview.style.display = "none";
+    return;
+  }
+  var sample = template.replace(/\{name\}/g, "Jane").replace(/\{link\}/g, "https://ryvite.com/event/example/?id=abc123&eid=demo");
+  previewText.textContent = sample;
+  preview.style.display = "block";
+}
+
+// ---- Send Test SMS ----
+// IMPORTANT: Test SMS must ONLY ever be sent to the logged-in admin's own phone number.
+// Never send test messages to guest numbers or any other recipient.
+function sendTestSms() {
+  // Safety check: must have the admin's phone from login
+  if (!currentAdminPhone) {
+    showToast("Could not determine your phone number. Please log in again.", "error");
+    return;
+  }
+  var config = getConfig();
+  if (!config.zapierUrl) {
+    showToast("Set your Zapier Webhook URL first", "error");
+    return;
+  }
+  var template = document.getElementById("smsMessage").value.trim();
+  if (!template) {
+    showToast("Write an SMS message first", "error");
+    return;
+  }
+
+  var testLink = (config.inviteUrl || "https://ryvite.com") + "?id=test123&eid=" + encodeURIComponent(config.eventId);
+  var testMessage = template.replace(/\{name\}/g, "Test").replace(/\{link\}/g, testLink);
+
+  var btn = document.getElementById("sendTestSmsBtn");
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+
+  // Send ONLY to the admin's own phone — both phone and senderPhone are the admin
+  fetch("/api/webhook", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      webhookUrl: config.zapierUrl,
+      name: "Test User",
+      firstName: "Test",
+      lastName: "User",
+      phone: currentAdminPhone,
+      inviteUrl: testLink,
+      message: testMessage,
+      senderPhone: currentAdminPhone
+    })
+  }).then(function(res) { return res.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.textContent = "Send Test SMS to Me";
+    if (data.status === "ok") {
+      showToast("Test SMS sent to your phone!", "success");
+    } else {
+      console.error("Test SMS backend error", data);
+      showToast("Zapier rejected the request — check your webhook URL", "error");
+    }
+  }).catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = "Send Test SMS to Me";
+    console.error("Test SMS error", err);
+    showToast("Failed to send test SMS", "error");
+  });
+}
+
+// ---- View Live Event Page ----
+function openLiveEventPage() {
+  var url = document.getElementById("inviteUrl").value.trim();
+  if (!url || url === "https://ryvite.com") {
+    showToast("Set your event name in Setup first", "error");
+    return false;
+  }
+  window.open(url, "_blank");
+  return false;
 }
 
 // ---- Helpers ----
