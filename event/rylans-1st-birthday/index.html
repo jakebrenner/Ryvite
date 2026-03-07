@@ -64,6 +64,8 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
 .detail-label { font-weight:600; font-size:0.85rem; letter-spacing:1px; text-transform:uppercase; color:#888; }
 .detail-value { font-size:1.05rem; color:var(--dark); margin-top:2px; }
 
+.no-gifts { text-align:center; margin:8px auto 0; padding:10px 20px; font-size:0.9rem; color:var(--teal); font-style:italic; opacity:0.85; }
+.no-gifts svg { vertical-align:middle; margin-right:5px; }
 .rsvp-section { position:relative; z-index:1; max-width:500px; margin:0 auto; padding:10px 25px 40px; animation:fadeInUp 0.8s ease-out 1.6s both; }
 .rsvp-card { background:white; border-radius:20px; padding:30px; box-shadow:0 4px 20px rgba(0,0,0,0.06); border:2px solid var(--light-sage); }
 .rsvp-title { font-family:'Playfair Display',serif; font-size:1.8rem; color:var(--teal); text-align:center; margin-bottom:5px; }
@@ -148,6 +150,7 @@ body { font-family:'Fredoka',sans-serif; background:var(--sage); color:var(--dar
       <div><div class="detail-label">What</div><div class="detail-value">Tacos &amp; Cake</div></div>
     </div>
   </div>
+  <div class="no-gifts"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>No gifts necessary &mdash; your presence is the best present!</div>
 </section>
 
 <div class="wave-divider"><svg viewBox="0 0 400 20"><path d="M0 10 Q50 0 100 10 Q150 20 200 10 Q250 0 300 10 Q350 20 400 10" fill="none" stroke="#ED923C" stroke-width="2" opacity="0.3"/></svg></div>
@@ -282,8 +285,8 @@ function setupCal(){
     "VERSION:2.0",
     "PRODID:-//RylanBirthday//EN",
     "BEGIN:VEVENT",
-    "DTSTART;TZID=America/Los_Angeles:20260321T113000",
-    "DTEND;TZID=America/Los_Angeles:20260321T143000",
+    "DTSTART;TZID=America/Los_Angeles:20260321T120000",
+    "DTEND;TZID=America/Los_Angeles:20260321T150000",
     "SUMMARY:"+t,
     "LOCATION:"+loc,
     "DESCRIPTION:"+desc,
@@ -292,8 +295,8 @@ function setupCal(){
   ].join("\r\n");
   var blob=new Blob([icsText],{type:"text/calendar;charset=utf-8"});
   document.getElementById("icsBtn").href=URL.createObjectURL(blob);
-  document.getElementById("gcalBtn").href="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(t)+"&dates=20260321T183000Z/20260321T213000Z&location="+encodeURIComponent(loc)+"&details="+encodeURIComponent(desc);
-  document.getElementById("outlookBtn").href="https://outlook.live.com/calendar/0/action/compose?subject="+encodeURIComponent(t)+"&startdt=2026-03-21T18:30:00Z&enddt=2026-03-21T21:30:00Z&location="+encodeURIComponent(loc)+"&body="+encodeURIComponent(desc);
+  document.getElementById("gcalBtn").href="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(t)+"&dates=20260321T200000Z/20260321T230000Z&location="+encodeURIComponent(loc)+"&details="+encodeURIComponent(desc);
+  document.getElementById("outlookBtn").href="https://outlook.live.com/calendar/0/action/compose?subject="+encodeURIComponent(t)+"&startdt=2026-03-21T20:00:00Z&enddt=2026-03-21T23:00:00Z&location="+encodeURIComponent(loc)+"&body="+encodeURIComponent(desc);
 }
 </script>
 </body>

@@ -249,17 +249,17 @@ function handleGetAdmins(eventId) {
 // ============================================================
 // Settings
 // ============================================================
-// Sheet columns: eventId | eventName | zapierWebhook | invitePageUrl | customFields
+// Sheet columns: eventId | eventName | zapierWebhook | invitePageUrl | customFields | smsMessage | eventDate | eventTime | eventLocation | eventDescription
 //
 // customFields is a JSON string defining RSVP form fields, e.g.:
 // [{"key":"adults","label":"Adults","type":"number"},{"key":"kids","label":"Kids","type":"number"}]
 //
 // Supported field types: text, number, select, checkbox
 
-var SETTINGS_HEADERS = ["eventId", "eventName", "zapierWebhook", "invitePageUrl", "customFields", "smsMessage"];
+var SETTINGS_HEADERS = ["eventId", "eventName", "zapierWebhook", "invitePageUrl", "customFields", "smsMessage", "eventDate", "eventTime", "eventLocation", "eventDescription"];
 
 function handleGetSettings(eventId) {
-  var numCols = SETTINGS_HEADERS.length; // 6
+  var numCols = SETTINGS_HEADERS.length;
   var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
   if (sheet.getLastRow() < 2) return {};
 
@@ -274,12 +274,16 @@ function handleGetSettings(eventId) {
         var customFields = [];
         try { customFields = JSON.parse(data[i][4] || "[]"); } catch (e) { customFields = []; }
         return {
-          eventId:        String(data[i][0] || ""),
-          eventName:      String(data[i][1] || ""),
-          zapierWebhook:  String(data[i][2] || ""),
-          invitePageUrl:  String(data[i][3] || ""),
-          customFields:   customFields,
-          smsMessage:     String(data[i][5] || "")
+          eventId:          String(data[i][0] || ""),
+          eventName:        String(data[i][1] || ""),
+          zapierWebhook:    String(data[i][2] || ""),
+          invitePageUrl:    String(data[i][3] || ""),
+          customFields:     customFields,
+          smsMessage:       String(data[i][5] || ""),
+          eventDate:        String(data[i][6] || ""),
+          eventTime:        String(data[i][7] || ""),
+          eventLocation:    String(data[i][8] || ""),
+          eventDescription: String(data[i][9] || "")
         };
       }
     }
@@ -292,17 +296,21 @@ function handleGetSettings(eventId) {
   try { customFields = JSON.parse(row[4] || "[]"); } catch (e) { customFields = []; }
 
   return {
-    eventId:        String(row[0] || ""),
-    eventName:      String(row[1] || ""),
-    zapierWebhook:  String(row[2] || ""),
-    invitePageUrl:  String(row[3] || ""),
-    customFields:   customFields,
-    smsMessage:     String(row[5] || "")
+    eventId:          String(row[0] || ""),
+    eventName:        String(row[1] || ""),
+    zapierWebhook:    String(row[2] || ""),
+    invitePageUrl:    String(row[3] || ""),
+    customFields:     customFields,
+    smsMessage:       String(row[5] || ""),
+    eventDate:        String(row[6] || ""),
+    eventTime:        String(row[7] || ""),
+    eventLocation:    String(row[8] || ""),
+    eventDescription: String(row[9] || "")
   };
 }
 
 function handleSaveSettings(data) {
-  var numCols = SETTINGS_HEADERS.length; // 6
+  var numCols = SETTINGS_HEADERS.length;
   var sheet = getOrCreateSheet("Settings", SETTINGS_HEADERS);
 
   var customFields = "";
@@ -316,11 +324,15 @@ function handleSaveSettings(data) {
   var smsMessage = data.smsMessage || "";
   var values = [
     eventId,
-    data.eventName     || "",
-    data.zapierWebhook || "",
-    data.invitePageUrl || "",
+    data.eventName        || "",
+    data.zapierWebhook    || "",
+    data.invitePageUrl    || "",
     customFields,
-    smsMessage
+    smsMessage,
+    data.eventDate        || "",
+    data.eventTime        || "",
+    data.eventLocation    || "",
+    data.eventDescription || ""
   ];
 
   // Search for existing row with this eventId
