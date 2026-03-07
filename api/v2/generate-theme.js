@@ -152,6 +152,46 @@ ${prompt}`;
       throw new Error('Invalid theme response from Claude');
     }
 
+    // Determine next version number
+    const { data: existingThemes } = await supabase
+      .from('event_themes')
+      .select('id, version')
+      .eq('event_id', eventId)
+      .order('version', { ascending: false })
+      .limit(1);
+
+    const nextVersion = existingThemes?.length > 0 ? existingThemes[0].version + 1 : 1;
+
+    // Deactivate any currently active theme for this event
+    await supabase
+      .from('event_themes')
+      .update({ is_active: false })
+      .eq('event_id', eventId)
+      .eq('is_active', true);
+
+    // Insert new theme as active
+    const { data: newTheme, error: themeError } = await supabase
+      .from('event_themes')
+      .insert({
+        event_id: eventId,
+        version: nextVersion,
+        is_active: true,
+        prompt,
+        html: theme.theme_html,
+        css: theme.theme_css,
+        config: theme.theme_config,
+        model: 'claude-sonnet-4-20250514',
+        input_tokens: response.usage.input_tokens,
+        output_tokens: response.usage.output_tokens,
+        latency_ms: latency
+      })
+      .select()
+      .single();
+
+    if (themeError) {
+      throw new Error('Failed to save theme: ' + themeError.message);
+    }
+
     // Log successful generation
     await supabase.from('generation_log').insert({
       event_id: eventId,
@@ -164,20 +204,11 @@ ${prompt}`;
       status: 'success'
     });
 
-    // Update event with theme
-    await supabase
-      .from('events')
-      .update({
-        theme_html: theme.theme_html,
-        theme_css: theme.theme_css,
-        theme_config: theme.theme_config
-      })
-      .eq('id', eventId)
-      .eq('user_id', user.id);
-
     return res.status(200).json({
       success: true,
       theme: {
+        id: newTheme.id,
+        version: newTheme.version,
         html: theme.theme_html,
         css: theme.theme_css,
         config: theme.theme_config

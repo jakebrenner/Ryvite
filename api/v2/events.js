@@ -32,54 +32,96 @@ export default async function handler(req, res) {
   const { action } = req.query;
 
   try {
-    // Public actions (no auth required)
+    // ---- Public actions (no auth required) ----
+
     if (action === 'getPublic') {
       const { slug, eventId } = req.query;
 
       let query = supabaseAdmin
         .from('events')
         .select('*')
-        .eq('status', 'Published');
+        .eq('status', 'published');
 
       if (slug) query = query.eq('slug', slug);
       else if (eventId) query = query.eq('id', eventId);
       else return res.status(400).json({ success: false, error: 'slug or eventId required' });
 
-      const { data, error } = await query.single();
+      const { data: event, error } = await query.single();
 
-      if (error || !data) return res.status(404).json({ success: false, error: 'Event not found' });
+      if (error || !event) return res.status(404).json({ success: false, error: 'Event not found' });
 
-      return res.status(200).json({ success: true, event: formatEvent(data) });
+      // Fetch active theme
+      const { data: theme } = await supabaseAdmin
+        .from('event_themes')
+        .select('html, css, config')
+        .eq('event_id', event.id)
+        .eq('is_active', true)
+        .single();
+
+      // Fetch custom fields
+      const { data: customFields } = await supabaseAdmin
+        .from('event_custom_fields')
+        .select('*')
+        .eq('event_id', event.id)
+        .order('sort_order', { ascending: true });
+
+      return res.status(200).json({
+        success: true,
+        event: formatEvent(event, theme, customFields)
+      });
     }
 
     if (action === 'rsvp') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-      const { eventId, name, status, phone, inviteId, responseData } = req.body || {};
+      const { eventId, name, status, email, phone, responseData, plusOnes, notes } = req.body || {};
 
       if (!eventId || !name || !status) {
         return res.status(400).json({ success: false, error: 'eventId, name, and status are required' });
       }
 
+      // Map frontend status values to enum
+      const statusMap = { yes: 'attending', no: 'declined', maybe: 'maybe' };
+      const guestStatus = statusMap[status] || status;
+
       const { data, error } = await supabaseAdmin
-        .from('rsvps')
+        .from('guests')
         .insert({
           event_id: eventId,
-          invite_id: inviteId || null,
           name,
+          email: email || null,
           phone: phone || null,
-          status,
-          response_data: responseData || {}
+          status: guestStatus,
+          response_data: responseData || {},
+          plus_ones: plusOnes || 0,
+          notes: notes || null,
+          responded_at: new Date().toISOString()
         })
         .select()
         .single();
 
       if (error) return res.status(400).json({ success: false, error: error.message });
 
-      return res.status(200).json({ success: true, rsvpId: data.id });
+      // Fire Zapier webhook if configured
+      const { data: event } = await supabaseAdmin
+        .from('events')
+        .select('zapier_webhook')
+        .eq('id', eventId)
+        .single();
+
+      if (event?.zapier_webhook) {
+        fetch(event.zapier_webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId, name, status: guestStatus, email, phone, responseData })
+        }).catch(() => {}); // fire and forget
+      }
+
+      return res.status(200).json({ success: true, guestId: data.id });
     }
 
-    // Authenticated actions
+    // ---- Authenticated actions ----
+
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
@@ -97,7 +139,7 @@ export default async function handler(req, res) {
     if (action === 'create') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-      const { title, description, eventDate, endDate, locationName, locationAddress, dressCode, eventType, prompt } = req.body || {};
+      const { title, description, eventDate, endDate, locationName, locationAddress, locationUrl, dressCode, eventType, timezone } = req.body || {};
 
       if (!title) return res.status(400).json({ success: false, error: 'Title is required' });
 
@@ -113,11 +155,12 @@ export default async function handler(req, res) {
           end_date: endDate || null,
           location_name: locationName || null,
           location_address: locationAddress || null,
+          location_url: locationUrl || null,
           dress_code: dressCode || null,
           event_type: eventType || null,
+          timezone: timezone || 'America/New_York',
           slug,
-          status: 'Draft',
-          prompt: prompt || null
+          status: 'draft'
         })
         .select()
         .single();
@@ -134,7 +177,7 @@ export default async function handler(req, res) {
 
       if (!eventId) return res.status(400).json({ success: false, error: 'eventId is required' });
 
-      // Map camelCase to snake_case
+      // Map camelCase to snake_case for events table
       const dbUpdates = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
@@ -142,15 +185,17 @@ export default async function handler(req, res) {
       if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate;
       if (updates.locationName !== undefined) dbUpdates.location_name = updates.locationName;
       if (updates.locationAddress !== undefined) dbUpdates.location_address = updates.locationAddress;
+      if (updates.locationUrl !== undefined) dbUpdates.location_url = updates.locationUrl;
       if (updates.dressCode !== undefined) dbUpdates.dress_code = updates.dressCode;
       if (updates.eventType !== undefined) dbUpdates.event_type = updates.eventType;
-      if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.prompt !== undefined) dbUpdates.prompt = updates.prompt;
-      if (updates.themeHtml !== undefined) dbUpdates.theme_html = updates.themeHtml;
-      if (updates.themeCss !== undefined) dbUpdates.theme_css = updates.themeCss;
-      if (updates.themeConfig !== undefined) dbUpdates.theme_config = typeof updates.themeConfig === 'string' ? JSON.parse(updates.themeConfig) : updates.themeConfig;
+      if (updates.timezone !== undefined) dbUpdates.timezone = updates.timezone;
+      if (updates.maxGuests !== undefined) dbUpdates.max_guests = updates.maxGuests;
+      if (updates.rsvpDeadline !== undefined) dbUpdates.rsvp_deadline = updates.rsvpDeadline;
       if (updates.zapierWebhook !== undefined) dbUpdates.zapier_webhook = updates.zapierWebhook;
-      if (updates.customFields !== undefined) dbUpdates.custom_fields = typeof updates.customFields === 'string' ? JSON.parse(updates.customFields) : updates.customFields;
+      if (updates.settings !== undefined) dbUpdates.settings = typeof updates.settings === 'string' ? JSON.parse(updates.settings) : updates.settings;
+
+      // Status: frontend sends "Published"/"Draft"/"Archived" — normalize to lowercase enum
+      if (updates.status !== undefined) dbUpdates.status = updates.status.toLowerCase();
 
       const { data, error } = await supabase
         .from('events')
@@ -162,7 +207,15 @@ export default async function handler(req, res) {
 
       if (error) return res.status(400).json({ success: false, error: error.message });
 
-      return res.status(200).json({ success: true, event: formatEvent(data) });
+      // Fetch active theme for the response
+      const { data: theme } = await supabaseAdmin
+        .from('event_themes')
+        .select('html, css, config')
+        .eq('event_id', eventId)
+        .eq('is_active', true)
+        .single();
+
+      return res.status(200).json({ success: true, event: formatEvent(data, theme) });
     }
 
     if (action === 'list') {
@@ -174,9 +227,22 @@ export default async function handler(req, res) {
 
       if (error) return res.status(400).json({ success: false, error: error.message });
 
+      // Fetch active themes for all events in one query
+      const eventIds = (data || []).map(e => e.id);
+      const { data: themes } = eventIds.length > 0
+        ? await supabaseAdmin
+            .from('event_themes')
+            .select('event_id, html, css, config')
+            .in('event_id', eventIds)
+            .eq('is_active', true)
+        : { data: [] };
+
+      const themeMap = {};
+      (themes || []).forEach(t => { themeMap[t.event_id] = t; });
+
       return res.status(200).json({
         success: true,
-        events: (data || []).map(formatEvent)
+        events: (data || []).map(e => formatEvent(e, themeMap[e.id]))
       });
     }
 
@@ -193,7 +259,20 @@ export default async function handler(req, res) {
 
       if (error || !data) return res.status(404).json({ success: false, error: 'Event not found' });
 
-      return res.status(200).json({ success: true, event: formatEvent(data) });
+      const { data: theme } = await supabaseAdmin
+        .from('event_themes')
+        .select('html, css, config')
+        .eq('event_id', eventId)
+        .eq('is_active', true)
+        .single();
+
+      const { data: customFields } = await supabaseAdmin
+        .from('event_custom_fields')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('sort_order', { ascending: true });
+
+      return res.status(200).json({ success: true, event: formatEvent(data, theme, customFields) });
     }
 
     if (action === 'rsvps') {
@@ -211,14 +290,29 @@ export default async function handler(req, res) {
       if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
 
       const { data, error } = await supabaseAdmin
-        .from('rsvps')
+        .from('guests')
         .select('*')
         .eq('event_id', eventId)
         .order('created_at', { ascending: false });
 
       if (error) return res.status(400).json({ success: false, error: error.message });
 
-      return res.status(200).json({ success: true, rsvps: data || [] });
+      return res.status(200).json({
+        success: true,
+        rsvps: (data || []).map(g => ({
+          id: g.id,
+          eventId: g.event_id,
+          name: g.name,
+          email: g.email,
+          phone: g.phone,
+          status: g.status,
+          responseData: g.response_data,
+          plusOnes: g.plus_ones,
+          notes: g.notes,
+          respondedAt: g.responded_at,
+          createdAt: g.created_at
+        }))
+      });
     }
 
     return res.status(400).json({ error: 'Unknown action' });
@@ -228,7 +322,10 @@ export default async function handler(req, res) {
   }
 }
 
-function formatEvent(row) {
+function formatEvent(row, theme, customFields) {
+  // Status: DB stores lowercase enum, frontend expects capitalized
+  const statusDisplay = row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Draft';
+
   return {
     id: row.id,
     userId: row.user_id,
@@ -236,18 +333,33 @@ function formatEvent(row) {
     description: row.description || '',
     eventDate: row.event_date || '',
     endDate: row.end_date || '',
+    timezone: row.timezone || 'America/New_York',
     locationName: row.location_name || '',
     locationAddress: row.location_address || '',
+    locationUrl: row.location_url || '',
     dressCode: row.dress_code || '',
     eventType: row.event_type || '',
+    maxGuests: row.max_guests,
+    rsvpDeadline: row.rsvp_deadline || '',
     slug: row.slug || '',
-    status: row.status || 'Draft',
-    prompt: row.prompt || '',
-    themeHtml: row.theme_html || '',
-    themeCss: row.theme_css || '',
-    themeConfig: row.theme_config || {},
+    status: statusDisplay,
+    settings: row.settings || {},
     zapierWebhook: row.zapier_webhook || '',
-    customFields: row.custom_fields || [],
+    // Theme from event_themes table
+    themeHtml: theme?.html || '',
+    themeCss: theme?.css || '',
+    themeConfig: theme?.config || {},
+    // Custom fields from event_custom_fields table
+    customFields: (customFields || []).map(f => ({
+      id: f.id,
+      key: f.field_key,
+      label: f.label,
+      type: f.field_type,
+      required: f.is_required,
+      options: f.options,
+      placeholder: f.placeholder,
+      sortOrder: f.sort_order
+    })),
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
