@@ -8,7 +8,9 @@ const supabase = createClient(
 
 const resend = new Resend(process.env.RESEND_API);
 
-const SITE_URL = process.env.SITE_URL || 'https://ryvite.com';
+const SITE_URL = process.env.VERCEL_DOMAIN
+  ? `https://${process.env.VERCEL_DOMAIN}`
+  : 'https://ryvite.com';
 
 function buildMagicLinkEmail(confirmUrl) {
   return `<!DOCTYPE html>
@@ -93,9 +95,8 @@ async function sendBrandedMagicLink(email, type) {
 
   if (error) throw error;
 
-  // The hashed_token is the token to use in the verification URL
-  // Build the verification URL that redirects to our site
-  const confirmUrl = `${process.env.SUPABASE_URL}/auth/v1/verify?token=${data.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
+  // Use the ready-made action_link from Supabase (includes token + redirect)
+  const confirmUrl = data.properties.action_link;
 
   const html = type === 'welcome'
     ? buildWelcomeEmail(confirmUrl)

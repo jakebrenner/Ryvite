@@ -118,6 +118,16 @@
       </div>
     </div>
 
+    <!-- Check Email Confirmation -->
+    <div id="checkEmailMode" style="display: none; text-align: center;">
+      <div style="font-size: 48px; margin-bottom: 16px;">&#9993;</div>
+      <h2 style="font-family: 'Playfair Display', serif; font-size: 24px; color: var(--midnight); margin-bottom: 12px;">Check your email</h2>
+      <p style="font-size: 14px; color: #666; margin-bottom: 8px;">We sent a login link to</p>
+      <p id="checkEmailAddress" style="font-size: 15px; font-weight: 600; color: var(--midnight); margin-bottom: 24px;"></p>
+      <p style="font-size: 13px; color: #999; margin-bottom: 24px;">Click the link in the email to sign in. It may take a minute to arrive.</p>
+      <button class="btn btn-primary" style="background: transparent; color: var(--party-coral); border: 1px solid var(--party-coral);" onclick="toggleMode('login')">Back to login</button>
+    </div>
+
     <div class="back-link"><a href="/">&larr; Back to Ryvite</a></div>
   </div>
 
@@ -191,8 +201,9 @@
     })();
 
     function toggleMode(mode) {
-      document.getElementById('loginMode').style.display = mode === 'signup' ? 'none' : 'block';
+      document.getElementById('loginMode').style.display = mode === 'login' ? 'block' : 'none';
       document.getElementById('signupMode').style.display = mode === 'signup' ? 'block' : 'none';
+      document.getElementById('checkEmailMode').style.display = mode === 'checkEmail' ? 'block' : 'none';
       messageEl.style.display = 'none';
     }
 
@@ -212,8 +223,9 @@
         });
         const result = await res.json();
         if (result.success) {
-          showMessage('Check your email for a login link!', 'success');
-          document.getElementById('email').value = '';
+          document.getElementById('checkEmailAddress').textContent = email;
+          toggleMode('checkEmail');
+          return;
         } else {
           showMessage(result.error || 'Error sending link', 'error');
         }
@@ -243,8 +255,9 @@
         });
         const result = await res.json();
         if (result.success) {
-          showMessage('Account created! Check your email for a login link.', 'success');
-          setTimeout(function() { toggleMode('login'); }, 2000);
+          document.getElementById('checkEmailAddress').textContent = email;
+          toggleMode('checkEmail');
+          return;
         } else {
           showMessage(result.error || 'Error creating account', 'error');
         }
