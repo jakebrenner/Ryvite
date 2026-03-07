@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         }
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/v2/thank-you?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/`
     });
 

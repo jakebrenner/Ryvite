@@ -1,8 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { verifySessionToken } from './auth.js';
+import { createClient } from '@supabase/supabase-js';
 
 const client = new Anthropic();
-const GAS_URL = process.env.GAS_URL;
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const SYSTEM_PROMPT = `You are Ryvite's invite designer — an expert at turning natural language event descriptions into beautiful, custom HTML/CSS invite themes.
 
@@ -60,23 +63,6 @@ If the user provides inspiration images, analyze them for:
 - Overall aesthetic direction
 Incorporate these visual cues into your design.`;
 
-async function callGAS(action, data) {
-  const response = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action, ...data }),
-    redirect: 'follow'
-  });
-  const text = await response.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    const match = text.match(/^[a-zA-Z_]\w*\(([\s\S]+)\)$/);
-    if (match) return JSON.parse(match[1]);
-    return null;
-  }
-}
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -85,21 +71,36 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Verify session token
+  // Verify session
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const session = verifySessionToken(authHeader.slice(7));
-  if (!session) {
-    return res.status(401).json({ error: 'Invalid or expired session' });
+  const token = authHeader.slice(7);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Invalid session' });
   }
 
-  const { eventId, userId, prompt, eventDetails, inspirationImages } = req.body;
+  const { eventId, prompt, eventDetails, inspirationImages } = req.body;
 
-  if (!eventId || !userId || !prompt || !eventDetails) {
+  if (!eventId || !prompt || !eventDetails) {
     return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  // Rate limiting: 5 per hour per user
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from('generation_log')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'success')
+    .gte('created_at', oneHourAgo);
+
+  if (count >= 5) {
+    return res.status(429).json({ error: 'Rate limit exceeded. Max 5 generations per hour.' });
   }
 
   const startTime = Date.now();
@@ -118,20 +119,16 @@ export default async function handler(req, res) {
 **Creative Direction:**
 ${prompt}`;
 
-    if (inspirationImages && inspirationImages.length > 0) {
+    if (inspirationImages?.length > 0) {
       userMessage += `\n\n**Visual Inspiration:** I've provided ${inspirationImages.length} image(s) as inspiration for color palette and mood.`;
     }
 
-    const messageContent = inspirationImages && inspirationImages.length > 0
+    const messageContent = inspirationImages?.length > 0
       ? [
           { type: 'text', text: userMessage },
           ...inspirationImages.map(img => ({
             type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/jpeg',
-              data: img
-            }
+            source: { type: 'base64', media_type: 'image/jpeg', data: img }
           }))
         ]
       : [{ type: 'text', text: userMessage }];
@@ -155,26 +152,28 @@ ${prompt}`;
       throw new Error('Invalid theme response from Claude');
     }
 
-    // Log generation (fire and forget)
-    callGAS('logGeneration', {
-      eventId,
-      userId,
+    // Log successful generation
+    await supabase.from('generation_log').insert({
+      event_id: eventId,
+      user_id: user.id,
       prompt,
       model: 'claude-sonnet-4-20250514',
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      latencyMs: latency,
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      latency_ms: latency,
       status: 'success'
     });
 
-    // Update event with theme (fire and forget)
-    callGAS('updateEvent', {
-      eventId,
-      userId,
-      themeHtml: theme.theme_html,
-      themeCss: theme.theme_css,
-      themeConfig: JSON.stringify(theme.theme_config)
-    });
+    // Update event with theme
+    await supabase
+      .from('events')
+      .update({
+        theme_html: theme.theme_html,
+        theme_css: theme.theme_css,
+        theme_config: theme.theme_config
+      })
+      .eq('id', eventId)
+      .eq('user_id', user.id);
 
     return res.status(200).json({
       success: true,
@@ -195,15 +194,15 @@ ${prompt}`;
   } catch (err) {
     console.error('Theme generation error:', err);
 
-    // Log error (fire and forget)
-    callGAS('logGeneration', {
-      eventId,
-      userId,
+    // Log error
+    await supabase.from('generation_log').insert({
+      event_id: eventId,
+      user_id: user.id,
       prompt,
       model: 'claude-sonnet-4-20250514',
-      inputTokens: 0,
-      outputTokens: 0,
-      latencyMs: Date.now() - startTime,
+      input_tokens: 0,
+      output_tokens: 0,
+      latency_ms: Date.now() - startTime,
       status: 'error',
       error: err.message
     });
