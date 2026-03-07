@@ -210,15 +210,21 @@ var _urlParams=new URLSearchParams(window.location.search);
 var _guestId=_urlParams.get("id")||"";
 var _eventId=_urlParams.get("eid")||"";
 var _customFields=[];
+var _webhookUrl="";
+var _smsTemplate="";
 
-// Load settings (including custom fields) from the sheet
+// Load settings (including custom fields, webhook, sms template) from the sheet
 (function loadEventSettings(){
   var eid=_eventId?"&eventId="+encodeURIComponent(_eventId):"";
   fetch(API_URL+"?action=getSettings"+eid)
     .then(function(res){return res.json();})
     .then(function(data){
-      if(data&&data.customFields&&data.customFields.length){_customFields=data.customFields;renderCustomFieldInputs(_customFields);}
-      else{renderDefaultFields();}
+      if(data){
+        if(data.zapierWebhook)_webhookUrl=data.zapierWebhook;
+        if(data.smsMessage)_smsTemplate=data.smsMessage;
+        if(data.customFields&&data.customFields.length){_customFields=data.customFields;renderCustomFieldInputs(_customFields);}
+        else{renderDefaultFields();}
+      }else{renderDefaultFields();}
     })
     .catch(function(){renderDefaultFields();});
 })();
@@ -261,12 +267,34 @@ form.addEventListener("submit",function(e){
     var val=fd.get("cf_"+f.key);
     if(val!==null)responseData[f.key]=val;
   });
-  var d={action:"rsvp",name:name,phone:phone,attending:attending==="Yes",responseData:responseData};
+  var isAttending=attending==="Yes";
+  var d={action:"rsvp",name:name,phone:phone,attending:isAttending,responseData:responseData};
   if(_guestId)d.inviteId=_guestId;
   if(_eventId)d.eventId=_eventId;
   form.style.display="none";
   document.getElementById("loadingMsg").style.display="block";
-  fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(){ok();}).catch(function(err){console.error("RSVP submission failed:",err);ok();});
+  fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(){
+    // Fire SMS notification webhook if configured
+    if(_webhookUrl){
+      var answersText="";
+      _customFields.forEach(function(f){
+        if(responseData[f.key]!==undefined)answersText+=(answersText?", ":"")+f.label+": "+responseData[f.key];
+      });
+      var msg=_smsTemplate||"New RSVP from {name} ({phone}): {attending}. {answers}";
+      msg=msg.replace(/\{name\}/g,name).replace(/\{phone\}/g,phone).replace(/\{attending\}/g,isAttending?"Attending":"Not Attending").replace(/\{answers\}/g,answersText);
+      fetch("/api/webhook",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        webhookUrl:_webhookUrl,
+        name:name,
+        phone:phone,
+        attending:isAttending?"Attending":"Not Attending",
+        answers:answersText,
+        responseData:responseData,
+        message:msg,
+        eventId:_eventId||""
+      })}).catch(function(err){console.error("Webhook error:",err);});
+    }
+    ok();
+  }).catch(function(err){console.error("RSVP submission failed:",err);ok();});
 });
 function ok(){
   document.getElementById("loadingMsg").style.display="none";
