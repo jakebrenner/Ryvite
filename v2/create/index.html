@@ -322,6 +322,119 @@
     var user = JSON.parse(localStorage.getItem('v2_user') || 'null');
     if (!token || !user) { window.location.href = '/v2/login/'; }
 
+    // ---- Token Refresh ----
+    var isRefreshing = false;
+    var refreshPromise = null;
+
+    async function refreshToken() {
+      if (isRefreshing) return refreshPromise;
+      isRefreshing = true;
+      refreshPromise = (async function() {
+        var rt = localStorage.getItem('sb_refresh_token');
+        if (!rt) { window.location.href = '/v2/login/'; return false; }
+        try {
+          var res = await fetch('/api/v2/auth?action=refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: rt })
+          });
+          var result = await res.json();
+          if (result.success) {
+            token = result.accessToken;
+            localStorage.setItem('sb_access_token', result.accessToken);
+            localStorage.setItem('sb_refresh_token', result.refreshToken);
+            return true;
+          }
+        } catch (e) {}
+        window.location.href = '/v2/login/';
+        return false;
+      })();
+      isRefreshing = false;
+      return refreshPromise;
+    }
+
+    // Wrapper for fetch that auto-retries on 401 with refreshed token
+    async function authFetch(url, opts) {
+      opts = opts || {};
+      opts.headers = opts.headers || {};
+      opts.headers['Authorization'] = 'Bearer ' + token;
+      var res = await fetch(url, opts);
+      if (res.status === 401) {
+        var refreshed = await refreshToken();
+        if (refreshed) {
+          opts.headers['Authorization'] = 'Bearer ' + token;
+          res = await fetch(url, opts);
+        }
+      }
+      return res;
+    }
+
+    // Refresh on page load if token might be stale, then check for resume
+    (async function() {
+      try {
+        var res = await fetch('/api/v2/auth?action=profile', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) await refreshToken();
+      } catch (e) {}
+
+      // Resume existing draft if ?eventId= is in the URL
+      var urlParams = new URLSearchParams(window.location.search);
+      var resumeId = urlParams.get('eventId');
+      if (resumeId) {
+        try {
+          var res = await authFetch('/api/v2/events?action=get&eventId=' + encodeURIComponent(resumeId));
+          var result = await res.json();
+          if (result.success && result.event) {
+            var ev = result.event;
+            currentEvent = { id: ev.id, slug: ev.slug };
+            extractedData = {
+              title: ev.title || '',
+              eventType: ev.eventType || 'other',
+              startDate: ev.eventDate || '',
+              endDate: ev.endDate || '',
+              locationName: ev.locationName || '',
+              locationAddress: ev.locationAddress || '',
+              dressCode: ev.dressCode || '',
+              description: ev.description || '',
+              prompt: ''
+            };
+            // Restore RSVP fields
+            if (ev.customFields && ev.customFields.length > 0) {
+              rsvpFields = ev.customFields.map(function(f) {
+                return { field_key: f.key, label: f.label, field_type: f.type, is_required: f.required, options: f.options, placeholder: f.placeholder, enabled: true };
+              });
+            }
+            // Restore theme versions
+            if (ev.themeVersions && ev.themeVersions.length > 0) {
+              themeVersions = ev.themeVersions;
+              activeVersionIndex = ev.themeVersions.findIndex(function(t) { return t.isActive; });
+              if (activeVersionIndex < 0) activeVersionIndex = ev.themeVersions.length - 1;
+            } else if (ev.themeHtml) {
+              themeVersions = [{ id: null, version: 1, html: ev.themeHtml, css: ev.themeCss, config: ev.themeConfig }];
+              activeVersionIndex = 0;
+            }
+            // Jump to the right step
+            var step = (ev.settings && ev.settings.creation_step) || 2;
+            if (step === 4 && themeVersions.length > 0) {
+              goToStep(4);
+            } else if (step >= 3 && themeVersions.length > 0) {
+              // Has theme — show preview
+              document.getElementById('generatingView').style.display = 'none';
+              document.getElementById('generatedView').style.display = 'block';
+              renderPreview(themeVersions[0]);
+              renderVersionGallery();
+              goToStep(3);
+            } else {
+              // Has details but no theme — go to creative direction
+              goToStep(2);
+            }
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to resume event:', e);
+        }
+      }
+    })();
+
     // ---- Chat Functions ----
 
     async function sendMessage() {
@@ -346,9 +459,9 @@
       scrollChat();
 
       try {
-        var res = await fetch('/api/v2/chat', {
+        var res = await authFetch('/api/v2/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: chatHistory })
         });
         var result = await res.json();
@@ -535,10 +648,49 @@
       cancelAddField();
     }
 
-    function proceedToCreativeDirection() {
+    async function proceedToCreativeDirection() {
       if (extractedData.prompt) {
         document.getElementById('prompt').value = extractedData.prompt;
       }
+
+      // Create the event in the DB immediately so progress is saved
+      if (!currentEvent) {
+        try {
+          // Ensure profile exists
+          await authFetch('/api/v2/auth?action=profile');
+
+          var res = await authFetch('/api/v2/events?action=create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: extractedData.title || 'Untitled Event',
+              description: extractedData.description || '',
+              eventDate: extractedData.startDate || '',
+              endDate: extractedData.endDate || '',
+              locationName: extractedData.locationName || '',
+              locationAddress: extractedData.locationAddress || '',
+              dressCode: extractedData.dressCode || '',
+              eventType: extractedData.eventType || 'other',
+              settings: { creation_step: 2 }
+            })
+          });
+          var result = await res.json();
+          if (result.success) {
+            currentEvent = { id: result.eventId, slug: result.slug };
+            // Save RSVP fields immediately
+            await saveCustomFields();
+            // Update URL so refreshing resumes this event
+            window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
+          } else {
+            showMessage(result.error || 'Error creating event', 'error');
+            return;
+          }
+        } catch (err) {
+          showMessage('Error saving event. Please try again.', 'error');
+          return;
+        }
+      }
+
       goToStep(2);
     }
 
@@ -562,8 +714,23 @@
       });
 
       currentStep = step;
-      if (step === 3) generateTheme();
-      else if (step === 4) showSummary();
+      if (step === 3 && !themeVersions.length) generateTheme();
+      else if (step === 3 && themeVersions.length) {
+        // Returning to step 3 with existing themes — show preview
+        document.getElementById('generatingView').style.display = 'none';
+        document.getElementById('generatedView').style.display = 'block';
+        renderPreview(themeVersions[activeVersionIndex]);
+        renderVersionGallery();
+      }
+      if (step === 4) {
+        showSummary();
+        if (currentEvent) {
+          authFetch('/api/v2/events?action=update', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 4 } })
+          }).catch(function() {});
+        }
+      }
     }
 
     function nextStep() { if (currentStep < totalSteps) goToStep(currentStep + 1); }
@@ -585,47 +752,18 @@
       document.getElementById('generatingView').style.display = 'block';
       document.getElementById('generatedView').style.display = 'none';
 
-      // Ensure profile exists before creating event
       if (!currentEvent) {
-        try {
-          await fetch('/api/v2/auth?action=profile', {
-            headers: { 'Authorization': 'Bearer ' + token }
-          });
-        } catch (e) { /* ignore */ }
+        showMessage('Event not saved yet. Please go back and confirm your details.', 'error');
+        goToStep(1);
+        return;
       }
 
-      if (!currentEvent) {
-        try {
-          var res = await fetch('/api/v2/events?action=create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({
-              title: extractedData.title || 'Untitled Event',
-              description: extractedData.description || '',
-              eventDate: extractedData.startDate || '',
-              endDate: extractedData.endDate || '',
-              locationName: extractedData.locationName || '',
-              locationAddress: extractedData.locationAddress || '',
-              dressCode: extractedData.dressCode || '',
-              eventType: extractedData.eventType || 'other'
-            })
-          });
-          var result = await res.json();
-          if (result.success) {
-            currentEvent = { id: result.eventId, slug: result.slug };
-            // Save enabled RSVP custom fields
-            await saveCustomFields();
-          } else {
-            showMessage(result.error || 'Error creating event', 'error');
-            goToStep(2);
-            return;
-          }
-        } catch (err) {
-          showMessage('Error creating event. Please try again.', 'error');
-          goToStep(2);
-          return;
-        }
-      }
+      // Update progress to step 3
+      authFetch('/api/v2/events?action=update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 3 } })
+      }).catch(function() {});
 
       try {
         var promptText = document.getElementById('prompt').value || extractedData.prompt || '';
@@ -646,18 +784,18 @@
           },
           inspirationImages: inspirationImageBase64Array
         };
-        var res2 = await fetch('/api/v2/generate-theme', {
+        var res2 = await authFetch('/api/v2/generate-theme', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (res2.status === 413) {
           // Payload too large — retry without images
           console.warn('Payload too large, retrying without inspiration images');
           payload.inspirationImages = [];
-          res2 = await fetch('/api/v2/generate-theme', {
+          res2 = await authFetch('/api/v2/generate-theme', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
         }
@@ -725,9 +863,9 @@
       renderPreview(ver);
       renderVersionGallery();
       // Activate this version in the DB
-      fetch('/api/v2/events?action=activateTheme', {
+      authFetch('/api/v2/events?action=activateTheme', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId: currentEvent.id, themeId: ver.id })
       }).catch(function() {});
     }
@@ -772,9 +910,9 @@
       // Save to DB
       if (currentEvent) {
         try {
-          await fetch('/api/v2/events?action=update', {
+          await authFetch('/api/v2/events?action=update', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               eventId: currentEvent.id,
               title: extractedData.title,
@@ -796,9 +934,9 @@
       if (enabledFields.length === 0 || !currentEvent) return;
 
       try {
-        await fetch('/api/v2/events?action=saveFields', {
+        await authFetch('/api/v2/events?action=saveFields', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             eventId: currentEvent.id,
             fields: enabledFields.map(function(f, i) {
@@ -966,9 +1104,9 @@
       var btn = document.getElementById('publishBtn');
       btn.disabled = true; btn.textContent = 'Publishing...';
       try {
-        var res = await fetch('/api/v2/events?action=update', {
+        var res = await authFetch('/api/v2/events?action=update', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ eventId: currentEvent.id, status: 'Published' })
         });
         var result = await res.json();

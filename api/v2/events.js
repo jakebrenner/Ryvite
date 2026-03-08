@@ -139,7 +139,7 @@ export default async function handler(req, res) {
     if (action === 'create') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-      const { title, description, eventDate, endDate, locationName, locationAddress, locationUrl, dressCode, eventType, timezone } = req.body || {};
+      const { title, description, eventDate, endDate, locationName, locationAddress, locationUrl, dressCode, eventType, timezone, settings } = req.body || {};
 
       if (!title) return res.status(400).json({ success: false, error: 'Title is required' });
 
@@ -179,7 +179,8 @@ export default async function handler(req, res) {
           event_type: eventType || null,
           timezone: timezone || 'America/New_York',
           slug,
-          status: 'draft'
+          status: 'draft',
+          settings: settings || { creation_step: 1 }
         })
         .select()
         .single();
@@ -211,7 +212,13 @@ export default async function handler(req, res) {
       if (updates.maxGuests !== undefined) dbUpdates.max_guests = updates.maxGuests;
       if (updates.rsvpDeadline !== undefined) dbUpdates.rsvp_deadline = updates.rsvpDeadline;
       if (updates.zapierWebhook !== undefined) dbUpdates.zapier_webhook = updates.zapierWebhook;
-      if (updates.settings !== undefined) dbUpdates.settings = typeof updates.settings === 'string' ? JSON.parse(updates.settings) : updates.settings;
+      // Settings: merge with existing instead of overwrite
+      if (updates.settings !== undefined) {
+        const newSettings = typeof updates.settings === 'string' ? JSON.parse(updates.settings) : updates.settings;
+        // Fetch current settings to merge
+        const { data: currentRow } = await supabaseAdmin.from('events').select('settings').eq('id', eventId).single();
+        dbUpdates.settings = { ...(currentRow?.settings || {}), ...newSettings };
+      }
 
       // Status: frontend sends "Published"/"Draft"/"Archived" — normalize to lowercase enum
       if (updates.status !== undefined) dbUpdates.status = updates.status.toLowerCase();
@@ -285,13 +292,24 @@ export default async function handler(req, res) {
         .eq('is_active', true)
         .single();
 
+      const { data: allThemes } = await supabaseAdmin
+        .from('event_themes')
+        .select('id, version, html, css, config, is_active')
+        .eq('event_id', eventId)
+        .order('version', { ascending: true });
+
       const { data: customFields } = await supabaseAdmin
         .from('event_custom_fields')
         .select('*')
         .eq('event_id', eventId)
         .order('sort_order', { ascending: true });
 
-      return res.status(200).json({ success: true, event: formatEvent(data, theme, customFields) });
+      const formatted = formatEvent(data, theme, customFields);
+      formatted.themeVersions = (allThemes || []).map(t => ({
+        id: t.id, version: t.version, html: t.html, css: t.css, config: t.config, isActive: t.is_active
+      }));
+
+      return res.status(200).json({ success: true, event: formatted });
     }
 
     if (action === 'rsvps') {

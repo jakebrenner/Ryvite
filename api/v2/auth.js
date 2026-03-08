@@ -105,6 +105,26 @@ export default async function handler(req, res) {
       });
     }
 
+    if (action === 'refresh') {
+      const { refreshToken } = req.body || {};
+      if (!refreshToken) return res.status(400).json({ success: false, error: 'refreshToken is required' });
+
+      // Create a temporary client to perform the refresh
+      const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+      const { data, error } = await userClient.auth.refreshSession({ refresh_token: refreshToken });
+
+      if (error || !data.session) {
+        return res.status(401).json({ success: false, error: 'Refresh failed — please log in again' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        expiresAt: data.session.expires_at
+      });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
   } catch (err) {
     console.error('Auth error:', err);

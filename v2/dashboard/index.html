@@ -43,6 +43,9 @@
     .status-draft { background: #fff3cd; color: #856404; }
     .status-published { background: #d4edda; color: #155724; }
     .status-archived { background: #e2e3e5; color: #383d41; }
+    .progress-track { width: 100%; height: 6px; background: #eee; border-radius: 3px; margin: 12px 0 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+    .progress-label { font-size: 11px; color: #999; }
     .event-actions { display: flex; gap: 8px; }
     .event-actions button, .event-actions a {
       flex: 1; padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 4px;
@@ -92,17 +95,52 @@
       document.getElementById('headerUser').textContent = user.displayName || user.email || '';
     }
 
-    // Validate token on load — if expired, clear and redirect
+    // ---- Token Refresh ----
+    async function refreshToken() {
+      var rt = localStorage.getItem('sb_refresh_token');
+      if (!rt) { logout(); return false; }
+      try {
+        var res = await fetch('/api/v2/auth?action=refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt })
+        });
+        var result = await res.json();
+        if (result.success) {
+          token = result.accessToken;
+          localStorage.setItem('sb_access_token', result.accessToken);
+          localStorage.setItem('sb_refresh_token', result.refreshToken);
+          return true;
+        }
+      } catch (e) {}
+      logout();
+      return false;
+    }
+
+    async function authFetch(url, opts) {
+      opts = opts || {};
+      opts.headers = opts.headers || {};
+      opts.headers['Authorization'] = 'Bearer ' + token;
+      var res = await fetch(url, opts);
+      if (res.status === 401) {
+        var refreshed = await refreshToken();
+        if (refreshed) {
+          opts.headers['Authorization'] = 'Bearer ' + token;
+          res = await fetch(url, opts);
+        }
+      }
+      return res;
+    }
+
+    // Validate token on load — if expired, try refresh
     async function validateSession() {
       if (!token) return;
       try {
         const res = await fetch('/api/v2/auth?action=profile', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
-        const result = await res.json();
-        if (!result.success) {
-          logout();
-          return;
+        if (!res.ok) {
+          await refreshToken();
         }
       } catch (err) {
         // Network error — don't log out, just proceed with cached data
@@ -119,9 +157,7 @@
 
     async function loadDashboard() {
       try {
-        const res = await fetch('/api/v2/events?action=list', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const res = await authFetch('/api/v2/events?action=list');
         const result = await res.json();
         document.getElementById('loading').style.display = 'none';
 
@@ -136,12 +172,39 @@
       }
     }
 
+    function getProgressInfo(event) {
+      var step = (event.settings && event.settings.creation_step) || 1;
+      var status = (event.status || 'Draft').toLowerCase();
+      if (status === 'published') return { pct: 100, label: 'Published', color: 'var(--mint-fizz)' };
+      if (status === 'archived') return { pct: 100, label: 'Archived', color: '#ccc' };
+      var steps = { 1: { pct: 25, label: 'Event details' }, 2: { pct: 50, label: 'Creative direction' }, 3: { pct: 75, label: 'Theme generated' }, 4: { pct: 90, label: 'Ready to publish' } };
+      var s = steps[step] || steps[1];
+      return { pct: s.pct, label: s.label, color: 'var(--confetti-gold)' };
+    }
+
     function renderEvents(events) {
       const grid = document.getElementById('eventGrid');
       grid.innerHTML = events.map(function(event) {
         const eventDate = event.eventDate ? new Date(event.eventDate).toLocaleDateString() : 'No date set';
         const statusClass = 'status-' + (event.status || 'draft').toLowerCase();
+        const isDraft = (event.status || 'Draft').toLowerCase() === 'draft';
         const inviteUrl = window.location.origin + '/v2/event/?slug=' + encodeURIComponent(event.slug);
+        const prog = getProgressInfo(event);
+
+        var progressHtml = '';
+        if (isDraft) {
+          progressHtml = '<div class="progress-track"><div class="progress-fill" style="width:' + prog.pct + '%;background:' + prog.color + ';"></div></div>'
+            + '<div class="progress-label">' + prog.pct + '% — ' + escapeHtml(prog.label) + '</div>';
+        }
+
+        var actionsHtml = '<div class="event-actions">';
+        if (isDraft) {
+          actionsHtml += '<a href="/v2/create/?eventId=' + encodeURIComponent(event.id) + '">Continue</a>';
+        } else {
+          actionsHtml += '<a href="/v2/event/?slug=' + encodeURIComponent(event.slug) + '" target="_blank">View</a>';
+        }
+        actionsHtml += '<button onclick="archiveEvent(\'' + event.id + '\', this)">Archive</button>';
+        actionsHtml += '</div>';
 
         return '<div class="event-card">'
           + '<div class="event-card-header">'
@@ -153,11 +216,10 @@
           + '<span>' + escapeHtml(event.locationName || 'No location') + '</span>'
           + '<span class="status-badge ' + statusClass + '">' + (event.status || 'Draft') + '</span>'
           + '</div>'
+          + progressHtml
           + (event.status === 'Published' ? '<div class="invite-link-row"><input class="invite-link-input" value="' + escapeHtml(inviteUrl) + '" readonly onclick="this.select()"><button class="copy-btn" onclick="copyLink(this, \'' + escapeHtml(inviteUrl) + '\')">Copy</button></div>' : '')
-          + '<div class="event-actions">'
-          + '<a href="/v2/event/?slug=' + encodeURIComponent(event.slug) + '" target="_blank">View</a>'
-          + '<button onclick="archiveEvent(\'' + event.id + '\', this)">Archive</button>'
-          + '</div></div></div>';
+          + actionsHtml
+          + '</div></div>';
       }).join('');
       grid.style.display = 'grid';
     }
@@ -173,9 +235,9 @@
       if (!confirm('Archive this event?')) return;
       btn.disabled = true; btn.textContent = 'Archiving...';
       try {
-        await fetch('/api/v2/events?action=update', {
+        await authFetch('/api/v2/events?action=update', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ eventId, status: 'Archived' })
         });
         showToast('Event archived');
