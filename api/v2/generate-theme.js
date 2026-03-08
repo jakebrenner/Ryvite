@@ -86,9 +86,12 @@ export default async function handler(req, res) {
 
   const { eventId, prompt, eventDetails, inspirationImages } = req.body;
 
-  if (!eventId || !prompt || !eventDetails) {
+  if (!eventId || !eventDetails) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
+  const effectivePrompt = prompt || `Create a beautiful invite for a ${eventDetails.eventType || 'event'}`;
+
 
   // Rate limiting: 5 per hour per user
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -117,7 +120,7 @@ export default async function handler(req, res) {
 - Event Type: ${eventDetails.eventType}
 
 **Creative Direction:**
-${prompt}`;
+${effectivePrompt}`;
 
     if (inspirationImages?.length > 0) {
       userMessage += `\n\n**Visual Inspiration:** I've provided ${inspirationImages.length} image(s) as inspiration for color palette and mood.`;
@@ -176,7 +179,7 @@ ${prompt}`;
         event_id: eventId,
         version: nextVersion,
         is_active: true,
-        prompt,
+        prompt: effectivePrompt,
         html: theme.theme_html,
         css: theme.theme_css,
         config: theme.theme_config,
@@ -196,7 +199,7 @@ ${prompt}`;
     await supabase.from('generation_log').insert({
       event_id: eventId,
       user_id: user.id,
-      prompt,
+      prompt: effectivePrompt,
       model: 'claude-sonnet-4-20250514',
       input_tokens: response.usage.input_tokens,
       output_tokens: response.usage.output_tokens,
@@ -229,7 +232,7 @@ ${prompt}`;
     await supabase.from('generation_log').insert({
       event_id: eventId,
       user_id: user.id,
-      prompt,
+      prompt: effectivePrompt,
       model: 'claude-sonnet-4-20250514',
       input_tokens: 0,
       output_tokens: 0,

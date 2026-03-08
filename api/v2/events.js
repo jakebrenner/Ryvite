@@ -143,9 +143,28 @@ export default async function handler(req, res) {
 
       if (!title) return res.status(400).json({ success: false, error: 'Title is required' });
 
+      // Ensure profile exists (may not have been created by trigger)
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (!existingProfile) {
+        await supabaseAdmin
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            display_name: user.user_metadata?.display_name || '',
+            phone: user.user_metadata?.phone || null
+          });
+      }
+
       const slug = generateSlug(title);
 
-      const { data, error } = await supabase
+      // Use admin client to bypass RLS — user is already authenticated
+      const { data, error } = await supabaseAdmin
         .from('events')
         .insert({
           user_id: user.id,
