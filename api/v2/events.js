@@ -216,7 +216,7 @@ export default async function handler(req, res) {
       // Status: frontend sends "Published"/"Draft"/"Archived" — normalize to lowercase enum
       if (updates.status !== undefined) dbUpdates.status = updates.status.toLowerCase();
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('events')
         .update(dbUpdates)
         .eq('id', eventId)
@@ -377,6 +377,23 @@ export default async function handler(req, res) {
 
         if (error) return res.status(400).json({ success: false, error: error.message });
       }
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- ACTIVATE THEME VERSION ----
+    if (action === 'activateTheme') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { eventId, themeId } = req.body || {};
+      if (!eventId || !themeId) return res.status(400).json({ error: 'eventId and themeId required' });
+
+      // Verify ownership
+      const { data: ev } = await supabaseAdmin.from('events').select('id').eq('id', eventId).eq('user_id', user.id).single();
+      if (!ev) return res.status(403).json({ error: 'Not your event' });
+
+      // Deactivate all, activate selected
+      await supabaseAdmin.from('event_themes').update({ is_active: false }).eq('event_id', eventId);
+      await supabaseAdmin.from('event_themes').update({ is_active: true }).eq('id', themeId).eq('event_id', eventId);
 
       return res.status(200).json({ success: true });
     }

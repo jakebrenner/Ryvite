@@ -24,7 +24,7 @@
     .step-dot { width: 32px; height: 32px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #999; transition: all 0.3s; }
     .step-dot.active { background: var(--party-coral); color: white; }
     .step-dot.completed { background: var(--mint-fizz); color: white; }
-    .container { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
     .step { display: none; animation: fadeIn 0.3s; }
     .step.active { display: flex; flex-direction: column; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -121,6 +121,32 @@
     .progress-bar-fill { height: 100%; background: var(--party-coral); animation: progress 3s ease-in-out infinite; }
     @keyframes progress { 0% { width: 10%; } 50% { width: 80%; } 100% { width: 100%; } }
     .preview-frame { width: 100%; border: 1px solid #ddd; border-radius: 6px; height: 600px; }
+
+    /* Phone mockup */
+    .phone-mockup { position: relative; width: 320px; margin: 24px auto; }
+    .phone-frame { background: #1a1a1a; border-radius: 40px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.2), inset 0 0 0 2px #333; }
+    .phone-notch { width: 120px; height: 28px; background: #1a1a1a; border-radius: 0 0 16px 16px; margin: 0 auto; position: relative; z-index: 2; margin-bottom: -14px; }
+    .phone-screen { background: white; border-radius: 30px; overflow: hidden; height: 580px; position: relative; }
+    .phone-screen iframe { width: 100%; height: 100%; border: none; border-radius: 30px; }
+    .phone-home-bar { width: 120px; height: 4px; background: #555; border-radius: 2px; margin: 8px auto 0; }
+
+    /* Version gallery */
+    .version-gallery { display: flex; gap: 8px; margin: 16px auto; justify-content: center; flex-wrap: wrap; max-width: 420px; }
+    .version-thumb { width: 56px; height: 56px; border-radius: 8px; border: 2px solid #ddd; cursor: pointer; overflow: hidden; transition: all 0.2s; position: relative; background: #f0f0f0; }
+    .version-thumb.active { border-color: var(--party-coral); box-shadow: 0 0 0 2px rgba(233,69,96,0.3); }
+    .version-thumb:hover { border-color: var(--party-coral); }
+    .version-thumb iframe { width: 375px; height: 667px; border: none; transform: scale(0.149); transform-origin: top left; pointer-events: none; }
+    .version-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; font-size: 9px; text-align: center; padding: 2px 0; font-weight: 600; }
+
+    /* Feedback modal */
+    .feedback-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
+    .feedback-modal { background: white; border-radius: 12px; padding: 28px; max-width: 480px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .feedback-modal h3 { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 8px; }
+    .feedback-modal p { font-size: 13px; color: #666; margin-bottom: 16px; }
+    .feedback-modal textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; resize: vertical; }
+    .feedback-modal textarea:focus { outline: none; border-color: var(--party-coral); box-shadow: 0 0 0 3px rgba(233,69,96,0.1); }
+    .feedback-modal .feedback-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+
     .summary-item { background: #f9f9f9; padding: 16px; border-radius: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .summary-label { font-weight: 600; }
     .summary-value { color: #666; font-size: 14px; text-align: right; max-width: 60%; }
@@ -198,12 +224,69 @@
       </div>
       <div id="generatedView" style="display: none;">
         <h2>Preview Your Theme</h2>
-        <p class="step-desc">Love it? Continue to publish. Want to tweak it? Regenerate.</p>
-        <iframe id="previewFrame" class="preview-frame" style="margin: 20px 0;"></iframe>
+        <p class="step-desc">Love it? Continue to publish. Switch between versions below.</p>
+        <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="flex:1;min-width:340px;">
+            <div class="phone-mockup">
+              <div class="phone-frame">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                  <iframe id="previewFrame"></iframe>
+                </div>
+                <div class="phone-home-bar"></div>
+              </div>
+            </div>
+            <div id="versionGallery" class="version-gallery"></div>
+          </div>
+          <div id="editPanel" style="flex:1;min-width:280px;max-width:360px;display:none;">
+            <div style="background:white;border:1px solid #eee;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+              <h3 style="font-family:'Playfair Display',serif;font-size:18px;margin-bottom:16px;">Edit Details</h3>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;">Title</label>
+                <input type="text" id="editTitle" style="font-size:13px;padding:8px 10px;">
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;">Date</label>
+                <input type="datetime-local" id="editDate" style="font-size:13px;padding:8px 10px;">
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;">End Date</label>
+                <input type="datetime-local" id="editEndDate" style="font-size:13px;padding:8px 10px;">
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;">Location Name</label>
+                <input type="text" id="editLocation" style="font-size:13px;padding:8px 10px;">
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;">Location Address</label>
+                <input type="text" id="editAddress" style="font-size:13px;padding:8px 10px;">
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;">Dress Code</label>
+                <input type="text" id="editDressCode" style="font-size:13px;padding:8px 10px;">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="saveEditedDetails()" style="width:100%;margin-top:8px;">Save Changes</button>
+              <p style="font-size:11px;color:#999;margin-top:8px;text-align:center;">Changes are saved to the event. Design is not affected — use "Generate Another Option" to create a new design.</p>
+            </div>
+          </div>
+        </div>
         <div class="button-group">
-          <button class="btn btn-secondary" onclick="goToStep(2)">Edit Details</button>
-          <button class="btn btn-secondary" onclick="regenerateTheme()">Regenerate</button>
+          <button class="btn btn-secondary" onclick="toggleEditPanel()">Edit Details</button>
+          <button class="btn btn-secondary" onclick="showFeedbackModal()">Generate Another Option</button>
           <button class="btn btn-primary" onclick="nextStep()">Next: Publish</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="feedback-overlay" style="display:none;" onclick="if(event.target===this)closeFeedbackModal()">
+      <div class="feedback-modal">
+        <h3>What would you change?</h3>
+        <p>Tell us what you liked and didn't like about the current design. This feedback will guide the next version.</p>
+        <textarea id="feedbackText" placeholder="e.g. 'Love the colors but make the text bigger. Add more spacing between sections. Make it feel more luxurious.'"></textarea>
+        <div class="feedback-actions">
+          <button class="btn btn-secondary" onclick="closeFeedbackModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="regenerateWithFeedback()">Generate New Version</button>
         </div>
       </div>
     </div>
@@ -227,6 +310,8 @@
     let inspirationImageBase64Array = [];
     let extractedData = {};
     let rsvpFields = []; // { field_key, label, field_type, is_required, options, placeholder, enabled }
+    let themeVersions = []; // [{id, version, html, css, config}]
+    let activeVersionIndex = 0;
     let chatHistory = [];
 
     var ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
@@ -496,7 +581,7 @@
 
     // ---- Theme Generation ----
 
-    async function generateTheme() {
+    async function generateTheme(feedback) {
       document.getElementById('generatingView').style.display = 'block';
       document.getElementById('generatedView').style.display = 'none';
 
@@ -544,9 +629,12 @@
 
       try {
         var promptText = document.getElementById('prompt').value || extractedData.prompt || '';
+        var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
         var payload = {
           eventId: currentEvent.id,
           prompt: promptText,
+          feedback: feedback || '',
+          rsvpFields: enabledFields.map(function(f) { return { label: f.label, field_type: f.field_type, is_required: f.is_required }; }),
           eventDetails: {
             title: extractedData.title || 'Untitled Event',
             eventDate: extractedData.startDate || '',
@@ -575,14 +663,22 @@
         }
         var result2 = await res2.json();
         if (result2.success) {
-          currentEvent.themeHtml = result2.theme.html;
-          currentEvent.themeCss = result2.theme.css;
-          currentEvent.themeConfig = result2.theme.config;
+          var ver = {
+            id: result2.theme.id,
+            version: result2.theme.version,
+            html: result2.theme.html,
+            css: result2.theme.css,
+            config: result2.theme.config
+          };
+          themeVersions.push(ver);
+          activeVersionIndex = themeVersions.length - 1;
+          currentEvent.themeHtml = ver.html;
+          currentEvent.themeCss = ver.css;
+          currentEvent.themeConfig = ver.config;
           document.getElementById('generatingView').style.display = 'none';
           document.getElementById('generatedView').style.display = 'block';
-          var iframe = document.getElementById('previewFrame');
-          var fontsImport = result2.theme.config.googleFontsImport || '';
-          iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; } ' + fontsImport + '</style><style>' + result2.theme.css + '</style></head><body>' + result2.theme.html + '</body></html>';
+          renderPreview(ver);
+          renderVersionGallery();
         } else {
           showMessage(result2.error || 'Failed to generate theme', 'error');
           goToStep(2);
@@ -593,7 +689,107 @@
       }
     }
 
-    function regenerateTheme() { generateTheme(); }
+    function buildSrcdoc(ver) {
+      var fontsImport = ver.config.googleFontsImport || '';
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 16px; } ' + fontsImport + '</style>'
+        + '<style>' + ver.css + '</style></head><body>' + ver.html + '</body></html>';
+    }
+
+    function renderPreview(ver) {
+      document.getElementById('previewFrame').srcdoc = buildSrcdoc(ver);
+    }
+
+    function renderVersionGallery() {
+      var gallery = document.getElementById('versionGallery');
+      if (themeVersions.length <= 1) { gallery.innerHTML = ''; return; }
+      gallery.innerHTML = themeVersions.map(function(v, i) {
+        var activeClass = i === activeVersionIndex ? ' active' : '';
+        return '<div class="version-thumb' + activeClass + '" onclick="switchVersion(' + i + ')">'
+          + '<iframe srcdoc="' + escapeAttr(buildSrcdoc(v)) + '"></iframe>'
+          + '<div class="version-label">V' + v.version + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function escapeAttr(str) {
+      return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function switchVersion(idx) {
+      activeVersionIndex = idx;
+      var ver = themeVersions[idx];
+      currentEvent.themeHtml = ver.html;
+      currentEvent.themeCss = ver.css;
+      currentEvent.themeConfig = ver.config;
+      renderPreview(ver);
+      renderVersionGallery();
+      // Activate this version in the DB
+      fetch('/api/v2/events?action=activateTheme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ eventId: currentEvent.id, themeId: ver.id })
+      }).catch(function() {});
+    }
+
+    // ---- Feedback modal ----
+    function showFeedbackModal() {
+      document.getElementById('feedbackText').value = '';
+      document.getElementById('feedbackModal').style.display = 'flex';
+    }
+    function closeFeedbackModal() {
+      document.getElementById('feedbackModal').style.display = 'none';
+    }
+    function regenerateWithFeedback() {
+      var feedback = document.getElementById('feedbackText').value.trim();
+      closeFeedbackModal();
+      generateTheme(feedback);
+    }
+
+    // ---- Inline edit panel ----
+    function toggleEditPanel() {
+      var panel = document.getElementById('editPanel');
+      if (panel.style.display === 'none') {
+        document.getElementById('editTitle').value = extractedData.title || '';
+        document.getElementById('editDate').value = extractedData.startDate || '';
+        document.getElementById('editEndDate').value = extractedData.endDate || '';
+        document.getElementById('editLocation').value = extractedData.locationName || '';
+        document.getElementById('editAddress').value = extractedData.locationAddress || '';
+        document.getElementById('editDressCode').value = extractedData.dressCode || '';
+        panel.style.display = 'block';
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+
+    async function saveEditedDetails() {
+      extractedData.title = document.getElementById('editTitle').value;
+      extractedData.startDate = document.getElementById('editDate').value;
+      extractedData.endDate = document.getElementById('editEndDate').value;
+      extractedData.locationName = document.getElementById('editLocation').value;
+      extractedData.locationAddress = document.getElementById('editAddress').value;
+      extractedData.dressCode = document.getElementById('editDressCode').value;
+      // Save to DB
+      if (currentEvent) {
+        try {
+          await fetch('/api/v2/events?action=update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({
+              eventId: currentEvent.id,
+              title: extractedData.title,
+              eventDate: extractedData.startDate,
+              endDate: extractedData.endDate,
+              locationName: extractedData.locationName,
+              locationAddress: extractedData.locationAddress,
+              dressCode: extractedData.dressCode
+            })
+          });
+        } catch (e) { /* ignore */ }
+      }
+      showMessage('Details saved!', 'success');
+      document.getElementById('editPanel').style.display = 'none';
+    }
 
     async function saveCustomFields() {
       var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });

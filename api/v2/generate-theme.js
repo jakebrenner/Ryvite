@@ -45,29 +45,44 @@ Return a JSON object with exactly these keys:
   }
 }
 
+## CRITICAL — MANDATORY STRUCTURE
+The generated invite MUST always include ALL of the following sections. These are non-negotiable — the platform depends on this exact structure to function. Creative freedom applies to visual design ONLY, never to omitting required sections.
+
+### Required sections (in this order):
+1. **Header area** — visual impact (background, pattern, gradient, decorative elements)
+2. **Event title** — large, prominent, styled
+3. **Date & time** — clearly displayed
+4. **Location** — venue name and address
+5. **Additional details** — dress code, description, or any other event info provided
+6. **RSVP form section** — This is MANDATORY. You MUST include:
+   - A \`<div class="rsvp-slot">\` container
+   - Inside it, a prominent, styled RSVP button: \`<button class="rsvp-button">RSVP Now</button>\`
+   - If the user has custom RSVP fields, show labels for each field inside the rsvp-slot as placeholder text (e.g., "Name", "Email", "Dietary Restrictions") — these indicate what the real form will collect
+   - Style the rsvp-button to be visually prominent — it's the primary call-to-action
+   - The platform replaces this div's contents with a real form at runtime, but the button MUST exist in the theme HTML
+
+### RSVP button styling requirements:
+- Full-width or near-full-width within the card
+- High contrast against the background
+- Large enough to be easily tappable on mobile (min 48px height)
+- Styled consistently with the overall theme (use theme colors, fonts)
+- Add hover/active states in CSS
+
 ## DESIGN RULES
 1. The invite must be a single vertical card, centered, max-width 480px
 2. Mobile-first: must look perfect on phones (320px+)
-3. Include these sections in order:
-   - Header area (visual impact — background, pattern, or gradient)
-   - Event title (large, styled)
-   - Date + time
-   - Location (with link if provided)
-   - Additional details (dress code, etc.)
-   - An RSVP button area (just a styled placeholder div with class="rsvp-slot" — the app injects the real form)
-4. Use Google Fonts only (include the @import in theme_config.googleFontsImport)
-5. All images should use CSS gradients, SVG patterns, or emoji — do NOT reference external image URLs
-6. Use CSS custom properties for colors so the user can tweak them later
-7. Add subtle CSS animations (fade-ins, gentle floating) but nothing distracting
-8. The design should feel unique and custom — NOT like a template
+3. Use Google Fonts only (include the @import in theme_config.googleFontsImport)
+4. All images should use CSS gradients, SVG patterns, or emoji — do NOT reference external image URLs
+5. Use CSS custom properties for colors so the user can tweak them later
+6. Add subtle CSS animations (fade-ins, gentle floating) but nothing distracting
+7. The design should feel unique and custom — NOT like a template
 
 ## WHAT NOT TO DO
 - No JavaScript in the output
 - No external image URLs or CDN references (except Google Fonts)
 - No iframes or embedded content
 - No fixed positioning
-- Don't repeat the event details — they'll be injected dynamically
-- Don't include an actual form — the RSVP form is injected by the platform
+- NEVER omit the RSVP button section — this is the most important functional element
 
 ## INSPIRATION IMAGES
 If the user provides inspiration images, analyze them for:
@@ -99,7 +114,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid session' });
   }
 
-  const { eventId, prompt, eventDetails, inspirationImages } = req.body;
+  const { eventId, prompt, feedback, rsvpFields, eventDetails, inspirationImages } = req.body;
 
   if (!eventId || !eventDetails) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -125,6 +140,12 @@ export default async function handler(req, res) {
   const startTime = Date.now();
 
   try {
+    // Build RSVP fields description
+    let rsvpFieldsDesc = 'Default fields: Name, Email, RSVP Status (Attending/Declined/Maybe)';
+    if (rsvpFields?.length > 0) {
+      rsvpFieldsDesc += '\nCustom fields: ' + rsvpFields.map(f => `${f.label} (${f.field_type}${f.is_required ? ', required' : ''})`).join(', ');
+    }
+
     let userMessage = `Create an invite theme for this event:
 
 **Event Details:**
@@ -135,8 +156,15 @@ export default async function handler(req, res) {
 - Dress Code: ${eventDetails.dressCode || 'Not specified'}
 - Event Type: ${eventDetails.eventType}
 
+**RSVP Form Fields (must appear in the RSVP section):**
+${rsvpFieldsDesc}
+
 **Creative Direction:**
 ${effectivePrompt}`;
+
+    if (feedback) {
+      userMessage += `\n\n**Feedback on previous version (incorporate this):**\n${feedback}`;
+    }
 
     if (inspirationImages?.length > 0) {
       userMessage += `\n\n**Visual Inspiration:** I've provided ${inspirationImages.length} image(s) as inspiration for color palette and mood.`;
