@@ -179,24 +179,62 @@ export default async function handler(req, res) {
 
     // ---- PLATFORM STATS ----
     if (action === 'stats') {
-      const [usersRes, eventsRes, guestsRes, logsRes] = await Promise.all([
+      const [usersRes, eventsRes, guestsRes, logsRes, markupRes] = await Promise.all([
         supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }),
         supabaseAdmin.from('events').select('id, status', { count: 'exact' }),
         supabaseAdmin.from('guests').select('id', { count: 'exact', head: true }),
-        supabaseAdmin.from('generation_log').select('id, model, input_tokens, output_tokens', { count: 'exact' })
+        supabaseAdmin.from('generation_log').select('id, event_id, model, input_tokens, output_tokens, created_at', { count: 'exact' }),
+        supabaseAdmin.from('app_config').select('value').eq('key', 'cost_markup_pct').single()
       ]);
 
       const events = eventsRes.data || [];
       const published = events.filter(e => e.status === 'published').length;
+      const markupPct = parseFloat(markupRes.data?.value) || 100; // default 100% markup
 
-      // Token usage by model
+      // Pricing per 1M tokens (input / output) by model
+      const MODEL_PRICING = {
+        'claude-haiku-4-5-20251001':  { input: 0.80, output: 4.00 },
+        'claude-sonnet-4-20250514':   { input: 3.00, output: 15.00 },
+        'claude-opus-4-20250514':     { input: 15.00, output: 75.00 },
+      };
+
+      // Token usage + costs by model
       const tokensByModel = {};
+      let totalApiCost = 0;
+      let chatApiCost = 0;
+      let themeApiCost = 0;
+      let chatCount = 0;
+      let themeCount = 0;
+
+      // Cost by time period (last 7 days, last 30 days, all time)
+      const now = Date.now();
+      const day7 = now - 7 * 86400000;
+      const day30 = now - 30 * 86400000;
+      let cost7d = 0, cost30d = 0;
+
       (logsRes.data || []).forEach(l => {
-        if (!tokensByModel[l.model]) tokensByModel[l.model] = { generations: 0, inputTokens: 0, outputTokens: 0 };
-        tokensByModel[l.model].generations++;
-        tokensByModel[l.model].inputTokens += l.input_tokens || 0;
-        tokensByModel[l.model].outputTokens += l.output_tokens || 0;
+        const model = l.model || 'unknown';
+        if (!tokensByModel[model]) tokensByModel[model] = { generations: 0, inputTokens: 0, outputTokens: 0, cost: 0, chatCount: 0, themeCount: 0 };
+        tokensByModel[model].generations++;
+        tokensByModel[model].inputTokens += l.input_tokens || 0;
+        tokensByModel[model].outputTokens += l.output_tokens || 0;
+
+        // Compute cost
+        const pricing = MODEL_PRICING[model] || { input: 3.00, output: 15.00 }; // default to Sonnet pricing
+        const cost = ((l.input_tokens || 0) * pricing.input + (l.output_tokens || 0) * pricing.output) / 1_000_000;
+        tokensByModel[model].cost += cost;
+        totalApiCost += cost;
+
+        const isChat = !l.event_id;
+        if (isChat) { chatApiCost += cost; chatCount++; tokensByModel[model].chatCount++; }
+        else { themeApiCost += cost; themeCount++; tokensByModel[model].themeCount++; }
+
+        const ts = new Date(l.created_at).getTime();
+        if (ts >= day7) cost7d += cost;
+        if (ts >= day30) cost30d += cost;
       });
+
+      const markupMultiplier = 1 + markupPct / 100;
 
       return res.status(200).json({
         success: true,
@@ -206,7 +244,20 @@ export default async function handler(req, res) {
           publishedEvents: published,
           totalRsvps: guestsRes.count || 0,
           totalGenerations: logsRes.count || 0,
-          tokensByModel
+          tokensByModel,
+          costs: {
+            apiCostTotal: totalApiCost,
+            apiCostChat: chatApiCost,
+            apiCostTheme: themeApiCost,
+            apiCost7d: cost7d,
+            apiCost30d: cost30d,
+            chatCount,
+            themeCount,
+            markupPct,
+            revenueTotal: totalApiCost * markupMultiplier,
+            revenue7d: cost7d * markupMultiplier,
+            revenue30d: cost30d * markupMultiplier
+          }
         }
       });
     }
@@ -217,7 +268,7 @@ export default async function handler(req, res) {
       const { data } = await supabaseAdmin
         .from('app_config')
         .select('key, value')
-        .in('key', ['chat_model', 'theme_model']);
+        .in('key', ['chat_model', 'theme_model', 'cost_markup_pct']);
 
       const config = {};
       (data || []).forEach(row => { config[row.key] = row.value; });
@@ -226,7 +277,8 @@ export default async function handler(req, res) {
         success: true,
         config: {
           chatModel: config.chat_model || 'claude-haiku-4-5-20251001',
-          themeModel: config.theme_model || 'claude-sonnet-4-20250514'
+          themeModel: config.theme_model || 'claude-sonnet-4-20250514',
+          costMarkupPct: parseFloat(config.cost_markup_pct) || 100
         }
       });
     }
@@ -235,11 +287,12 @@ export default async function handler(req, res) {
     if (action === 'saveConfig') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-      const { chatModel, themeModel } = req.body;
+      const { chatModel, themeModel, costMarkupPct } = req.body;
 
       const upserts = [];
       if (chatModel) upserts.push({ key: 'chat_model', value: chatModel, updated_by: admin.id, updated_at: new Date().toISOString() });
       if (themeModel) upserts.push({ key: 'theme_model', value: themeModel, updated_by: admin.id, updated_at: new Date().toISOString() });
+      if (costMarkupPct !== undefined) upserts.push({ key: 'cost_markup_pct', value: String(costMarkupPct), updated_by: admin.id, updated_at: new Date().toISOString() });
 
       if (upserts.length > 0) {
         const { error } = await supabaseAdmin

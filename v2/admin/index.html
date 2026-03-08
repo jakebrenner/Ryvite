@@ -136,6 +136,48 @@
         <div class="stat-card"><div class="stat-value" id="statGenerations">—</div><div class="stat-label">AI Generations</div></div>
       </div>
 
+      <!-- Cost Tracking -->
+      <div class="config-section">
+        <h3>Cost Tracking</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
+          <div class="stat-card" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+            <div class="stat-value" style="color:#16a34a;font-size:22px;" id="costTotal">—</div>
+            <div class="stat-label">API Cost (All Time)</div>
+          </div>
+          <div class="stat-card" style="background:#eff6ff;border:1px solid #bfdbfe;">
+            <div class="stat-value" style="color:#2563eb;font-size:22px;" id="cost30d">—</div>
+            <div class="stat-label">API Cost (30d)</div>
+          </div>
+          <div class="stat-card" style="background:#fefce8;border:1px solid #fde68a;">
+            <div class="stat-value" style="color:#ca8a04;font-size:22px;" id="cost7d">—</div>
+            <div class="stat-label">API Cost (7d)</div>
+          </div>
+          <div class="stat-card" style="background:#fdf2f8;border:1px solid #fbcfe8;">
+            <div class="stat-value" style="color:var(--party-coral);font-size:22px;" id="revenueTotal">—</div>
+            <div class="stat-label">Revenue Target</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div style="background:#f9f9f9;border-radius:8px;padding:16px;">
+            <div style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Chat (Event Planning)</div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:20px;font-weight:700;" id="costChat">—</span>
+              <span style="font-size:12px;color:#888;" id="costChatCount">0 calls</span>
+            </div>
+          </div>
+          <div style="background:#f9f9f9;border-radius:8px;padding:16px;">
+            <div style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Theme Generation</div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:20px;font-weight:700;" id="costTheme">—</span>
+              <span style="font-size:12px;color:#888;" id="costThemeCount">0 generations</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#888;line-height:1.6;">
+          <strong>Revenue Target</strong> = API Cost &times; <span id="markupDisplay">2.0</span>x (configurable in AI Models tab)
+        </div>
+      </div>
+
       <div class="config-section">
         <h3>Token Usage by Model</h3>
         <div class="usage-grid" id="usageGrid">
@@ -224,6 +266,23 @@
               <option value="claude-opus-4-20250514">Claude Opus 4 — Most capable ($15/1M in, $75/1M out)</option>
             </select>
             <div class="hint">Used to generate HTML/CSS invite themes. Higher-tier models produce more creative and polished designs.</div>
+          </div>
+        </div>
+        <div class="config-row" style="margin-top:16px;">
+          <div class="config-field">
+            <label>Cost Markup (%)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="number" id="markupInput" min="0" max="1000" step="10" value="100" style="width:100px;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+              <span style="font-size:13px;color:#888;">%</span>
+            </div>
+            <div class="hint">Revenue target = API cost + markup. 100% = 2x cost. Use this for pricing estimates.</div>
+          </div>
+          <div class="config-field">
+            <label>Revenue Formula</label>
+            <div style="padding:10px 14px;background:#f9f9f9;border-radius:6px;font-size:14px;color:var(--midnight);font-family:monospace;" id="markupFormula">
+              $1.00 API cost → $2.00 revenue target
+            </div>
+            <div class="hint">Example calculation based on current markup setting.</div>
           </div>
         </div>
         <div class="config-actions">
@@ -356,6 +415,12 @@
     }
 
     // ---- Stats ----
+    function fmtCost(v) {
+      if (v < 0.01) return '$' + v.toFixed(4);
+      if (v < 1) return '$' + v.toFixed(3);
+      return '$' + v.toFixed(2);
+    }
+
     function showStats(stats) {
       document.getElementById('statUsers').textContent = stats.totalUsers;
       document.getElementById('statEvents').textContent = stats.totalEvents;
@@ -363,6 +428,20 @@
       document.getElementById('statRsvps').textContent = stats.totalRsvps;
       document.getElementById('statGenerations').textContent = stats.totalGenerations;
 
+      // Cost tracking
+      var c = stats.costs || {};
+      document.getElementById('costTotal').textContent = fmtCost(c.apiCostTotal || 0);
+      document.getElementById('cost30d').textContent = fmtCost(c.apiCost30d || 0);
+      document.getElementById('cost7d').textContent = fmtCost(c.apiCost7d || 0);
+      document.getElementById('revenueTotal').textContent = fmtCost(c.revenueTotal || 0);
+      document.getElementById('costChat').textContent = fmtCost(c.apiCostChat || 0);
+      document.getElementById('costTheme').textContent = fmtCost(c.apiCostTheme || 0);
+      document.getElementById('costChatCount').textContent = (c.chatCount || 0) + ' calls';
+      document.getElementById('costThemeCount').textContent = (c.themeCount || 0) + ' generations';
+      var markup = (1 + (c.markupPct || 100) / 100);
+      document.getElementById('markupDisplay').textContent = markup.toFixed(1);
+
+      // Token usage by model
       var grid = document.getElementById('usageGrid');
       var models = Object.keys(stats.tokensByModel || {});
       if (models.length === 0) {
@@ -373,10 +452,12 @@
         var m = stats.tokensByModel[model];
         return '<div class="usage-card">'
           + '<div class="model-name">' + escapeHtml(model) + '</div>'
-          + '<div class="usage-stats">'
-          + '<div class="usage-stat"><div class="val">' + m.generations + '</div><div class="lbl">Generations</div></div>'
-          + '<div class="usage-stat"><div class="val">' + formatNumber(m.inputTokens) + '</div><div class="lbl">Input Tokens</div></div>'
-          + '<div class="usage-stat"><div class="val">' + formatNumber(m.outputTokens) + '</div><div class="lbl">Output Tokens</div></div>'
+          + '<div class="usage-stats" style="grid-template-columns:repeat(5,1fr);">'
+          + '<div class="usage-stat"><div class="val">' + m.chatCount + '</div><div class="lbl">Chat</div></div>'
+          + '<div class="usage-stat"><div class="val">' + m.themeCount + '</div><div class="lbl">Theme</div></div>'
+          + '<div class="usage-stat"><div class="val">' + formatNumber(m.inputTokens) + '</div><div class="lbl">In Tokens</div></div>'
+          + '<div class="usage-stat"><div class="val">' + formatNumber(m.outputTokens) + '</div><div class="lbl">Out Tokens</div></div>'
+          + '<div class="usage-stat"><div class="val" style="color:var(--mint-fizz);">' + fmtCost(m.cost) + '</div><div class="lbl">Cost</div></div>'
           + '</div></div>';
       }).join('');
     }
@@ -493,17 +574,28 @@
     function closeModal() { document.getElementById('rsvpModal').style.display = 'none'; }
 
     // ---- Config ----
+    function updateMarkupFormula() {
+      var pct = parseFloat(document.getElementById('markupInput').value) || 0;
+      var mult = (1 + pct / 100).toFixed(1);
+      document.getElementById('markupFormula').textContent = '$1.00 API cost → $' + mult + '0 revenue target';
+    }
+
     async function loadConfig() {
       try {
         var res = await adminFetch('getConfig');
         if (res.config) {
           document.getElementById('chatModelSelect').value = res.config.chatModel;
           document.getElementById('themeModelSelect').value = res.config.themeModel;
+          document.getElementById('markupInput').value = res.config.costMarkupPct || 100;
+          updateMarkupFormula();
         }
       } catch (err) {
         console.error('Failed to load config:', err);
       }
     }
+
+    // Live-update formula as user types
+    document.getElementById('markupInput').addEventListener('input', updateMarkupFormula);
 
     async function saveConfig() {
       var btn = document.getElementById('saveConfigBtn');
@@ -514,7 +606,8 @@
           method: 'POST',
           body: {
             chatModel: document.getElementById('chatModelSelect').value,
-            themeModel: document.getElementById('themeModelSelect').value
+            themeModel: document.getElementById('themeModelSelect').value,
+            costMarkupPct: parseFloat(document.getElementById('markupInput').value) || 100
           }
         });
         var saved = document.getElementById('configSaved');
