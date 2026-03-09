@@ -352,24 +352,9 @@
         <h2 style="text-align:center;">Preview Your Theme</h2>
         <p class="step-desc" style="text-align:center;">Love it? Continue to publish. Switch between versions below.</p>
         <div style="display:flex;gap:32px;align-items:stretch;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
-          <!-- Left: Phone preview -->
-          <div style="flex:0 0 auto;">
-            <div id="previewToggle" style="display:flex;justify-content:center;gap:4px;margin-bottom:12px;">
-              <button class="preview-toggle-btn active" onclick="setPreviewMode('invite')">Invite</button>
-              <button class="preview-toggle-btn" onclick="setPreviewMode('thankyou')">Thank You</button>
-            </div>
-            <div class="phone-mockup">
-              <div class="phone-frame">
-                <div class="phone-notch"></div>
-                <div class="phone-screen">
-                  <iframe id="previewFrame"></iframe>
-                </div>
-                <div class="phone-home-bar"></div>
-              </div>
-            </div>
-          </div>
-          <!-- Right: Tabbed panel (always visible) -->
+          <!-- Left: Tabbed panel (chat, details, versions) -->
           <div id="editPanel" style="flex:1;min-width:280px;max-width:440px;display:flex;flex-direction:column;">
+
             <div style="background:white;border:1px solid #eee;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;flex-direction:column;overflow:hidden;height:100%;">
               <div style="display:flex;gap:8px;margin-bottom:16px;">
                 <button class="btn btn-secondary" onclick="openLivePreview()" style="flex:1;font-size:13px;padding:10px 12px;">View Live Preview</button>
@@ -483,6 +468,22 @@
               <!-- Versions tab -->
               <div id="tabVersions" class="tab-content">
                 <div id="versionList" style="display:flex;flex-direction:column;gap:8px;"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Right: Phone preview -->
+          <div style="flex:0 0 auto;">
+            <div id="previewToggle" style="display:flex;justify-content:center;gap:4px;margin-bottom:12px;">
+              <button class="preview-toggle-btn active" onclick="setPreviewMode('invite')">Invite</button>
+              <button class="preview-toggle-btn" onclick="setPreviewMode('thankyou')">Thank You</button>
+            </div>
+            <div class="phone-mockup">
+              <div class="phone-frame">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                  <iframe id="previewFrame"></iframe>
+                </div>
+                <div class="phone-home-bar"></div>
               </div>
             </div>
           </div>
