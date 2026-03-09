@@ -1043,27 +1043,52 @@
           initDesignChatIfNeeded();
         } else {
           stopGeneratingPuns();
-          showMessage(result2.error || result2.message || 'Failed to generate theme', 'error');
-          // If we have existing themes, show them instead of going back
+          var errMsg = result2.error || result2.message || 'Failed to generate theme';
+          // Show error on the generating screen with a retry button instead of going back
           if (themeVersions.length > 0) {
+            showMessage(errMsg, 'error');
             document.getElementById('generatingView').style.display = 'none';
             document.getElementById('generatedView').style.display = 'block';
             renderPreview(themeVersions[activeVersionIndex]);
           } else {
-            goToStep(2);
+            showGeneratingError(errMsg);
           }
         }
       } catch (err) {
         stopGeneratingPuns();
-        showMessage('Error generating theme. Please try again.', 'error');
+        var catchMsg = err.message || 'Error generating theme';
         if (themeVersions.length > 0) {
+          showMessage(catchMsg, 'error');
           document.getElementById('generatingView').style.display = 'none';
           document.getElementById('generatedView').style.display = 'block';
           renderPreview(themeVersions[activeVersionIndex]);
         } else {
-          goToStep(2);
+          showGeneratingError(catchMsg);
         }
       }
+    }
+
+    function showGeneratingError(msg) {
+      var view = document.getElementById('generatingView');
+      view.innerHTML = '<div class="loading-state">'
+        + '<div style="font-size:32px;margin-bottom:12px;">😅</div>'
+        + '<h3 style="color:var(--party-coral);">Oops!</h3>'
+        + '<p style="margin-bottom:16px;">' + escapeHtml(msg) + '</p>'
+        + '<div style="display:flex;gap:8px;justify-content:center;">'
+        + '<button class="btn btn-secondary" onclick="goToStep(2)" style="font-size:13px;padding:10px 20px;">Back</button>'
+        + '<button class="btn btn-primary" onclick="retryGenerate()" style="font-size:13px;padding:10px 20px;">Try Again</button>'
+        + '</div></div>';
+    }
+
+    function retryGenerate() {
+      // Reset generating view HTML
+      document.getElementById('generatingView').innerHTML = '<div class="loading-state">'
+        + '<span class="loading-spinner" style="width: 40px; height: 40px; border-width: 3px;"></span>'
+        + '<h3>Generating Your Invite...</h3>'
+        + '<p id="generatingPun" style="transition:opacity 0.3s;">One more try...</p>'
+        + '<div class="progress-bar"><div class="progress-bar-fill"></div></div>'
+        + '</div>';
+      generateTheme();
     }
 
     function buildRsvpFormHtml() {
