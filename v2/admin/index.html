@@ -109,9 +109,67 @@
     }
     .preview-frame { border: 2px solid #eee; border-radius: 8px; overflow: hidden; width: 393px; margin: 0 auto; background: white; min-height: 300px; }
     .preview-frame iframe { width: 393px; height: 700px; border: none; }
-    .test-meta { display: flex; gap: 16px; font-size: 12px; color: #888; margin-top: 12px; padding: 8px 12px; background: #f9f9f9; border-radius: 6px; }
+    .test-meta { display: flex; gap: 16px; font-size: 12px; color: #888; margin-top: 12px; padding: 8px 12px; background: #f9f9f9; border-radius: 6px; flex-wrap: wrap; }
     .test-meta span { display: flex; align-items: center; gap: 4px; }
     .test-meta .val { font-weight: 700; color: var(--midnight); }
+
+    /* Phone Mockup (same as front-end create page) */
+    .phone-mockup { position: relative; width: 320px; margin: 0 auto; }
+    .phone-mockup.phone-sm { width: 240px; }
+    .phone-frame { background: linear-gradient(145deg, #2a2a2e 0%, #1a1a1e 100%); border-radius: 44px; padding: 10px; box-shadow: 0 24px 64px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset; position: relative; }
+    .phone-notch { width: 90px; height: 24px; background: #000; border-radius: 16px; position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 3; }
+    .phone-screen { background: white; border-radius: 36px; overflow: hidden; position: relative; aspect-ratio: 393 / 852; width: 100%; }
+    .phone-screen iframe { width: 393px; height: 852px; border: none; border-radius: 36px; transform-origin: top left; }
+    .phone-home-bar { width: 100px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 6px auto 2px; }
+
+    /* Prompt Lab layout */
+    .promptlab-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .promptlab-layout { grid-template-columns: 1fr; } }
+    .promptlab-sidebar { position: sticky; top: 24px; }
+    .preview-toggle-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 12px; }
+    .preview-toggle-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd; background: white; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #888; }
+    .preview-toggle-btn.active { background: var(--midnight); color: white; border-color: var(--midnight); }
+    .preview-toggle-btn:hover:not(.active) { border-color: var(--party-coral); color: var(--party-coral); }
+
+    /* Multi-model comparison grid */
+    .comparison-grid { display: grid; gap: 24px; }
+    .comparison-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .comparison-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .comparison-card { background: white; border: 1px solid #eee; border-radius: 12px; overflow: hidden; }
+    .comparison-card-header { padding: 12px 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .comparison-card-header h4 { font-size: 13px; font-weight: 700; }
+    .comparison-card-header .model-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; }
+    .comparison-card-header .model-badge.haiku { background: #d1ecf1; color: #0c5460; }
+    .comparison-card-header .model-badge.sonnet { background: #fff3cd; color: #856404; }
+    .comparison-card-header .model-badge.opus { background: #f3e5f5; color: #6a1b9a; }
+    .comparison-card-body { padding: 16px; }
+    .comparison-card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 16px; background: #f9f9f9; border-top: 1px solid #eee; }
+    .comparison-card-stats .stat { text-align: center; }
+    .comparison-card-stats .stat .lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
+    .comparison-card-stats .stat .val { font-size: 13px; font-weight: 700; color: var(--midnight); }
+    .comparison-card-error { padding: 32px 16px; text-align: center; color: var(--party-coral); font-size: 13px; }
+    .comparison-card .code-tabs { display: flex; gap: 4px; padding: 8px 16px 0; }
+    .comparison-card .code-tab { padding: 4px 10px; border-radius: 4px; border: none; background: #f0f0f0; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; color: #888; }
+    .comparison-card .code-tab.active { background: var(--midnight); color: white; }
+
+    /* Quick preset buttons */
+    .preset-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .preset-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; background: white; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #666; }
+    .preset-btn:hover { border-color: var(--party-coral); color: var(--party-coral); }
+    .preset-btn.active { background: var(--party-coral); color: white; border-color: var(--party-coral); }
+
+    /* Compare checkbox */
+    .compare-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; cursor: pointer; user-select: none; transition: all 0.2s; }
+    .compare-toggle:hover { border-color: var(--party-coral); background: #fff5f5; }
+    .compare-toggle.active { border-color: var(--party-coral); background: #fff0f0; }
+    .compare-toggle input { accent-color: var(--party-coral); }
+    .compare-toggle .compare-label { font-size: 13px; font-weight: 600; color: var(--midnight); }
+    .compare-toggle .compare-hint { font-size: 11px; color: #888; }
+
+    /* Generating spinner */
+    .generating-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }
+    .generating-spinner { width: 48px; height: 48px; border: 3px solid #eee; border-top-color: var(--party-coral); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .prompt-toggle { cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--midnight); padding: 10px 14px; background: #f9f9f9; border-radius: 6px; border: 1px solid #eee; margin-bottom: 12px; user-select: none; }
     .prompt-toggle:hover { background: #f0f0f0; }
     .prompt-toggle .arrow { transition: transform 0.2s; }
@@ -409,153 +467,197 @@
 
     <!-- Prompt Lab Tab -->
     <div class="tab-content" id="tab-promptlab">
+      <!-- Quick Event Presets -->
       <div class="config-section">
-        <h3>Theme Generation Prompt</h3>
-        <p style="font-size:13px;color:#888;margin-bottom:16px;">This is the system prompt template used when generating invite designs. It's the same prompt used in production.</p>
-        <div class="prompt-toggle" id="systemPromptToggle" onclick="togglePromptViewer('systemPrompt')">
-          <span class="arrow">&#9654;</span> System Prompt (Design Instructions)
-        </div>
-        <div id="systemPromptViewer" style="display:none;">
-          <div class="prompt-viewer" id="systemPromptContent"></div>
-        </div>
-        <div class="prompt-toggle" id="designDnaToggle" onclick="togglePromptViewer('designDna')" style="margin-top:8px;">
-          <span class="arrow">&#9654;</span> Design DNA (Event-Type-Specific Context)
-        </div>
-        <div id="designDnaViewer" style="display:none;">
-          <div style="margin-bottom:8px;">
-            <select id="designDnaSelect" onchange="showDesignDna()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;">
-              <option value="kidsBirthday">Kids Birthday</option>
-              <option value="adultBirthday">Adult Birthday</option>
-              <option value="babyShower">Baby Shower</option>
-              <option value="engagement">Engagement</option>
-              <option value="wedding">Wedding</option>
-              <option value="graduation">Graduation</option>
-              <option value="holiday">Holiday</option>
-              <option value="dinnerParty">Dinner Party</option>
-              <option value="retirement">Retirement</option>
-              <option value="anniversary">Anniversary</option>
-              <option value="sports">Sports</option>
-              <option value="bridalShower">Bridal Shower</option>
-              <option value="corporate">Corporate</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="prompt-viewer" id="designDnaContent"></div>
-        </div>
+        <h3>Quick Start — Pick an Event Type</h3>
+        <p style="font-size:13px;color:#888;margin-bottom:12px;">Select a preset to auto-fill event details and match styles from the library. Or customize everything below.</p>
+        <div class="preset-grid" id="eventPresetGrid"></div>
       </div>
 
-      <div class="config-section">
-        <h3>Test Generation</h3>
-        <p style="font-size:13px;color:#888;margin-bottom:16px;">Test the prompt with different models and event parameters. Results are <strong>not saved</strong> — this is purely for prompt tuning.</p>
+      <!-- Main layout: config left, phone preview right -->
+      <div class="promptlab-layout" id="promptlabSingleLayout">
+        <!-- Left: Config -->
+        <div>
+          <div class="config-section">
+            <h3>Event Details</h3>
+            <div class="test-params-grid">
+              <div class="config-field">
+                <label>Event Title</label>
+                <input type="text" id="testTitle" value="Emma's 5th Birthday Bash">
+              </div>
+              <div class="config-field">
+                <label>Event Type</label>
+                <select id="testEventType" onchange="onEventTypeChange()">
+                  <option value="kidsBirthday" selected>Kids Birthday</option>
+                  <option value="adultBirthday">Adult Birthday</option>
+                  <option value="babyShower">Baby Shower</option>
+                  <option value="engagement">Engagement</option>
+                  <option value="wedding">Wedding</option>
+                  <option value="graduation">Graduation</option>
+                  <option value="holiday">Holiday</option>
+                  <option value="dinnerParty">Dinner Party</option>
+                  <option value="retirement">Retirement</option>
+                  <option value="anniversary">Anniversary</option>
+                  <option value="sports">Sports</option>
+                  <option value="bridalShower">Bridal Shower</option>
+                  <option value="corporate">Corporate</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="config-field">
+                <label>Start Date/Time</label>
+                <input type="datetime-local" id="testStartDate" value="2026-04-15T14:00">
+              </div>
+              <div class="config-field">
+                <label>End Date/Time</label>
+                <input type="datetime-local" id="testEndDate" value="2026-04-15T17:00">
+              </div>
+              <div class="config-field">
+                <label>Location Name</label>
+                <input type="text" id="testLocation" value="Sunshine Park Pavilion">
+              </div>
+              <div class="config-field">
+                <label>Location Address</label>
+                <input type="text" id="testAddress" value="123 Oak Street, Austin, TX 78701">
+              </div>
+              <div class="config-field">
+                <label>Host Name</label>
+                <input type="text" id="testHost" value="The Johnson Family">
+              </div>
+              <div class="config-field">
+                <label>Dress Code</label>
+                <input type="text" id="testDressCode" value="Casual / Outdoor">
+              </div>
+              <div class="config-field" style="grid-column:1/-1;">
+                <label>Tagline</label>
+                <input type="text" id="testTagline" value="Five is a Vibe!" style="width:100%;">
+              </div>
+              <div class="config-field" style="grid-column:1/-1;">
+                <label>Creative Prompt / Design Direction</label>
+                <textarea id="testPrompt" rows="3">Bright, playful, and full of energy. Think rainbow balloons, confetti, and a sense of pure childhood joy. Make it feel like opening a present.</textarea>
+              </div>
+            </div>
+          </div>
 
-        <div style="margin-bottom:16px;">
-          <div class="config-field" style="margin-bottom:12px;">
-            <label>Model to Test</label>
-            <select id="testModelSelect" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
-              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fast ($0.80/1M in, $4/1M out)</option>
-              <option value="claude-sonnet-4-20250514" selected>Claude Sonnet 4 — Balanced ($3/1M in, $15/1M out)</option>
-              <option value="claude-opus-4-20250514">Claude Opus 4 — Most capable ($15/1M in, $75/1M out)</option>
-            </select>
+          <div class="config-section">
+            <h3>Generation Settings</h3>
+            <div class="config-field" style="margin-bottom:16px;">
+              <label>Model</label>
+              <select id="testModelSelect" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fast ($0.80/$4)</option>
+                <option value="claude-sonnet-4-20250514" selected>Claude Sonnet 4 — Balanced ($3/$15)</option>
+                <option value="claude-opus-4-20250514">Claude Opus 4 — Best ($15/$75)</option>
+              </select>
+            </div>
+
+            <label class="compare-toggle" id="compareToggle" onclick="toggleCompareMode()">
+              <input type="checkbox" id="compareCheckbox">
+              <div>
+                <div class="compare-label">Compare All Models</div>
+                <div class="compare-hint">Runs Haiku, Sonnet &amp; Opus in parallel. Shows side-by-side results with cost breakdown.</div>
+              </div>
+            </label>
+
+            <div id="styleLibraryCheckboxes" style="margin-top:16px;display:none;">
+              <label style="display:block;font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Style References (auto-matched + manual)</label>
+              <div id="styleRefList"></div>
+            </div>
+
+            <div style="display:flex;gap:12px;align-items:center;margin-top:16px;">
+              <button class="btn btn-primary" id="runTestBtn" onclick="runPromptTest()" style="padding:12px 24px;font-size:14px;">Generate Test Invite</button>
+              <button class="btn btn-secondary" onclick="fillTestDefaults()">Reset</button>
+              <span id="testStatus" style="font-size:13px;color:#888;"></span>
+            </div>
+          </div>
+
+          <!-- Prompt viewers (collapsed) -->
+          <div class="config-section">
+            <div class="prompt-toggle" id="systemPromptToggle" onclick="togglePromptViewer('systemPrompt')">
+              <span class="arrow">&#9654;</span> System Prompt
+            </div>
+            <div id="systemPromptViewer" style="display:none;">
+              <div class="prompt-viewer" id="systemPromptContent"></div>
+            </div>
+            <div class="prompt-toggle" id="designDnaToggle" onclick="togglePromptViewer('designDna')" style="margin-top:8px;">
+              <span class="arrow">&#9654;</span> Design DNA
+            </div>
+            <div id="designDnaViewer" style="display:none;">
+              <div style="margin-bottom:8px;">
+                <select id="designDnaSelect" onchange="showDesignDna()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;">
+                  <option value="kidsBirthday">Kids Birthday</option>
+                  <option value="adultBirthday">Adult Birthday</option>
+                  <option value="babyShower">Baby Shower</option>
+                  <option value="engagement">Engagement</option>
+                  <option value="wedding">Wedding</option>
+                  <option value="graduation">Graduation</option>
+                  <option value="holiday">Holiday</option>
+                  <option value="dinnerParty">Dinner Party</option>
+                  <option value="retirement">Retirement</option>
+                  <option value="anniversary">Anniversary</option>
+                  <option value="sports">Sports</option>
+                  <option value="bridalShower">Bridal Shower</option>
+                  <option value="corporate">Corporate</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="prompt-viewer" id="designDnaContent"></div>
+            </div>
           </div>
         </div>
 
-        <div class="test-params-grid">
-          <div class="config-field">
-            <label>Event Title</label>
-            <input type="text" id="testTitle" value="Emma's 5th Birthday Bash">
+        <!-- Right: Phone Preview (single model) -->
+        <div class="promptlab-sidebar" id="singlePreviewSidebar">
+          <div id="singlePreviewEmpty" style="text-align:center;padding:60px 20px;color:#999;font-size:13px;">
+            <div style="font-size:48px;margin-bottom:12px;opacity:0.3;">&#128241;</div>
+            <p>Generate a test invite to see the preview here</p>
           </div>
-          <div class="config-field">
-            <label>Event Type</label>
-            <select id="testEventType">
-              <option value="kidsBirthday" selected>Kids Birthday</option>
-              <option value="adultBirthday">Adult Birthday</option>
-              <option value="babyShower">Baby Shower</option>
-              <option value="engagement">Engagement</option>
-              <option value="wedding">Wedding</option>
-              <option value="graduation">Graduation</option>
-              <option value="holiday">Holiday</option>
-              <option value="dinnerParty">Dinner Party</option>
-              <option value="retirement">Retirement</option>
-              <option value="anniversary">Anniversary</option>
-              <option value="sports">Sports</option>
-              <option value="bridalShower">Bridal Shower</option>
-              <option value="corporate">Corporate</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="config-field">
-            <label>Start Date/Time</label>
-            <input type="datetime-local" id="testStartDate" value="2026-04-15T14:00">
-          </div>
-          <div class="config-field">
-            <label>End Date/Time</label>
-            <input type="datetime-local" id="testEndDate" value="2026-04-15T17:00">
-          </div>
-          <div class="config-field">
-            <label>Location Name</label>
-            <input type="text" id="testLocation" value="Sunshine Park Pavilion">
-          </div>
-          <div class="config-field">
-            <label>Location Address</label>
-            <input type="text" id="testAddress" value="123 Oak Street, Austin, TX 78701">
-          </div>
-          <div class="config-field">
-            <label>Host Name</label>
-            <input type="text" id="testHost" value="The Johnson Family">
-          </div>
-          <div class="config-field">
-            <label>Dress Code</label>
-            <input type="text" id="testDressCode" value="Casual / Outdoor">
-          </div>
-          <div class="config-field" style="grid-column:1/-1;">
-            <label>Tagline</label>
-            <input type="text" id="testTagline" value="Five is a Vibe!" style="width:100%;">
-          </div>
-          <div class="config-field" style="grid-column:1/-1;">
-            <label>Creative Prompt / Design Direction</label>
-            <textarea id="testPrompt" rows="3">Bright, playful, and full of energy. Think rainbow balloons, confetti, and a sense of pure childhood joy. Make it feel like opening a present.</textarea>
-          </div>
-        </div>
-
-        <div id="styleLibraryCheckboxes" style="margin-bottom:16px;display:none;">
-          <label style="display:block;font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Style References (optional)</label>
-          <div id="styleRefList"></div>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
-          <button class="btn btn-primary" id="runTestBtn" onclick="runPromptTest()">Generate Test Invite</button>
-          <button class="btn btn-secondary" onclick="fillTestDefaults()">Reset to Defaults</button>
-          <span id="testStatus" style="font-size:13px;color:#888;"></span>
-        </div>
-      </div>
-
-      <!-- Test Result Preview -->
-      <div id="testResultSection" style="display:none;">
-        <div class="config-section">
-          <h3>Test Result</h3>
-          <div class="test-meta" id="testMeta"></div>
-          <div style="margin-top:16px;">
-            <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <div id="singlePreviewContent" style="display:none;">
+            <div class="preview-toggle-row">
+              <button class="preview-toggle-btn active" onclick="setTestPreviewMode('invite')">Invite</button>
+              <button class="preview-toggle-btn" onclick="setTestPreviewMode('thankyou')">Thank You</button>
+            </div>
+            <div class="phone-mockup">
+              <div class="phone-frame">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                  <iframe id="testPreviewFrame" sandbox="allow-same-origin"></iframe>
+                </div>
+                <div class="phone-home-bar"></div>
+              </div>
+            </div>
+            <div class="test-meta" id="testMeta" style="margin-top:16px;"></div>
+            <div style="display:flex;gap:6px;margin-top:12px;">
               <button class="btn btn-secondary btn-sm" onclick="showTestView('preview')" id="btnPreview" style="background:var(--midnight);color:white;">Preview</button>
               <button class="btn btn-secondary btn-sm" onclick="showTestView('html')" id="btnHtml">HTML</button>
               <button class="btn btn-secondary btn-sm" onclick="showTestView('css')" id="btnCss">CSS</button>
               <button class="btn btn-secondary btn-sm" onclick="showTestView('config')" id="btnConfig">Config</button>
             </div>
-            <div id="testViewPreview">
-              <div class="preview-frame">
-                <iframe id="testPreviewFrame" sandbox="allow-same-origin"></iframe>
-              </div>
+            <div id="testViewPreview" style="display:none;"></div>
+            <div id="testViewHtml" style="display:none;margin-top:8px;">
+              <div class="prompt-viewer" style="max-height:400px;" id="testHtmlContent"></div>
             </div>
-            <div id="testViewHtml" style="display:none;">
-              <div class="prompt-viewer" style="max-height:500px;" id="testHtmlContent"></div>
+            <div id="testViewCss" style="display:none;margin-top:8px;">
+              <div class="prompt-viewer" style="max-height:400px;" id="testCssContent"></div>
             </div>
-            <div id="testViewCss" style="display:none;">
-              <div class="prompt-viewer" style="max-height:500px;" id="testCssContent"></div>
-            </div>
-            <div id="testViewConfig" style="display:none;">
+            <div id="testViewConfig" style="display:none;margin-top:8px;">
               <div class="prompt-viewer" style="max-height:300px;" id="testConfigContent"></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Multi-model comparison results (full width, shown when compare mode) -->
+      <div id="comparisonResultSection" style="display:none;">
+        <div class="config-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3>Model Comparison</h3>
+            <div class="preview-toggle-row" style="margin-bottom:0;">
+              <button class="preview-toggle-btn active" onclick="setComparisonPreviewMode('invite')">Invite</button>
+              <button class="preview-toggle-btn" onclick="setComparisonPreviewMode('thankyou')">Thank You</button>
+            </div>
+          </div>
+          <div id="comparisonGrid" class="comparison-grid cols-3"></div>
+          <div id="comparisonSummary" style="margin-top:16px;"></div>
         </div>
       </div>
     </div>
@@ -709,6 +811,7 @@
         loadConfig();
         loadAdmins();
         loadStyleLibrary();
+        renderEventPresets();
       } catch (err) {
         document.getElementById('accessDenied').style.display = 'block';
       }
@@ -1119,94 +1222,292 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       document.getElementById('designDnaContent').textContent = text;
     }
 
-    function fillTestDefaults() {
-      document.getElementById('testTitle').value = "Emma's 5th Birthday Bash";
-      document.getElementById('testEventType').value = 'kidsBirthday';
-      document.getElementById('testStartDate').value = '2026-04-15T14:00';
-      document.getElementById('testEndDate').value = '2026-04-15T17:00';
-      document.getElementById('testLocation').value = 'Sunshine Park Pavilion';
-      document.getElementById('testAddress').value = '123 Oak Street, Austin, TX 78701';
-      document.getElementById('testHost').value = 'The Johnson Family';
-      document.getElementById('testDressCode').value = 'Casual / Outdoor';
-      document.getElementById('testTagline').value = 'Five is a Vibe!';
-      document.getElementById('testPrompt').value = 'Bright, playful, and full of energy. Think rainbow balloons, confetti, and a sense of pure childhood joy. Make it feel like opening a present.';
+    // ── Event Presets ──
+    var EVENT_PRESETS = {
+      kidsBirthday: { title: "Emma's 5th Birthday Bash", tagline: "Five is a Vibe!", host: "The Johnson Family", dressCode: "Casual / Outdoor", location: "Sunshine Park Pavilion", address: "123 Oak Street, Austin, TX 78701", prompt: "Bright, playful, and full of energy. Think rainbow balloons, confetti, and a sense of pure childhood joy. Make it feel like opening a present." },
+      adultBirthday: { title: "Marco's 40th Birthday", tagline: "Forty & Fabulous", host: "Lisa Chen", dressCode: "Cocktail Attire", location: "The Rooftop at Soho House", address: "9200 Sunset Blvd, West Hollywood, CA 90069", prompt: "Sleek, modern, sophisticated. Gold and black with editorial typography. Think GQ meets champagne toast." },
+      babyShower: { title: "Baby Brenner on the Way!", tagline: "A Little Bundle of Joy", host: "Sarah & Friends", dressCode: "Garden Party", location: "The Botanical Gardens", address: "1000 Washington Ave, St. Louis, MO 63110", prompt: "Soft, dreamy, botanical. Watercolor washes with gentle florals. Warm and nurturing energy." },
+      wedding: { title: "Emily & James", tagline: "Together Forever", host: "The Smith & Wilson Families", dressCode: "Black Tie Optional", location: "The Grand Ballroom", address: "500 Fifth Avenue, New York, NY 10110", prompt: "Elegant, timeless, refined. Think muted earth tones, fine typography, and quiet luxury." },
+      graduation: { title: "Mia's Graduation Celebration", tagline: "Class of 2026!", host: "The Rodriguez Family", dressCode: "Smart Casual", location: "Backyard BBQ", address: "456 Elm Street, Denver, CO 80220", prompt: "Celebratory and bold. School colors (blue and gold), mortarboard motifs, achievment energy." },
+      holiday: { title: "Holiday Cocktail Party", tagline: "Eat, Drink & Be Merry", host: "The Andersons", dressCode: "Festive / Holiday Sweaters OK", location: "Our Home", address: "789 Pine Lane, Chicago, IL 60614", prompt: "Warm, cozy, festive. Think twinkling lights, evergreen branches, hot cocoa vibes with a modern twist." },
+      dinnerParty: { title: "An Evening of Wine & Jazz", tagline: "Good Company, Great Wine", host: "Chef Michael", dressCode: "Smart Casual", location: "Osteria Francescana", address: "42 Via Stella, Modena", prompt: "Atmospheric, moody, textured. Deep wines and warm golds. Candlelit sophistication." },
+      corporate: { title: "Annual Product Launch", tagline: "Innovate. Inspire. Impact.", host: "Acme Corp", dressCode: "Business Casual", location: "Convention Center Hall A", address: "1001 Market Street, San Francisco, CA 94103", prompt: "Clean, modern, professional but not boring. Think tech keynote energy with sharp design." },
+      engagement: { title: "Jake & Amanda Are Engaged!", tagline: "She Said Yes!", host: "Both Families", dressCode: "Dressy Casual", location: "Lakeside Pavilion", address: "100 Lake Shore Dr, Austin, TX 78704", prompt: "Romantic, joyful, elegant. Soft blushes and golds with lush botanical touches." },
+      bridalShower: { title: "Bridal Shower for Amanda", tagline: "Bride to Be!", host: "The Bridesmaids", dressCode: "Garden Chic", location: "The Tea Room", address: "250 Rose Blvd, Nashville, TN 37201", prompt: "Feminine, lush, garden-party energy. Blush, sage, champagne. Floral illustrations." },
+      retirement: { title: "Cheers to 35 Years!", tagline: "Happy Retirement, Bob!", host: "The Whole Team", dressCode: "Business Casual", location: "The Country Club", address: "800 Fairway Drive, Scottsdale, AZ 85251", prompt: "Distinguished, warm, celebratory. Navy and gold. Honoring a career well-lived." },
+      anniversary: { title: "25 Years of Love", tagline: "Silver Anniversary", host: "The Kids", dressCode: "Cocktail Attire", location: "The Family Estate", address: "200 Heritage Lane, Savannah, GA 31401", prompt: "Romantic, timeless, warm gold tones. Then-and-now nostalgia with elegant design." },
+      sports: { title: "Super Bowl Watch Party", tagline: "Game Day!", host: "Jake B.", dressCode: "Jerseys Welcome", location: "The Sports Bar", address: "555 Stadium Way, Dallas, TX 75201", prompt: "High energy, bold, stadium vibes. Team colors, scoreboard aesthetic, dynamic design." }
+    };
+
+    function renderEventPresets() {
+      var grid = document.getElementById('eventPresetGrid');
+      var labels = { kidsBirthday: "Kids Birthday", adultBirthday: "Adult Birthday", babyShower: "Baby Shower", wedding: "Wedding", graduation: "Graduation", holiday: "Holiday", dinnerParty: "Dinner Party", corporate: "Corporate", engagement: "Engagement", bridalShower: "Bridal Shower", retirement: "Retirement", anniversary: "Anniversary", sports: "Sports" };
+      grid.innerHTML = Object.keys(labels).map(function(key) {
+        return '<button class="preset-btn" data-type="' + key + '" onclick="applyPreset(\'' + key + '\')">' + labels[key] + '</button>';
+      }).join('');
     }
 
-    var lastTestResult = null;
+    function applyPreset(type) {
+      var p = EVENT_PRESETS[type];
+      if (!p) return;
+      document.getElementById('testTitle').value = p.title;
+      document.getElementById('testEventType').value = type;
+      document.getElementById('testStartDate').value = '2026-04-15T14:00';
+      document.getElementById('testEndDate').value = '2026-04-15T17:00';
+      document.getElementById('testLocation').value = p.location;
+      document.getElementById('testAddress').value = p.address;
+      document.getElementById('testHost').value = p.host;
+      document.getElementById('testDressCode').value = p.dressCode;
+      document.getElementById('testTagline').value = p.tagline;
+      document.getElementById('testPrompt').value = p.prompt;
+      // Highlight active preset
+      document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.type === type); });
+      onEventTypeChange();
+    }
 
+    function onEventTypeChange() {
+      var type = document.getElementById('testEventType').value;
+      document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.type === type); });
+    }
+
+    function fillTestDefaults() {
+      applyPreset('kidsBirthday');
+    }
+
+    // ── Compare mode toggle ──
+    var isCompareMode = false;
+
+    function toggleCompareMode() {
+      var cb = document.getElementById('compareCheckbox');
+      cb.checked = !cb.checked;
+      isCompareMode = cb.checked;
+      document.getElementById('compareToggle').classList.toggle('active', isCompareMode);
+      document.getElementById('testModelSelect').disabled = isCompareMode;
+      document.getElementById('testModelSelect').style.opacity = isCompareMode ? '0.5' : '1';
+    }
+
+    // ── Test preview state ──
+    var lastTestResult = null;
+    var lastComparisonResults = null;
+    var testPreviewMode = 'invite';
+
+    // ── Build proper srcdoc (same as front-end create page) ──
+    function buildTestSrcdoc(theme) {
+      var fontsImport = theme.config.googleFontsImport || '';
+      var themeHtml = theme.html;
+
+      // Build RSVP form HTML
+      var rsvpFormHtml = '<div style="padding:16px 0;">'
+        + '<div style="margin-bottom:12px;"><label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;opacity:0.7;">Your Name</label>'
+        + '<input type="text" value="Sarah" disabled style="width:100%;padding:12px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-family:inherit;font-size:14px;background:rgba(255,255,255,0.8);"></div>'
+        + '<div style="margin-bottom:12px;"><label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;opacity:0.7;">RSVP Status</label>'
+        + '<select disabled style="width:100%;padding:12px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-family:inherit;font-size:14px;background:rgba(255,255,255,0.8);"><option>Attending</option></select></div>'
+        + '</div>';
+
+      // Build detail overrides from test form
+      var detailOverrides = {};
+      detailOverrides.title = document.getElementById('testTitle').value;
+      var startVal = document.getElementById('testStartDate').value;
+      var endVal = document.getElementById('testEndDate').value;
+      if (startVal) {
+        var s = new Date(startVal);
+        var dateStr = s.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        var timeStr = s.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        detailOverrides.datetime = dateStr + ' &middot; ' + timeStr;
+        if (endVal) {
+          var e = new Date(endVal);
+          detailOverrides.datetime += ' – ' + e.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+      }
+      var locParts = [];
+      var locName = document.getElementById('testLocation').value;
+      var locAddr = document.getElementById('testAddress').value;
+      if (locName) locParts.push(locName);
+      if (locAddr) locParts.push(locAddr);
+      if (locParts.length > 0) detailOverrides.location = locParts.join('<br>');
+      var dc = document.getElementById('testDressCode').value;
+      if (dc) detailOverrides.dresscode = dc;
+
+      var rsvpScript = '<script>'
+        + 'document.addEventListener("DOMContentLoaded", function() {'
+        + '  var slot = document.querySelector(".rsvp-slot");'
+        + '  if (slot) {'
+        + '    var btn = slot.querySelector(".rsvp-button");'
+        + '    var btnHtml = btn ? btn.outerHTML : "";'
+        + '    slot.innerHTML = ' + JSON.stringify(rsvpFormHtml) + ' + btnHtml;'
+        + '  }'
+        + '  var overrides = ' + JSON.stringify(detailOverrides) + ';'
+        + '  Object.keys(overrides).forEach(function(key) {'
+        + '    var el = document.querySelector("[data-field=\\"" + key + "\\"]");'
+        + '    if (el) el.innerHTML = overrides[key];'
+        + '  });'
+        + '  var dc = document.querySelector("[data-field=\\"dresscode\\"]");'
+        + '  if (dc && !overrides.dresscode) { dc.style.display = "none"; }'
+        + '  else if (dc && overrides.dresscode) { dc.style.display = ""; }'
+        + '});'
+        + '<\/script>';
+
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + '<style>' + theme.css + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
+    }
+
+    function buildTestThankYouSrcdoc(theme) {
+      var fontsImport = theme.config.googleFontsImport || '';
+      var guestName = 'Sarah';
+      var title = document.getElementById('testTitle').value || 'the event';
+      var pc = theme.config.primaryColor || '#333';
+      var sc = theme.config.secondaryColor || '#4CAF50';
+      var ac = theme.config.accentColor || '#2196F3';
+
+      var guaranteedCSS = '.thankyou-page { max-width:393px; margin:0 auto; padding:60px 32px 40px; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }'
+        + '.thankyou-hero { margin-bottom:32px; }'
+        + '.thankyou-title { font-size:36px; font-weight:700; margin-bottom:12px; }'
+        + '.thankyou-subtitle { font-size:16px; line-height:1.5; opacity:0.8; }'
+        + '.thankyou-calendar-section { width:100%; max-width:320px; padding:0 8px; }'
+        + '.calendar-label { font-size:14px; margin-bottom:16px; opacity:0.7; }'
+        + '.calendar-buttons { display:flex; flex-direction:column; gap:12px; width:100%; }'
+        + '.cal-btn { display:block; width:100%; padding:16px 24px; border-radius:12px; border:none; font-family:inherit; font-size:16px; font-weight:600; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; text-align:center; color:#fff; }'
+        + '.cal-btn:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }'
+        + '.cal-apple { background:' + pc + '; }'
+        + '.cal-google { background:' + sc + '; }'
+        + '.cal-outlook { background:' + ac + '; }'
+        + '.thankyou-footer { font-size:12px; opacity:0.5; margin-top:40px; text-align:center; }'
+        + '.thankyou-footer a { color:inherit; text-decoration:none; }';
+
+      var calendarHTML = '<div class="thankyou-calendar-section">'
+        + '<p class="calendar-label">Add to your calendar:</p>'
+        + '<div class="calendar-buttons">'
+        + '<button class="cal-btn cal-apple">Apple / Outlook (.ics)</button>'
+        + '<button class="cal-btn cal-google">Google Calendar</button>'
+        + '<button class="cal-btn cal-outlook">Outlook Web</button>'
+        + '</div></div>';
+      var footerHTML = '<p class="thankyou-footer">Made with &#10084; by <a href="https://www.ryvite.com">Ryvite</a></p>';
+
+      var tyHtml = theme.thankyouHtml || '<div class="thankyou-page"><div class="thankyou-hero"><h1 class="thankyou-title">Thank You!</h1><p class="thankyou-subtitle">We can\'t wait to celebrate with you.</p></div></div>';
+
+      // Replace guest/event placeholders
+      tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + guestName + '</span>');
+      tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(title) + '</span>');
+
+      // Strip AI calendar/footer and inject guaranteed ones
+      tyHtml = tyHtml.replace(/<div class="thankyou-calendar-section">[\s\S]*?<\/div>\s*<\/div>/gi, '');
+      tyHtml = tyHtml.replace(/<p class="thankyou-footer">[\s\S]*?<\/p>/gi, '');
+      var lastDiv = tyHtml.lastIndexOf('</div>');
+      if (lastDiv !== -1) {
+        tyHtml = tyHtml.substring(0, lastDiv) + calendarHTML + footerHTML + tyHtml.substring(lastDiv);
+      }
+
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + '<style>' + theme.css + '</style>'
+        + '<style>' + guaranteedCSS + '</style>'
+        + '</head><body>' + tyHtml + '</body></html>';
+    }
+
+    // ── Render a theme into a phone iframe ──
+    function renderPhonePreview(iframe, theme, mode) {
+      if (!theme) return;
+      // Calculate scale to fit phone screen
+      var screenWidth = iframe.closest('.phone-screen')?.offsetWidth || 300;
+      iframe.style.transform = 'scale(' + (screenWidth / 393) + ')';
+      if (mode === 'thankyou') {
+        iframe.srcdoc = buildTestThankYouSrcdoc(theme);
+      } else {
+        iframe.srcdoc = buildTestSrcdoc(theme);
+      }
+    }
+
+    // ── Single model preview mode toggle ──
+    function setTestPreviewMode(mode) {
+      testPreviewMode = mode;
+      document.querySelectorAll('#singlePreviewContent .preview-toggle-btn').forEach(function(btn, i) {
+        btn.classList.toggle('active', (mode === 'invite' && i === 0) || (mode === 'thankyou' && i === 1));
+      });
+      if (lastTestResult) {
+        renderPhonePreview(document.getElementById('testPreviewFrame'), lastTestResult.theme, mode);
+      }
+    }
+
+    // ── Comparison preview mode toggle ──
+    function setComparisonPreviewMode(mode) {
+      testPreviewMode = mode;
+      document.querySelectorAll('#comparisonResultSection .preview-toggle-btn').forEach(function(btn, i) {
+        btn.classList.toggle('active', (mode === 'invite' && i === 0) || (mode === 'thankyou' && i === 1));
+      });
+      if (lastComparisonResults) {
+        lastComparisonResults.forEach(function(r, i) {
+          if (r.success) {
+            var iframe = document.querySelector('#compCard' + i + ' iframe');
+            if (iframe) renderPhonePreview(iframe, r.theme, mode);
+          }
+        });
+      }
+    }
+
+    // ── Main generation function ──
     async function runPromptTest() {
       var btn = document.getElementById('runTestBtn');
       var status = document.getElementById('testStatus');
       btn.disabled = true;
       btn.textContent = 'Generating...';
-      status.textContent = 'This may take 15-60 seconds depending on model...';
+      status.textContent = isCompareMode ? 'Running 3 models in parallel...' : 'This may take 15-60s...';
 
-      // Collect selected style refs
       var styleIds = [];
       document.querySelectorAll('#styleRefList input[type="checkbox"]:checked').forEach(function(cb) {
         styleIds.push(cb.value);
       });
 
+      var eventDetails = {
+        title: document.getElementById('testTitle').value,
+        eventType: document.getElementById('testEventType').value,
+        eventDate: document.getElementById('testStartDate').value,
+        endDate: document.getElementById('testEndDate').value,
+        locationName: document.getElementById('testLocation').value,
+        locationAddress: document.getElementById('testAddress').value,
+        hostName: document.getElementById('testHost').value,
+        dressCode: document.getElementById('testDressCode').value,
+        tagline: document.getElementById('testTagline').value,
+        prompt: document.getElementById('testPrompt').value
+      };
+
       try {
-        var r = await fetch('/api/v2/prompt-test', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: document.getElementById('testModelSelect').value,
-            eventDetails: {
-              title: document.getElementById('testTitle').value,
-              eventType: document.getElementById('testEventType').value,
-              eventDate: document.getElementById('testStartDate').value,
-              endDate: document.getElementById('testEndDate').value,
-              locationName: document.getElementById('testLocation').value,
-              locationAddress: document.getElementById('testAddress').value,
-              hostName: document.getElementById('testHost').value,
-              dressCode: document.getElementById('testDressCode').value,
-              tagline: document.getElementById('testTagline').value,
-              prompt: document.getElementById('testPrompt').value
-            },
-            styleLibraryIds: styleIds
-          })
-        });
+        if (isCompareMode) {
+          // Multi-model comparison
+          var allModels = ['claude-haiku-4-5-20251001', 'claude-sonnet-4-20250514', 'claude-opus-4-20250514'];
+          var r = await fetch('/api/v2/prompt-test', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ models: allModels, eventDetails: eventDetails, styleLibraryIds: styleIds })
+          });
+          var data = await r.json();
+          if (!data.success) throw new Error(data.error || data.message || 'Generation failed');
 
-        var data = await r.json();
-        if (!data.success) throw new Error(data.error || data.message || 'Generation failed');
+          lastComparisonResults = data.results;
+          lastTestResult = null;
+          renderComparisonResults(data.results);
+          document.getElementById('comparisonResultSection').style.display = 'block';
+          document.getElementById('singlePreviewEmpty').style.display = 'block';
+          document.getElementById('singlePreviewContent').style.display = 'none';
+          document.getElementById('comparisonResultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          // Single model
+          var r = await fetch('/api/v2/prompt-test', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: document.getElementById('testModelSelect').value, eventDetails: eventDetails, styleLibraryIds: styleIds })
+          });
+          var data = await r.json();
+          if (!data.success) throw new Error(data.error || data.message || 'Generation failed');
 
-        lastTestResult = data;
+          lastTestResult = data;
+          lastComparisonResults = null;
+          document.getElementById('comparisonResultSection').style.display = 'none';
+          renderSingleResult(data);
+        }
 
-        // Show result section
-        document.getElementById('testResultSection').style.display = 'block';
-
-        // Show metadata
-        var meta = data.metadata;
-        var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-20250514': 3.00, 'claude-opus-4-20250514': 15.00 };
-        var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-20250514': 15.00, 'claude-opus-4-20250514': 75.00 };
-        var estCost = (meta.tokens.input * (costPerMIn[meta.model] || 3) + meta.tokens.output * (costPerMOut[meta.model] || 15)) / 1000000;
-        document.getElementById('testMeta').innerHTML =
-          '<span>Model: <span class="val">' + escapeHtml(meta.model) + '</span></span>' +
-          '<span>Latency: <span class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</span></span>' +
-          '<span>Input: <span class="val">' + formatNumber(meta.tokens.input) + ' tokens</span></span>' +
-          '<span>Output: <span class="val">' + formatNumber(meta.tokens.output) + ' tokens</span></span>' +
-          '<span>Est. Cost: <span class="val">' + fmtCost(estCost) + '</span></span>';
-
-        // Render preview
-        var theme = data.theme;
-        var previewHtml = '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>' +
-          (theme.config.googleFontsImport || '') + '\n' + theme.css + '</style></head><body style="margin:0;display:flex;justify-content:center;background:#f0f0f0;">' + theme.html + '</body></html>';
-        var frame = document.getElementById('testPreviewFrame');
-        frame.srcdoc = previewHtml;
-
-        // Store code for viewing
-        document.getElementById('testHtmlContent').textContent = theme.html;
-        document.getElementById('testCssContent').textContent = theme.css;
-        document.getElementById('testConfigContent').textContent = JSON.stringify(theme.config, null, 2);
-
-        showTestView('preview');
         status.textContent = 'Done!';
         setTimeout(function() { status.textContent = ''; }, 3000);
-
-        // Scroll to result
-        document.getElementById('testResultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) {
         status.textContent = 'Error: ' + err.message;
         status.style.color = 'var(--party-coral)';
@@ -1217,11 +1518,149 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       btn.textContent = 'Generate Test Invite';
     }
 
+    // ── Render single model result into phone sidebar ──
+    function renderSingleResult(data) {
+      document.getElementById('singlePreviewEmpty').style.display = 'none';
+      document.getElementById('singlePreviewContent').style.display = 'block';
+      testPreviewMode = 'invite';
+
+      var meta = data.metadata;
+      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-20250514': 3.00, 'claude-opus-4-20250514': 15.00 };
+      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-20250514': 15.00, 'claude-opus-4-20250514': 75.00 };
+      var estCost = (meta.tokens.input * (costPerMIn[meta.model] || 3) + meta.tokens.output * (costPerMOut[meta.model] || 15)) / 1000000;
+
+      document.getElementById('testMeta').innerHTML =
+        '<span>Model: <span class="val">' + shortModelName(meta.model) + '</span></span>' +
+        '<span>Latency: <span class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</span></span>' +
+        '<span>Tokens: <span class="val">' + formatNumber(meta.tokens.input) + '/' + formatNumber(meta.tokens.output) + '</span></span>' +
+        '<span>Cost: <span class="val">' + fmtCost(estCost) + '</span></span>';
+
+      // Render phone preview
+      var frame = document.getElementById('testPreviewFrame');
+      renderPhonePreview(frame, data.theme, 'invite');
+
+      // Store code
+      document.getElementById('testHtmlContent').textContent = data.theme.html;
+      document.getElementById('testCssContent').textContent = data.theme.css;
+      document.getElementById('testConfigContent').textContent = JSON.stringify(data.theme.config, null, 2);
+
+      // Reset toggle buttons
+      document.querySelectorAll('#singlePreviewContent .preview-toggle-btn').forEach(function(btn, i) {
+        btn.classList.toggle('active', i === 0);
+      });
+      showTestView('preview');
+    }
+
+    // ── Render multi-model comparison ──
+    function renderComparisonResults(results) {
+      var grid = document.getElementById('comparisonGrid');
+      var modelLabels = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-20250514': 'Sonnet 4', 'claude-opus-4-20250514': 'Opus 4' };
+      var modelBadges = { 'claude-haiku-4-5-20251001': 'haiku', 'claude-sonnet-4-20250514': 'sonnet', 'claude-opus-4-20250514': 'opus' };
+      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-20250514': 3.00, 'claude-opus-4-20250514': 15.00 };
+      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-20250514': 15.00, 'claude-opus-4-20250514': 75.00 };
+
+      grid.className = 'comparison-grid cols-' + results.length;
+
+      grid.innerHTML = results.map(function(r, i) {
+        var modelId = r.success ? r.metadata.model : r.model;
+        var label = modelLabels[modelId] || modelId;
+        var badge = modelBadges[modelId] || 'sonnet';
+
+        if (!r.success) {
+          return '<div class="comparison-card" id="compCard' + i + '">'
+            + '<div class="comparison-card-header"><h4>' + label + '</h4><span class="model-badge ' + badge + '">' + badge + '</span></div>'
+            + '<div class="comparison-card-error">Generation failed: ' + escapeHtml(r.error || 'Unknown error') + '</div>'
+            + '</div>';
+        }
+
+        var meta = r.metadata;
+        var estCost = (meta.tokens.input * (costPerMIn[modelId] || 3) + meta.tokens.output * (costPerMOut[modelId] || 15)) / 1000000;
+
+        return '<div class="comparison-card" id="compCard' + i + '">'
+          + '<div class="comparison-card-header"><h4>' + label + '</h4><span class="model-badge ' + badge + '">' + badge + '</span></div>'
+          + '<div class="comparison-card-body">'
+          + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
+          + '</div>'
+          + '<div class="code-tabs">'
+          + '<button class="code-tab" onclick="showCompCode(' + i + ',\'html\')">HTML</button>'
+          + '<button class="code-tab" onclick="showCompCode(' + i + ',\'css\')">CSS</button>'
+          + '<button class="code-tab" onclick="showCompCode(' + i + ',\'config\')">Config</button>'
+          + '</div>'
+          + '<div id="compCode' + i + '" style="display:none;padding:0 16px 12px;"><div class="prompt-viewer" style="max-height:300px;" id="compCodeContent' + i + '"></div></div>'
+          + '<div class="comparison-card-stats">'
+          + '<div class="stat"><div class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</div><div class="lbl">Latency</div></div>'
+          + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.input) + '</div><div class="lbl">In Tokens</div></div>'
+          + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.output) + '</div><div class="lbl">Out Tokens</div></div>'
+          + '<div class="stat"><div class="val">' + fmtCost(estCost) + '</div><div class="lbl">Est. Cost</div></div>'
+          + '</div></div>';
+      }).join('');
+
+      // Render iframes after DOM is ready
+      setTimeout(function() {
+        results.forEach(function(r, i) {
+          if (r.success) {
+            var iframe = document.querySelector('#compCard' + i + ' iframe');
+            if (iframe) renderPhonePreview(iframe, r.theme, testPreviewMode);
+          }
+        });
+      }, 50);
+
+      // Summary
+      var totalCost = 0;
+      var successCount = 0;
+      results.forEach(function(r) {
+        if (r.success) {
+          var m = r.metadata;
+          var mid = m.model;
+          totalCost += (m.tokens.input * (costPerMIn[mid] || 3) + m.tokens.output * (costPerMOut[mid] || 15)) / 1000000;
+          successCount++;
+        }
+      });
+      document.getElementById('comparisonSummary').innerHTML =
+        '<div class="test-meta"><span>' + successCount + '/' + results.length + ' models succeeded</span>'
+        + '<span>Total cost: <span class="val">' + fmtCost(totalCost) + '</span></span></div>';
+    }
+
+    function showCompCode(idx, type) {
+      var codeDiv = document.getElementById('compCode' + idx);
+      var contentDiv = document.getElementById('compCodeContent' + idx);
+      var tabs = document.querySelectorAll('#compCard' + idx + ' .code-tab');
+
+      // Toggle off if same tab clicked
+      var currentType = codeDiv.dataset.activeType;
+      if (currentType === type && codeDiv.style.display !== 'none') {
+        codeDiv.style.display = 'none';
+        tabs.forEach(function(t) { t.classList.remove('active'); });
+        return;
+      }
+
+      codeDiv.dataset.activeType = type;
+      codeDiv.style.display = 'block';
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      tabs.forEach(function(t) { if (t.textContent.toLowerCase() === type) t.classList.add('active'); });
+
+      var r = lastComparisonResults[idx];
+      if (!r || !r.success) return;
+      if (type === 'html') contentDiv.textContent = r.theme.html;
+      else if (type === 'css') contentDiv.textContent = r.theme.css;
+      else contentDiv.textContent = JSON.stringify(r.theme.config, null, 2);
+    }
+
+    function shortModelName(model) {
+      var names = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-20250514': 'Sonnet 4', 'claude-opus-4-20250514': 'Opus 4' };
+      return names[model] || model;
+    }
+
     function showTestView(view) {
+      var isPreview = view === 'preview';
       ['preview', 'html', 'css', 'config'].forEach(function(v) {
-        document.getElementById('testView' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = v === view ? 'block' : 'none';
-        document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1)).style.background = v === view ? 'var(--midnight)' : '';
-        document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1)).style.color = v === view ? 'white' : '';
+        var el = document.getElementById('testView' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (el) el.style.display = v === view && !isPreview ? 'block' : 'none';
+        var btn = document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (btn) {
+          btn.style.background = v === view ? 'var(--midnight)' : '';
+          btn.style.color = v === view ? 'white' : '';
+        }
       });
     }
 

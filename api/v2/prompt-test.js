@@ -280,16 +280,8 @@ Guidelines:
     }
   }
 
-  // ── TEST GENERATION ──
-  const { model, eventDetails, styleLibraryIds } = req.body;
-
-  if (!model || !eventDetails) {
-    return res.status(400).json({ error: 'model and eventDetails are required' });
-  }
-
-  const startTime = Date.now();
-
-  try {
+  // ── Shared: build prompt context (reused for single & multi-model) ──
+  async function buildPromptContext(eventDetails, styleLibraryIds) {
     const eventType = eventDetails.eventType || 'other';
     const designDnaContext = buildEventTypeContext(eventType);
 
@@ -299,7 +291,6 @@ Guidelines:
       const selected = [];
       const seenIds = new Set();
 
-      // Manual picks first
       if (styleLibraryIds && styleLibraryIds.length > 0) {
         const { data: manualData } = await supabaseAdmin
           .from('style_library')
@@ -311,7 +302,6 @@ Guidelines:
         }
       }
 
-      // Auto-match by event type (up to 2 auto-selected, excluding manual picks)
       const { data: autoData } = await supabaseAdmin
         .from('style_library')
         .select('*')
@@ -360,8 +350,14 @@ Make the button text fun and on-theme.
 Fields that will be injected (for awareness only — do NOT render):
 Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}`;
 
+    return userMessage;
+  }
+
+  // ── Shared: generate theme with one model ──
+  async function generateWithModel(modelId, userMessage) {
+    const startTime = Date.now();
     const response = await client.messages.create({
-      model: model,
+      model: modelId,
       max_tokens: 16384,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }]
@@ -385,7 +381,6 @@ Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}`;
     try {
       theme = JSON.parse(themeText);
     } catch (parseErr) {
-      // Try to repair truncated JSON
       let repaired = themeText;
       const quoteCount = (repaired.match(/(?<!\\)"/g) || []).length;
       if (quoteCount % 2 !== 0) repaired += '"';
@@ -413,8 +408,7 @@ Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}`;
       throw new Error('Invalid theme response — missing theme_html or theme_css');
     }
 
-    return res.status(200).json({
-      success: true,
+    return {
       theme: {
         html: theme.theme_html,
         css: theme.theme_css,
@@ -422,14 +416,52 @@ Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}`;
         thankyouHtml: theme.theme_thankyou_html || ''
       },
       metadata: {
-        model,
+        model: modelId,
         latencyMs: latency,
         tokens: {
           input: response.usage?.input_tokens || 0,
           output: response.usage?.output_tokens || 0
         }
       }
-    });
+    };
+  }
+
+  // ── TEST GENERATION (single or multi-model) ──
+  const { model, models, eventDetails, styleLibraryIds } = req.body;
+  const isMultiModel = Array.isArray(models) && models.length > 1;
+
+  if (!eventDetails || (!model && !isMultiModel)) {
+    return res.status(400).json({ error: 'eventDetails and model (or models array) are required' });
+  }
+
+  try {
+    const userMessage = await buildPromptContext(eventDetails, styleLibraryIds);
+
+    if (isMultiModel) {
+      // Run all models in parallel
+      const results = await Promise.allSettled(
+        models.map(m => generateWithModel(m, userMessage))
+      );
+
+      const COST_PER_M_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-20250514': 3.00, 'claude-opus-4-20250514': 15.00 };
+      const COST_PER_M_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-20250514': 15.00, 'claude-opus-4-20250514': 75.00 };
+
+      const outputs = results.map((r, i) => {
+        if (r.status === 'fulfilled') {
+          const m = r.value.metadata;
+          const estCost = (m.tokens.input * (COST_PER_M_IN[m.model] || 3) + m.tokens.output * (COST_PER_M_OUT[m.model] || 15)) / 1000000;
+          return { success: true, ...r.value, estCost };
+        } else {
+          return { success: false, model: models[i], error: r.reason?.message || 'Generation failed' };
+        }
+      });
+
+      return res.status(200).json({ success: true, multiModel: true, results: outputs });
+    } else {
+      // Single model
+      const result = await generateWithModel(model, userMessage);
+      return res.status(200).json({ success: true, ...result });
+    }
   } catch (err) {
     console.error('Prompt test error:', err);
     return res.status(500).json({
