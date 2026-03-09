@@ -236,6 +236,7 @@
     .design-chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .design-chat-chips .chip { font-size: 11px; padding: 5px 10px; }
     .design-chat-loading { display: flex; align-items: center; gap: 8px; color: #666; font-size: 13px; }
+    .design-chat-loading span:last-child { transition: opacity 0.2s ease; }
     .design-chat-loading .loading-spinner { flex-shrink: 0; }
     .design-chat-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 16px; padding: 40px 20px; text-align: center; }
     .design-chat-loader .loader-dots { display: flex; gap: 6px; }
@@ -1481,9 +1482,35 @@
       var sendBtn = document.getElementById('designChatSendBtn');
       sendBtn.disabled = true;
 
-      // Add thinking message
-      designChatHistory.push({ role: 'system', content: 'Updating your design...' });
+      // Add thinking message with cycling puns
+      var tweakPuns = [
+        "RSVPerfecting your design...",
+        "Putting the 'ooh' in 'ooh, fancy'...",
+        "Making your invite the +1 everyone wants...",
+        "Adding some pizzazz to the party...",
+        "Dress code: stunning. One sec...",
+        "Save the date... and the vibes...",
+        "Your invite is getting a glow-up...",
+        "Sprinkling some confetti on this...",
+        "Making it pop like champagne...",
+        "Working the guest list of great ideas...",
+        "No RSVP needed for this upgrade...",
+        "Raising the (open) bar on design...",
+        "You're cordially invited to wait just a moment..."
+      ];
+      var shuffledTweakPuns = tweakPuns.sort(function() { return Math.random() - 0.5; });
+      var tweakPunIdx = 0;
+      designChatHistory.push({ role: 'system', content: shuffledTweakPuns[0] });
       renderDesignChat();
+      var tweakPunInterval = setInterval(function() {
+        tweakPunIdx = (tweakPunIdx + 1) % shuffledTweakPuns.length;
+        var sysMsg = designChatHistory.find(function(m) { return m.role === 'system'; });
+        if (sysMsg) {
+          sysMsg.content = shuffledTweakPuns[tweakPunIdx];
+          var el = document.querySelector('.design-chat-loading span:last-child');
+          if (el) { el.style.opacity = '0'; setTimeout(function() { el.textContent = shuffledTweakPuns[tweakPunIdx]; el.style.opacity = '1'; }, 200); }
+        }
+      }, 3000);
 
       var ver = themeVersions[activeVersionIndex];
       try {
@@ -1507,7 +1534,8 @@
         });
         var result = await res.json();
 
-        // Remove thinking message
+        // Stop pun cycling and remove thinking message
+        clearInterval(tweakPunInterval);
         designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
 
         if (result.success) {
@@ -1524,6 +1552,7 @@
           designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change: ' + (result.error || result.message || 'Unknown error') + '. Could you try rephrasing?' });
         }
       } catch (err) {
+        clearInterval(tweakPunInterval);
         designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
         designChatHistory.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
       }
