@@ -411,7 +411,7 @@ export default async function handler(req, res) {
     if (action === 'saveStyleItem') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-      const { id, name, description, html, tags } = req.body;
+      const { id, name, description, html, tags, eventTypes, designNotes } = req.body;
       if (!name || !html) return res.status(400).json({ error: 'name and html are required' });
 
       // Load existing library
@@ -430,7 +430,7 @@ export default async function handler(req, res) {
         // Update existing item
         const idx = library.findIndex(item => item.id === id);
         if (idx !== -1) {
-          library[idx] = { ...library[idx], name, description: description || '', html, tags: tags || [], updatedAt: new Date().toISOString() };
+          library[idx] = { ...library[idx], name, description: description || '', html, tags: tags || [], eventTypes: eventTypes || [], designNotes: designNotes || '', updatedAt: new Date().toISOString() };
         }
       } else {
         // Add new item
@@ -440,6 +440,8 @@ export default async function handler(req, res) {
           description: description || '',
           html,
           tags: tags || [],
+          eventTypes: eventTypes || [],
+          designNotes: designNotes || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           addedBy: admin.email

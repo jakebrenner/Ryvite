@@ -294,6 +294,65 @@ The thank you page appears after RSVP. Same CSS (theme_css) applies to both invi
 ## INSPIRATION IMAGES
 If provided, analyze them for color palette, visual mood, textures, typography style, and overall aesthetic. Use as strong creative direction.`;
 
+// Extract CSS and structural summary from style library HTML to reduce token usage
+function extractStyleEssence(html) {
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  const css = styleMatch ? styleMatch[1].trim() : '';
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  const body = bodyMatch ? bodyMatch[1] : html;
+  const classNames = [...new Set((body.match(/class="([^"]+)"/g) || []).map(m => m.replace(/class="(.+)"/, '$1')))];
+  const sections = [];
+  const sectionRegex = /<(div|section|header|main|footer|nav)\s[^>]*class="([^"]*)"[^>]*>/gi;
+  let match;
+  while ((match = sectionRegex.exec(body)) !== null) {
+    sections.push(`<${match[1]} class="${match[2]}">`);
+  }
+  const fontImports = (html.match(/@import\s+url\([^)]+\)/g) || []).join('\n');
+  const fontLinks = (html.match(/<link[^>]*fonts\.googleapis[^>]*>/g) || []).join('\n');
+  let summary = '';
+  if (fontImports || fontLinks) summary += `Fonts:\n${fontImports}\n${fontLinks}\n\n`;
+  if (sections.length > 0) summary += `Structure:\n${sections.join('\n')}\n\n`;
+  if (classNames.length > 0) summary += `Classes: ${classNames.join(', ')}\n\n`;
+  if (css) summary += `CSS:\n\`\`\`css\n${css}\n\`\`\``;
+  return summary;
+}
+
+function buildStyleContext(selected) {
+  let context = '\n\n## STYLE REFERENCE LIBRARY\nThe following are design references we admire. Study the CSS patterns, color palettes, typography choices, animation techniques, and structural approaches. Use them as strong creative inspiration — do NOT copy verbatim.\n\n';
+  selected.forEach((item, i) => {
+    context += `### Reference ${i + 1}: "${item.name}"\n`;
+    if (item.description) context += `Description: ${item.description}\n`;
+    if (item.eventTypes?.length > 0) context += `Event types: ${item.eventTypes.join(', ')}\n`;
+    if (item.designNotes) context += `Design notes (from our team): ${item.designNotes}\n`;
+    context += '\n' + extractStyleEssence(item.html) + '\n\n';
+  });
+  return context;
+}
+
+// Load style references matching event type from the library (max 2 auto-selected)
+async function loadStyleReferences(eventType) {
+  try {
+    const { data } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'style_library')
+      .single();
+    if (!data?.value) return '';
+    const library = JSON.parse(data.value);
+    const matched = [];
+    for (const item of library) {
+      if (matched.length >= 2) break;
+      if (item.eventTypes?.includes(eventType)) {
+        matched.push(item);
+      }
+    }
+    if (matched.length === 0) return '';
+    return buildStyleContext(matched);
+  } catch {
+    return '';
+  }
+}
+
 // Build event-type-specific context for the generation prompt
 function buildEventTypeContext(eventType, eventDetails) {
   const dna = DESIGN_DNA[eventType] || DESIGN_DNA.other;
@@ -666,6 +725,12 @@ Make the button text fun and on-theme (e.g., "Count Me In!", "I'll Be There!", "
 
 Fields that will be injected (for awareness only — do NOT render):
 ${rsvpFieldsDesc}`;
+
+    // Auto-include style references matching event type
+    const styleRefContext = await loadStyleReferences(eventType);
+    if (styleRefContext) {
+      userMessage += styleRefContext;
+    }
 
     // Add photo URLs if user uploaded photos
     if (allPhotoUrls.length > 0) {

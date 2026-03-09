@@ -574,6 +574,15 @@
         <input type="text" id="styleDescription" placeholder="e.g. Soft watercolor florals with serif typography" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
       </div>
       <div class="config-field" style="margin-bottom:12px;">
+        <label>Event Types (which types does this style work for?)</label>
+        <div id="styleEventTypes" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+        </div>
+      </div>
+      <div class="config-field" style="margin-bottom:12px;">
+        <label>Design Notes (what makes this sample great? The AI reads these.)</label>
+        <textarea id="styleDesignNotes" rows="3" placeholder="e.g. Beautiful SVG crown illustration, magenta+gold palette with confetti rain animation. Notice the arch header with floral SVG elements and the editorial card-based RSVP section with gold shadow offset." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;resize:vertical;"></textarea>
+      </div>
+      <div class="config-field" style="margin-bottom:12px;">
         <label>Tags (comma-separated, optional)</label>
         <input type="text" id="styleTags" placeholder="e.g. wedding, floral, elegant, serif" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
       </div>
@@ -852,6 +861,9 @@
 
     // Live-update formula as user types
     document.getElementById('markupInput').addEventListener('input', updateMarkupFormula);
+
+    // Re-render style checkboxes when test event type changes (auto-match updates)
+    document.getElementById('testEventType').addEventListener('change', function() { renderStyleCheckboxes(); });
 
     async function saveConfig() {
       var btn = document.getElementById('saveConfigBtn');
@@ -1177,11 +1189,16 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       grid.innerHTML = styleLibrary.map(function(item) {
         var previewHtml = '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;">' + item.html + '</body></html>';
         var tags = (item.tags || []).map(function(t) { return '<span class="style-tag">' + escapeHtml(t) + '</span>'; }).join('');
+        var eventTypeBadges = (item.eventTypes || []).map(function(et) {
+          var etObj = ALL_EVENT_TYPES.find(function(x) { return x.value === et; });
+          return '<span class="style-tag" style="background:rgba(233,69,96,0.1);color:var(--party-coral);">' + (etObj ? etObj.label : et) + '</span>';
+        }).join('');
         return '<div class="style-card">'
           + '<div class="style-card-preview"><iframe srcdoc="' + escapeHtml(previewHtml) + '" sandbox="allow-same-origin"></iframe></div>'
           + '<div class="style-card-body">'
           + '<h4>' + escapeHtml(item.name) + '</h4>'
           + (item.description ? '<p>' + escapeHtml(item.description) + '</p>' : '')
+          + (eventTypeBadges ? '<div style="margin-bottom:4px;">' + eventTypeBadges + '</div>' : '')
           + (tags ? '<div style="margin-bottom:8px;">' + tags + '</div>' : '')
           + '<div class="style-card-actions">'
           + '<button class="btn btn-secondary btn-sm" onclick="viewStyleItem(\'' + item.id + '\')">View</button>'
@@ -1199,23 +1216,60 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         return;
       }
       section.style.display = 'block';
+      var currentType = document.getElementById('testEventType').value;
       container.innerHTML = styleLibrary.map(function(item) {
-        return '<label class="style-checkbox">'
-          + '<input type="checkbox" value="' + item.id + '">'
+        var isAutoMatch = (item.eventTypes || []).includes(currentType);
+        var matchLabel = isAutoMatch ? '<span style="font-size:10px;font-weight:700;color:var(--mint-fizz);margin-left:6px;">AUTO-MATCH</span>' : '';
+        return '<label class="style-checkbox' + (isAutoMatch ? ' selected' : '') + '">'
+          + '<input type="checkbox" value="' + item.id + '"' + (isAutoMatch ? ' checked' : '') + '>'
           + '<span style="font-size:13px;font-weight:600;">' + escapeHtml(item.name) + '</span>'
+          + matchLabel
           + (item.description ? '<span style="font-size:12px;color:#888;margin-left:4px;">' + escapeHtml(item.description) + '</span>' : '')
           + '</label>';
       }).join('');
+    }
+
+    var ALL_EVENT_TYPES = [
+      { value: 'kidsBirthday', label: 'Kids Birthday' },
+      { value: 'adultBirthday', label: 'Adult Birthday' },
+      { value: 'babyShower', label: 'Baby Shower' },
+      { value: 'engagement', label: 'Engagement' },
+      { value: 'wedding', label: 'Wedding' },
+      { value: 'graduation', label: 'Graduation' },
+      { value: 'holiday', label: 'Holiday' },
+      { value: 'dinnerParty', label: 'Dinner Party' },
+      { value: 'retirement', label: 'Retirement' },
+      { value: 'anniversary', label: 'Anniversary' },
+      { value: 'sports', label: 'Sports' },
+      { value: 'bridalShower', label: 'Bridal Shower' },
+      { value: 'corporate', label: 'Corporate' },
+      { value: 'other', label: 'Other' }
+    ];
+
+    function renderEventTypeCheckboxes(selectedTypes) {
+      var container = document.getElementById('styleEventTypes');
+      container.innerHTML = ALL_EVENT_TYPES.map(function(et) {
+        var checked = (selectedTypes || []).includes(et.value) ? ' checked' : '';
+        return '<label style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:#f9f9f9;border-radius:4px;font-size:12px;cursor:pointer;border:1px solid #eee;">'
+          + '<input type="checkbox" value="' + et.value + '"' + checked + ' style="accent-color:var(--party-coral);">'
+          + et.label + '</label>';
+      }).join('');
+    }
+
+    function getSelectedEventTypes() {
+      return Array.from(document.querySelectorAll('#styleEventTypes input[type="checkbox"]:checked')).map(function(cb) { return cb.value; });
     }
 
     function openAddStyleModal() {
       document.getElementById('styleModalTitle').textContent = 'Add Style Sample';
       document.getElementById('styleName').value = '';
       document.getElementById('styleDescription').value = '';
+      document.getElementById('styleDesignNotes').value = '';
       document.getElementById('styleTags').value = '';
       document.getElementById('styleHtml').value = '';
       document.getElementById('styleEditId').value = '';
       document.getElementById('stylePreviewContainer').style.display = 'none';
+      renderEventTypeCheckboxes([]);
       document.getElementById('styleModal').style.display = 'flex';
     }
 
@@ -1225,10 +1279,12 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       document.getElementById('styleModalTitle').textContent = 'Edit Style Sample';
       document.getElementById('styleName').value = item.name;
       document.getElementById('styleDescription').value = item.description || '';
+      document.getElementById('styleDesignNotes').value = item.designNotes || '';
       document.getElementById('styleTags').value = (item.tags || []).join(', ');
       document.getElementById('styleHtml').value = item.html;
       document.getElementById('styleEditId').value = id;
       document.getElementById('stylePreviewContainer').style.display = 'none';
+      renderEventTypeCheckboxes(item.eventTypes || []);
       document.getElementById('styleModal').style.display = 'flex';
     }
 
@@ -1238,9 +1294,11 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       document.getElementById('styleModalTitle').textContent = 'View: ' + item.name;
       document.getElementById('styleName').value = item.name;
       document.getElementById('styleDescription').value = item.description || '';
+      document.getElementById('styleDesignNotes').value = item.designNotes || '';
       document.getElementById('styleTags').value = (item.tags || []).join(', ');
       document.getElementById('styleHtml').value = item.html;
       document.getElementById('styleEditId').value = id;
+      renderEventTypeCheckboxes(item.eventTypes || []);
       // Show preview
       document.getElementById('stylePreviewContainer').style.display = 'block';
       var previewHtml = '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;display:flex;justify-content:center;background:#f0f0f0;">' + item.html + '</body></html>';
@@ -1280,7 +1338,9 @@ If provided, analyze them for color palette, visual mood, textures, typography s
             name: name,
             description: document.getElementById('styleDescription').value.trim(),
             html: html,
-            tags: tags
+            tags: tags,
+            eventTypes: getSelectedEventTypes(),
+            designNotes: document.getElementById('styleDesignNotes').value.trim()
           }
         });
         styleLibrary = res.library || [];
