@@ -428,7 +428,7 @@ These allow the platform to update content dynamically. Always preserve these.
   const effectivePrompt = prompt || `Create a beautiful invite for a ${eventDetails.eventType || 'event'}`;
 
 
-  // Rate limiting: 5 per hour per user
+  // Rate limiting: 20 per hour per user
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { count } = await supabase
     .from('generation_log')
@@ -437,8 +437,8 @@ These allow the platform to update content dynamically. Always preserve these.
     .eq('status', 'success')
     .gte('created_at', oneHourAgo);
 
-  if (count >= 5) {
-    return res.status(429).json({ error: 'Rate limit exceeded. Max 5 generations per hour.' });
+  if (count >= 20) {
+    return res.status(429).json({ error: 'Rate limit exceeded. Max 20 generations per hour.' });
   }
 
   const themeModel = await getThemeModel();

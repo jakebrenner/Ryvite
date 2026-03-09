@@ -748,16 +748,6 @@
           }).join('')
         + '</div>';
 
-      // RSVP Fields section
-      html += '<div class="rsvp-section">'
-        + '<h4>RSVP Form Fields</h4>'
-        + '<p>Toggle fields on/off, or add your own custom fields.</p>'
-        + '<div class="rsvp-defaults">Always included: <strong>Name</strong>, <strong>Email</strong>, <strong>RSVP Status</strong> (Attending / Declined / Maybe)</div>'
-        + '<div id="rsvpFieldList">' + renderRsvpFields() + '</div>'
-        + '<button class="rsvp-add-btn" onclick="showAddFieldForm()">+ Add custom field</button>'
-        + '<div id="addFieldContainer"></div>'
-        + '</div>';
-
       html += '<button class="btn btn-primary chat-proceed" onclick="proceedToCreativeDirection()">Looks good — design my invite!</button>';
 
       card.innerHTML = html;
