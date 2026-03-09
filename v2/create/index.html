@@ -1287,7 +1287,13 @@
       var file = event.target.files[0];
       if (!file) return;
       try {
-        var result = await processFile(file);
+        // More aggressive compression for design chat (512px, 0.6 quality) to avoid timeouts
+        if (isHeicFile(file)) {
+          var blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.6 });
+          if (Array.isArray(blob)) blob = blob[0];
+          file = new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' });
+        }
+        var result = await compressImage(file, 512, 0.6);
         if (result) {
           designChatPhotoBase64 = result.base64;
           var preview = document.getElementById('designChatPhotoPreview');
@@ -1325,6 +1331,7 @@
       renderDesignChat();
 
       var ver = themeVersions[activeVersionIndex];
+      var hadPhoto = !!designChatPhotoBase64;
       try {
         var payload = {
           action: 'tweak',
@@ -1340,8 +1347,14 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (res.status === 413 && designChatPhotoBase64) {
+        // Retry without photo if payload too large or timeout
+        if ((res.status === 413 || res.status === 504) && designChatPhotoBase64) {
+          // Update status
+          designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
+          designChatHistory.push({ role: 'system', content: 'Photo was too large, retrying with text only...' });
+          renderDesignChat();
           payload.photoBase64 = undefined;
+          payload.tweakInstructions = text + '\n\n(Note: user uploaded a photo but it was too large to process. Apply the text instructions only.)';
           res = await authFetch('/api/v2/generate-theme?action=tweak', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1362,7 +1375,11 @@
           currentEvent.themeConfig = newVer.config;
           renderPreview(newVer);
           renderVersionGallery();
-          designChatHistory.push({ role: 'assistant', content: 'Done! I\'ve updated the design. Take a look at the preview on the left. Want to make any more changes?' });
+          var successMsg = 'Done! I\'ve updated the design. Take a look at the preview on the left. Want to make any more changes?';
+          if (hadPhoto && !payload.photoBase64) {
+            successMsg = 'I updated the design based on your text, but the photo was too large to include. Try uploading a smaller image (under 1MB) or resize it first. Want to try again or make other changes?';
+          }
+          designChatHistory.push({ role: 'assistant', content: successMsg });
         } else {
           designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change: ' + (result.error || result.message || 'Unknown error') + '. Could you try rephrasing?' });
         }

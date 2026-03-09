@@ -1,6 +1,10 @@
 {
   "functions": {
     "api/v2/generate-theme.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/v2/chat.js": {
       "maxDuration": 60
     }
   },
