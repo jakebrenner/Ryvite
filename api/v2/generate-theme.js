@@ -230,19 +230,84 @@ If photos are provided via URL, use them in \`<img>\` tags with the exact URL pr
 - Keep height reasonable — fits in ~3-5 phone screen scrolls
 - Semantic HTML with aria-labels on interactive elements
 
-## THANK YOU PAGE (theme_thankyou_html)
-Generate a beautiful, polished thank you page in the SAME visual world. Same CSS applies to both.
+## THANK YOU PAGE (theme_thankyou_html) — CRITICAL: MUST BE POLISHED
 
-Requirements:
-- Same backgrounds, gradients, patterns, decorative elements, fonts, colors as the invite
-- A **celebratory heading** that's creative and on-theme (not generic "Thank you!")
-- Confirmation text with \`<span class="thankyou-guest">Guest</span>\` and \`<span class="thankyou-event">Event</span>\` placeholders
-- **Calendar buttons — MUST be beautifully styled:**
-  \`<div class="calendar-buttons"><button class="cal-btn" data-cal="google">Google Calendar</button><button class="cal-btn" data-cal="apple">Apple Calendar</button><button class="cal-btn" data-cal="outlook">Outlook</button><button class="cal-btn" data-cal="yahoo">Yahoo Calendar</button></div>\`
-  Style as elegant pills, rounded cards, or icon-style buttons in a 2x2 grid. NEVER plain unstyled buttons.
-- Footer: "Made with Love by Ryvite" — Ryvite wrapped in \`<a href="/" style="color:inherit;text-decoration:none;">Ryvite</a>\`
-- Entrance animations — the guest just RSVP'd, make it celebratory!
-- Must feel just as polished as the invite
+The thank you page is shown after a guest RSVPs. It must feel like a premium, intentionally designed page — NOT an afterthought. Same CSS (theme_css) applies to both the invite and thank you page.
+
+### REQUIRED STRUCTURE — follow this exactly:
+\`\`\`html
+<div class="thankyou-page">
+  <!-- 1. Same decorative background as the invite (reuse classes) -->
+
+  <!-- 2. Celebratory heading — large, creative, on-theme -->
+  <div class="thankyou-hero">
+    <h1><!-- Creative heading, e.g. "You're In!", "See You There!", theme-specific --></h1>
+    <p class="thankyou-subtitle"><!-- Confirmation message using placeholders below --></p>
+    <p><span class="thankyou-guest">Guest</span>, you're confirmed for <span class="thankyou-event">Event</span>!</p>
+  </div>
+
+  <!-- 3. Calendar section — MUST be beautifully styled -->
+  <div class="thankyou-calendar-section">
+    <p class="calendar-label">Add to your calendar</p>
+    <div class="calendar-buttons">
+      <button class="cal-btn" data-cal="google">Google Calendar</button>
+      <button class="cal-btn" data-cal="apple">Apple Calendar</button>
+      <button class="cal-btn" data-cal="outlook">Outlook</button>
+      <button class="cal-btn" data-cal="yahoo">Yahoo Calendar</button>
+    </div>
+  </div>
+
+  <!-- 4. Footer -->
+  <p class="thankyou-footer">Made with love by <a href="/" style="color:inherit;text-decoration:none;">Ryvite</a></p>
+</div>
+\`\`\`
+
+### CRITICAL CSS REQUIREMENTS for the thank you page:
+The following CSS MUST be included in theme_css. Do NOT skip styling any of these:
+
+\`\`\`css
+/* Thank you page container */
+.thankyou-page {
+  /* Same background treatment as invite, centered, padded */
+  max-width: 393px; margin: 0 auto; padding: 40px 24px;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+}
+
+/* Hero section */
+.thankyou-hero h1 {
+  /* Large, celebratory — use the same display font as invite title */
+  /* Should be 32-48px, bold, themed color */
+}
+
+/* Calendar buttons — 2x2 grid, NEVER unstyled */
+.calendar-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  width: 100%; max-width: 300px; margin: 0 auto;
+}
+.cal-btn {
+  padding: 12px 16px; border-radius: 12px; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+  /* Use theme colors — e.g. light background with themed text,
+     or themed background with white text. Add box-shadow. */
+}
+.cal-btn:hover { transform: translateY(-1px); /* enhance shadow */ }
+
+/* Footer */
+.thankyou-footer { font-size: 12px; opacity: 0.6; margin-top: 32px; }
+\`\`\`
+
+Customize the above CSS to match your invite's aesthetic — these are minimums, not exact values. The calendar buttons MUST have:
+- Visible backgrounds (not transparent/default)
+- Rounded corners (border-radius: 10-16px)
+- Proper padding (at least 12px)
+- Theme-consistent colors and fonts
+- Hover effects
+- 2x2 grid layout
+
+### KEEP IT SIMPLE
+The thank you page should have ONLY these 4 things: celebratory heading, confirmation message, calendar buttons, and footer. Do NOT add extra sections like dress code reminders, space mission briefings, bullet point lists, or any other content. Keep it clean, focused, and celebratory.
 
 ## WHAT KILLS A GOOD INVITE
 - Using Inter, Roboto, or system fonts
@@ -415,7 +480,7 @@ Return ONLY a valid JSON object with these keys:
 - No JavaScript, no external images (except Google Fonts and user-uploaded photos)
 - Make minimal changes — only what the user asked for, keep everything else exactly the same
 - Preserve and enhance CSS animations — every invite should feel alive with entrance animations, ambient motion, and hover effects
-- Thank you page: must match invite aesthetic, calendar buttons MUST be beautifully styled (pills/cards/icons in 2x2 grid), NEVER plain unstyled buttons
+- Thank you page: must match invite aesthetic. Keep it simple: celebratory heading, confirmation message with .thankyou-guest and .thankyou-event spans, calendar buttons in a 2x2 grid (.calendar-buttons with .cal-btn), and footer. Calendar buttons MUST have visible backgrounds, rounded corners, padding, theme colors, and hover effects — NEVER plain unstyled browser defaults. Do NOT add extra sections like dress code reminders or bullet point lists.
 - For photo additions: use the EXACT URL(s) provided in <img> tags. Style with creative framing per the event type.`;
 
       const stream = client.messages.stream({
