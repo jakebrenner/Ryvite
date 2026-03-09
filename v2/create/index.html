@@ -870,6 +870,8 @@
 
       // Hide the chat input area — the user is done describing their event
       document.querySelector('.chat-input-area').style.display = 'none';
+      // Allow chat messages to use full height now that input is hidden
+      document.getElementById('chatMessages').style.maxHeight = 'none';
 
       // Ask about style preference
       var card = document.createElement('div');
@@ -2487,13 +2489,13 @@
     }
 
     async function addFiles(files) {
-      if (files.length + inspirationImageBase64Array.length > 4) {
-        showMessage('Maximum 4 images allowed', 'error');
+      if (files.length + inspirationImageBase64Array.length > 6) {
+        showMessage('Maximum 6 images allowed', 'error');
         return;
       }
       var container = document.getElementById('imagePreviews');
       for (var i = 0; i < files.length; i++) {
-        if (inspirationImageBase64Array.length >= 4) break;
+        if (inspirationImageBase64Array.length >= 6) break;
         var file = files[i];
         var placeholder = document.createElement('div');
         placeholder.className = 'image-preview';
@@ -2509,6 +2511,8 @@
           placeholder.remove();
         }
       }
+      // Scroll to keep the Generate button visible after adding photos
+      scrollChat();
     }
 
     function removeImage(btn) {
