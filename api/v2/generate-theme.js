@@ -124,7 +124,7 @@ export default async function handler(req, res) {
   }
 
   const action = req.query?.action || req.body?.action || 'generate';
-  const { eventId, prompt, feedback, rsvpFields, eventDetails, inspirationImages, tweakInstructions, currentHtml, currentCss, currentConfig, photoBase64 } = req.body;
+  const { eventId, prompt, feedback, rsvpFields, eventDetails, inspirationImages, tweakInstructions, currentHtml, currentCss, currentConfig, photoBase64, photoUrl } = req.body;
 
   // --- TWEAK MODE: modify existing theme without full regeneration ---
   if (action === 'tweak') {
@@ -156,13 +156,17 @@ ${JSON.stringify(currentConfig || {})}
 **User's requested changes:**
 ${tweakInstructions}`;
 
-      if (photoBase64) {
+      if (photoUrl) {
+        tweakMessage += `\n\nThe user has uploaded a photo they want incorporated into the design. Use this EXACT URL in an <img> tag: ${photoUrl}\nPlace the photo prominently in the design where it makes sense (e.g., header area, hero section, or a dedicated photo section). Style it with appropriate sizing (max-width: 100%), border-radius, and any CSS that fits the theme.`;
+      } else if (photoBase64) {
         tweakMessage += `\n\nThe user has also provided a photo they want incorporated into the design. Use this image as an inline base64 data URI in an <img> tag where it makes sense for the design.`;
       }
 
       tweakMessage += `\n\nReturn the COMPLETE updated theme as a JSON object with the same format: { "theme_html": "...", "theme_css": "...", "theme_config": { ... } }. Make ONLY the changes the user requested — keep everything else exactly the same.`;
 
-      const messageContent = photoBase64
+      // Use URL-based approach (no vision API needed — much faster)
+      // Only fall back to base64 vision if no URL available
+      const messageContent = photoBase64 && !photoUrl
         ? [
             { type: 'text', text: tweakMessage },
             { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: photoBase64 } }

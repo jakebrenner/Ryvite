@@ -1211,6 +1211,7 @@
     // ---- Tab switching & edit panel ----
     var designChatHistory = [];
     var designChatPhotoBase64 = null;
+    var designChatPhotoUrl = null;
 
     function switchTab(tab) {
       document.querySelectorAll('.panel-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -1286,37 +1287,59 @@
     async function handleDesignChatPhoto(event) {
       var file = event.target.files[0];
       if (!file) return;
+      var preview = document.getElementById('designChatPhotoPreview');
+      preview.innerHTML = '<span style="font-size:12px;color:#666;">Uploading photo...</span>';
       try {
-        // More aggressive compression for design chat (512px, 0.6 quality) to avoid timeouts
+        // Compress for good quality display (800px, 0.8 quality)
         if (isHeicFile(file)) {
-          var blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.6 });
+          var blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 });
           if (Array.isArray(blob)) blob = blob[0];
           file = new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' });
         }
-        var result = await compressImage(file, 512, 0.6);
-        if (result) {
-          designChatPhotoBase64 = result.base64;
-          var preview = document.getElementById('designChatPhotoPreview');
+        var result = await compressImage(file, 800, 0.8);
+        if (!result) { preview.innerHTML = ''; return; }
+
+        // Upload to Supabase Storage to get a URL
+        var uploadRes = await authFetch('/api/v2/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            base64: result.base64,
+            eventId: currentEvent ? currentEvent.id : null,
+            filename: file.name
+          })
+        });
+        var uploadResult = await uploadRes.json();
+        if (uploadResult.success && uploadResult.url) {
+          designChatPhotoUrl = uploadResult.url;
+          designChatPhotoBase64 = null; // no longer need base64
           preview.innerHTML = '<img src="' + result.dataUrl + '" alt="Upload"><button onclick="clearDesignChatPhoto()" style="background:none;border:none;color:#999;cursor:pointer;font-size:16px;padding:4px;">&times;</button>';
+        } else {
+          showMessage('Failed to upload photo: ' + (uploadResult.error || 'Unknown error'), 'error');
+          preview.innerHTML = '';
         }
       } catch (e) {
-        showMessage('Failed to process photo', 'error');
+        showMessage('Failed to upload photo', 'error');
+        preview.innerHTML = '';
       }
       event.target.value = '';
     }
 
     function clearDesignChatPhoto() {
       designChatPhotoBase64 = null;
+      designChatPhotoUrl = null;
       document.getElementById('designChatPhotoPreview').innerHTML = '';
     }
 
     async function sendDesignChat() {
       var input = document.getElementById('designChatInput');
       var text = input.value.trim();
-      if (!text && !designChatPhotoBase64) return;
+      var hasPhoto = !!designChatPhotoUrl;
+      if (!text && !hasPhoto) return;
 
       var userMsg = text || '(uploaded a photo)';
-      if (designChatPhotoBase64 && text) userMsg = text + ' (with photo)';
+      if (hasPhoto && text) userMsg = text + ' (with photo)';
+      else if (hasPhoto) userMsg = '(uploaded a photo)';
 
       designChatHistory.push({ role: 'user', content: userMsg });
       renderDesignChat();
@@ -1331,36 +1354,25 @@
       renderDesignChat();
 
       var ver = themeVersions[activeVersionIndex];
-      var hadPhoto = !!designChatPhotoBase64;
       try {
+        var instructions = text || '';
+        if (hasPhoto) {
+          instructions += '\n\nThe user has uploaded a photo. Embed it in the design using this URL: ' + designChatPhotoUrl;
+        }
         var payload = {
           action: 'tweak',
           eventId: currentEvent.id,
-          tweakInstructions: text + (designChatPhotoBase64 ? '\n\nAlso incorporate the uploaded photo into the design.' : ''),
+          tweakInstructions: instructions,
           currentHtml: ver.html,
           currentCss: ver.css,
           currentConfig: ver.config,
-          photoBase64: designChatPhotoBase64 || undefined
+          photoUrl: hasPhoto ? designChatPhotoUrl : undefined
         };
         var res = await authFetch('/api/v2/generate-theme?action=tweak', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        // Retry without photo if payload too large or timeout
-        if ((res.status === 413 || res.status === 504) && designChatPhotoBase64) {
-          // Update status
-          designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
-          designChatHistory.push({ role: 'system', content: 'Photo was too large, retrying with text only...' });
-          renderDesignChat();
-          payload.photoBase64 = undefined;
-          payload.tweakInstructions = text + '\n\n(Note: user uploaded a photo but it was too large to process. Apply the text instructions only.)';
-          res = await authFetch('/api/v2/generate-theme?action=tweak', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        }
         var result = await res.json();
 
         // Remove thinking message
@@ -1375,11 +1387,7 @@
           currentEvent.themeConfig = newVer.config;
           renderPreview(newVer);
           renderVersionGallery();
-          var successMsg = 'Done! I\'ve updated the design. Take a look at the preview on the left. Want to make any more changes?';
-          if (hadPhoto && !payload.photoBase64) {
-            successMsg = 'I updated the design based on your text, but the photo was too large to include. Try uploading a smaller image (under 1MB) or resize it first. Want to try again or make other changes?';
-          }
-          designChatHistory.push({ role: 'assistant', content: successMsg });
+          designChatHistory.push({ role: 'assistant', content: 'Done! I\'ve updated the design. Take a look at the preview on the left. Want to make any more changes?' });
         } else {
           designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change: ' + (result.error || result.message || 'Unknown error') + '. Could you try rephrasing?' });
         }
