@@ -133,7 +133,10 @@
 
   <script>
     const messageEl = document.getElementById('message');
-    const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/v2/dashboard/';
+    // Check query param first, then localStorage, then default to dashboard
+    const qsRedirect = new URLSearchParams(window.location.search).get('redirect');
+    if (qsRedirect) localStorage.setItem('post_login_redirect', qsRedirect);
+    const redirectTo = localStorage.getItem('post_login_redirect') || '/v2/dashboard/';
 
     // On page load: check for Supabase auth callback (magic link redirect)
     (async function init() {
@@ -171,6 +174,7 @@
               localStorage.setItem('sb_access_token', accessToken);
               localStorage.setItem('sb_refresh_token', refreshToken || '');
               localStorage.setItem('v2_user', JSON.stringify(result.user));
+              localStorage.removeItem('post_login_redirect');
               showMessage('Login successful! Redirecting...', 'success');
               setTimeout(function() { window.location.href = redirectTo; }, 1000);
               return;
@@ -198,6 +202,7 @@
           });
           const result = await res.json();
           if (result.success) {
+            localStorage.removeItem('post_login_redirect');
             window.location.href = redirectTo;
             return;
           }
@@ -228,7 +233,7 @@
         const res = await fetch('/api/v2/auth?action=login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, redirect: redirectTo !== '/v2/dashboard/' ? redirectTo : '' })
+          body: JSON.stringify({ email })
         });
         const result = await res.json();
         if (result.success) {
