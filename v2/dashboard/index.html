@@ -362,14 +362,14 @@
           actionsHtml += '<a href="/v2/event/' + encodeURIComponent(event.slug) + '" target="_blank">View</a>';
         }
         actionsHtml += '</div>';
-        actionsHtml += unarchiveHtml;
-
-        var archiveXHtml = !isArchived ? '<button class="archive-x-btn" onclick="event.stopPropagation();archiveEvent(\'' + event.id + '\', this)" title="Archive">&times;</button>' : '';
 
         var unarchiveHtml = '';
         if (isArchived) {
-          unarchiveHtml = '<button onclick="unarchiveEvent(\'' + event.id + '\', this)" style="width:100%;padding:10px 14px;border:1px solid #ddd;background:white;border-radius:8px;font-size:14px;cursor:pointer;transition:all 0.2s;font-family:Inter,sans-serif;min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-weight:500;color:var(--midnight);" onmouseover="this.style.borderColor=\'var(--mint-fizz)\';this.style.color=\'var(--mint-fizz)\'" onmouseout="this.style.borderColor=\'#ddd\';this.style.color=\'var(--midnight)\'">Unarchive</button>';
+          unarchiveHtml = '<button onclick="unarchiveEvent(\'' + event.id + '\', this)" style="width:100%;padding:10px 14px;border:1px solid #ddd;background:white;border-radius:8px;font-size:14px;cursor:pointer;transition:all 0.2s;font-family:Inter,sans-serif;min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-weight:500;color:var(--midnight);margin-top:8px;" onmouseover="this.style.borderColor=\'var(--mint-fizz)\';this.style.color=\'var(--mint-fizz)\'" onmouseout="this.style.borderColor=\'#ddd\';this.style.color=\'var(--midnight)\'">Unarchive</button>';
         }
+        actionsHtml += unarchiveHtml;
+
+        var archiveXHtml = !isArchived ? '<button class="archive-x-btn" onclick="event.stopPropagation();archiveEvent(\'' + event.id + '\', this)" title="Archive">&times;</button>' : '';
 
         var hasTheme = event.themeHtml && event.themeCss;
         var headerHtml = '';
