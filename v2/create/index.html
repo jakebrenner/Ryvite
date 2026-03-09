@@ -1820,6 +1820,8 @@
     var designChatPhotoBase64 = null;
     var designChatPhotoUrl = null;
     var designChatPhotoUrls = []; // Support multiple photo uploads
+    var pendingRedesignText = null; // Holds original message while awaiting clarification
+    var awaitingRedesignClarification = false;
 
     function switchTab(tab) {
       document.querySelectorAll('.panel-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -1939,7 +1941,19 @@
             + '</div></div>';
         }
         var cls = msg.role === 'user' ? 'user' : 'assistant';
-        return '<div class="design-chat-msg ' + cls + '">' + escapeHtml(msg.content).replace(/\n/g, '<br>') + '</div>';
+        var html = '<div class="design-chat-msg ' + cls + '">' + escapeHtml(msg.content).replace(/\n/g, '<br>');
+        if (msg.options && msg.options.length > 0) {
+          html += '<div class="design-chat-options" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';
+          msg.options.forEach(function(opt) {
+            html += '<button class="design-chat-option-btn" onclick="handleRedesignOption(this.dataset.val)" data-val="' + escapeHtml(opt.value) + '" style="background:#f0f0f0;border:1px solid #ddd;border-radius:16px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all 0.15s;white-space:nowrap;"'
+              + ' onmouseover="this.style.background=\'#e0e0e0\';this.style.borderColor=\'#bbb\'"'
+              + ' onmouseout="this.style.background=\'#f0f0f0\';this.style.borderColor=\'#ddd\'">'
+              + escapeHtml(opt.label) + '</button>';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+        return html;
       }).join('');
       container.scrollTop = container.scrollHeight;
     }
@@ -2032,6 +2046,52 @@
         if (photoKeywords.test(text)) {
           designChatHistory.push({ role: 'user', content: text });
           designChatHistory.push({ role: 'assistant', content: "It looks like you want to include a photo, but I don't see one attached! Tap the photo icon (bottom left) to upload your image(s), then send your message again. You can upload up to 6 photos!" });
+          renderDesignChat();
+          input.value = '';
+          input.style.height = 'auto';
+          return;
+        }
+      }
+
+      // If we're awaiting redesign clarification, treat this message as the clarification
+      if (awaitingRedesignClarification && text) {
+        awaitingRedesignClarification = false;
+        // Remove the option buttons from the last assistant message
+        var lastAssistant = null;
+        for (var ci = designChatHistory.length - 1; ci >= 0; ci--) {
+          if (designChatHistory[ci].role === 'assistant' && designChatHistory[ci].options) {
+            lastAssistant = designChatHistory[ci];
+            break;
+          }
+        }
+        if (lastAssistant) delete lastAssistant.options;
+        // Combine the original request with clarification
+        var combined = pendingRedesignText + '\n\nClarification from user: ' + text;
+        pendingRedesignText = null;
+        input.value = combined;
+        input.style.height = 'auto';
+        // Re-call sendDesignChat with the combined message
+        sendDesignChat();
+        return;
+      }
+
+      // Detect if user is asking for a completely new/different design
+      if (text && !awaitingRedesignClarification) {
+        var redesignKeywords = /\b(new design|redesign|start over|start fresh|completely different|totally different|whole new|from scratch|different design|different look|different style|redo it|redo the|redo this|try again|another design|new look|new theme|different theme|change everything|scrap this)\b/i;
+        if (redesignKeywords.test(text)) {
+          pendingRedesignText = text;
+          awaitingRedesignClarification = true;
+          designChatHistory.push({ role: 'user', content: text });
+          designChatHistory.push({
+            role: 'assistant',
+            content: "Before I redesign, a couple quick questions so I nail it:\n\n1. Is there anything you want to KEEP from the current design? (e.g., the theme/vibe, colors, layout, photos)\n\n2. What would you like to be DIFFERENT?",
+            options: [
+              { label: 'Keep theme, change layout', value: 'Keep the same theme/vibe but give me a completely different layout and visual style' },
+              { label: 'Keep colors, new design', value: 'Keep the color palette but redesign everything else' },
+              { label: 'Keep photos, change everything', value: 'Keep the photos in the design but change the theme, layout, and style completely' },
+              { label: 'Change everything', value: 'Start completely fresh — new theme, new layout, new colors, surprise me' }
+            ]
+          });
           renderDesignChat();
           input.value = '';
           input.style.height = 'auto';
@@ -2211,6 +2271,26 @@
       clearDesignChatPhoto();
       sendBtn.disabled = false;
       renderDesignChat();
+    }
+
+    function handleRedesignOption(value) {
+      // Remove option buttons from the clarification message
+      for (var ci = designChatHistory.length - 1; ci >= 0; ci--) {
+        if (designChatHistory[ci].role === 'assistant' && designChatHistory[ci].options) {
+          delete designChatHistory[ci].options;
+          break;
+        }
+      }
+      awaitingRedesignClarification = false;
+      // Show the user's selection as a message
+      designChatHistory.push({ role: 'user', content: value });
+      renderDesignChat();
+      // Combine original request with clarification and send
+      var combined = (pendingRedesignText || 'Give me a new design') + '\n\nClarification from user: ' + value;
+      pendingRedesignText = null;
+      var input = document.getElementById('designChatInput');
+      input.value = combined;
+      sendDesignChat();
     }
 
     function parseISOToDateAndTime(isoStr) {
