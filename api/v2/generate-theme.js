@@ -437,8 +437,8 @@ These allow the platform to update content dynamically. Always preserve these.
     .eq('status', 'success')
     .gte('created_at', oneHourAgo);
 
-  if (count >= 20) {
-    return res.status(429).json({ error: 'Rate limit exceeded. Max 20 generations per hour.' });
+  if (count >= 100) {
+    return res.status(429).json({ error: 'Rate limit exceeded. Max 100 generations per hour.' });
   }
 
   const themeModel = await getThemeModel();
