@@ -1634,7 +1634,7 @@
             currentEvent.themeConfig = newVer.config;
             renderPreview(newVer);
             renderVersionGallery();
-            designChatHistory.push({ role: 'assistant', content: 'Done! I\'ve updated the design. Take a look at the preview on the left. Want to make any more changes?' });
+            designChatHistory.push({ role: 'assistant', content: 'Done! I\'ve updated the design. Take a look at the preview on the right. Want to make any more changes?' });
           } else if (tweakError) {
             designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change: ' + (tweakError.message || tweakError.error || 'Unknown error') + '. Could you try rephrasing?' });
           } else {
