@@ -1531,9 +1531,7 @@
       try {
         // Compress for good quality display (800px, 0.8 quality)
         if (isHeicFile(file)) {
-          var blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 });
-          if (Array.isArray(blob)) blob = blob[0];
-          file = new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' });
+          file = await convertHeic(file);
         }
         var result = await compressImage(file, 800, 0.8);
         if (!result) { preview.innerHTML = ''; return; }
@@ -1946,6 +1944,35 @@
       return ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
     }
 
+    // Try heic2any first, fall back to native browser decoding (Safari/iOS support HEIC natively)
+    async function convertHeic(file) {
+      try {
+        var blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+        if (Array.isArray(blob)) blob = blob[0];
+        return new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' });
+      } catch (e) {
+        console.warn('heic2any failed, trying native decode:', e);
+        // Browser might handle HEIC natively — try loading as an image
+        return new Promise(function(resolve, reject) {
+          var img = new Image();
+          img.onload = function() {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            canvas.toBlob(function(blob) {
+              if (blob) {
+                resolve(new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' }));
+              } else {
+                reject(new Error('Canvas toBlob failed'));
+              }
+            }, 'image/jpeg', 0.85);
+          };
+          img.onerror = function() { reject(new Error('Browser cannot decode this HEIC file')); };
+          img.src = URL.createObjectURL(file);
+        });
+      }
+    }
+
     // Resize image to max dimension and compress to JPEG
     function compressImage(file, maxDim, quality) {
       return new Promise(function(resolve, reject) {
@@ -1979,9 +2006,7 @@
       }
       if (isHeicFile(file)) {
         try {
-          var blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
-          if (Array.isArray(blob)) blob = blob[0];
-          file = new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), { type: 'image/jpeg' });
+          file = await convertHeic(file);
         } catch (err) {
           showMessage('Failed to convert ' + file.name + '. Try converting it to JPG first.', 'error');
           return null;
