@@ -5,9 +5,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const SITE_URL = process.env.VERCEL_DOMAIN
-  ? `https://${process.env.VERCEL_DOMAIN}`
-  : 'https://ryvite.com';
+// Use the request origin so magic link redirects back to the correct domain
+// (works for both production ryvite.com and Vercel preview deployments)
+function getSiteUrl(req) {
+  const origin = req.headers?.origin || req.headers?.referer;
+  if (origin) {
+    try { return new URL(origin).origin; } catch {}
+  }
+  return 'https://ryvite.com';
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,7 +23,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { action } = req.query;
-  const redirectTo = `${SITE_URL}/v2/login/`;
+  const redirectTo = `${getSiteUrl(req)}/v2/login/`;
 
   try {
     if (action === 'signup') {
