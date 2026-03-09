@@ -235,9 +235,11 @@
     .design-chat-photo-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
     .design-chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .design-chat-chips .chip { font-size: 11px; padding: 5px 10px; }
-    .design-chat-loading { display: flex; align-items: center; gap: 8px; color: #666; font-size: 13px; }
+    .design-chat-loading { display: flex; flex-direction: column; align-items: stretch; gap: 8px; color: #666; font-size: 13px; }
     .design-chat-loading span:last-child { transition: opacity 0.2s ease; }
     .design-chat-loading .loading-spinner { flex-shrink: 0; }
+    .design-chat-progress { width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; }
+    .design-chat-progress-bar { height: 100%; background: linear-gradient(90deg, var(--party-coral), #ff8a80); border-radius: 3px; transition: width 0.4s ease; width: 0%; }
     .design-chat-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 16px; padding: 40px 20px; text-align: center; }
     .design-chat-loader .loader-dots { display: flex; gap: 6px; }
     .design-chat-loader .loader-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--party-coral); animation: loaderBounce 1.4s ease-in-out infinite; }
@@ -1457,10 +1459,14 @@
       var container = document.getElementById('designChatMessages');
       container.innerHTML = designChatHistory.map(function(msg) {
         if (msg.role === 'system') {
+          var progressPct = msg.progress || 0;
           return '<div class="design-chat-msg assistant">'
             + '<div class="design-chat-loading">'
+            + '<div style="display:flex;align-items:center;gap:8px;">'
             + '<span class="loading-spinner" style="width:14px;height:14px;border-width:2px;margin-right:0;"></span>'
             + '<span>' + escapeHtml(msg.content) + '</span>'
+            + '</div>'
+            + '<div class="design-chat-progress"><div class="design-chat-progress-bar" style="width:' + progressPct + '%"></div></div>'
             + '</div></div>';
         }
         var cls = msg.role === 'user' ? 'user' : 'assistant';
@@ -1557,7 +1563,7 @@
       ];
       var shuffledTweakPuns = tweakPuns.sort(function() { return Math.random() - 0.5; });
       var tweakPunIdx = 0;
-      designChatHistory.push({ role: 'system', content: shuffledTweakPuns[0] });
+      designChatHistory.push({ role: 'system', content: shuffledTweakPuns[0], progress: 5 });
       renderDesignChat();
       var tweakPunInterval = setInterval(function() {
         tweakPunIdx = (tweakPunIdx + 1) % shuffledTweakPuns.length;
@@ -1625,13 +1631,26 @@
               else if (line.startsWith('data: ') && sseEventType) {
                 try {
                   var eventData = JSON.parse(line.substring(6));
-                  if (sseEventType === 'status' && eventData.phase === 'saving') {
+                  if (sseEventType === 'progress') {
+                    // Update progress bar based on bytes received (estimate ~15KB for a theme)
+                    var estimatedTotal = 15000;
+                    var pct = Math.min(90, Math.round((eventData.bytes / estimatedTotal) * 90));
+                    var sysMsg3 = designChatHistory.find(function(m) { return m.role === 'system'; });
+                    if (sysMsg3) {
+                      sysMsg3.progress = pct;
+                      var bar = document.querySelector('.design-chat-progress-bar');
+                      if (bar) bar.style.width = pct + '%';
+                    }
+                  } else if (sseEventType === 'status' && eventData.phase === 'saving') {
                     // Update the loading message to show we're almost done
                     var sysMsg2 = designChatHistory.find(function(m) { return m.role === 'system'; });
                     if (sysMsg2) {
                       sysMsg2.content = 'Almost done — saving your new design...';
+                      sysMsg2.progress = 95;
                       var el2 = document.querySelector('.design-chat-loading span:last-child');
                       if (el2) el2.textContent = 'Almost done — saving your new design...';
+                      var bar2 = document.querySelector('.design-chat-progress-bar');
+                      if (bar2) bar2.style.width = '95%';
                     }
                   } else if (sseEventType === 'done') {
                     tweakResult = eventData;

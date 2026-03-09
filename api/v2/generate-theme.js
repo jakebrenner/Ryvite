@@ -213,7 +213,7 @@ ${tweakInstructions}`;
 
       const stream = client.messages.stream({
         model: themeModel,
-        max_tokens: 8192,
+        max_tokens: 16384,
         system: 'You are an expert HTML/CSS designer. Modify the given invite theme based on the user\'s instructions. Return ONLY a valid JSON object with theme_html, theme_css, theme_thankyou_html (or null if unchanged), and theme_config keys. Make minimal changes — only what the user asked for. The thank you page must match the invite\'s aesthetic. IMPORTANT: Always ensure text has strong contrast against its background (WCAG AA — 4.5:1 for body, 3:1 for headings). If you notice any contrast issues in the existing theme (e.g., light text on light backgrounds, dark text on dark areas, hard-to-read form labels), fix them proactively even if the user didn\'t ask.',
         messages: [{ role: 'user', content: messageContent }]
       });
@@ -226,7 +226,7 @@ ${tweakInstructions}`;
         fullText += text;
         chunkCount++;
         // Send progress every 20 chunks to keep connection alive without flooding
-        if (chunkCount % 20 === 0) {
+        if (chunkCount % 10 === 0) {
           sendSSE('progress', { chunks: chunkCount, bytes: fullText.length });
         }
       });
@@ -246,7 +246,38 @@ ${tweakInstructions}`;
         const lastBrace = themeText.lastIndexOf('}');
         if (firstBrace !== -1 && lastBrace !== -1) themeText = themeText.substring(firstBrace, lastBrace + 1);
       }
-      const theme = JSON.parse(themeText);
+
+      // Attempt to repair truncated JSON if parsing fails
+      let theme;
+      try {
+        theme = JSON.parse(themeText);
+      } catch (parseErr) {
+        // Try to repair: close any unclosed strings and braces
+        let repaired = themeText;
+        // Count unmatched quotes — if odd, close the string
+        const quoteCount = (repaired.match(/(?<!\\)"/g) || []).length;
+        if (quoteCount % 2 !== 0) repaired += '"';
+        // Close any unclosed braces/brackets
+        let braceDepth = 0, bracketDepth = 0;
+        let inString = false;
+        for (let i = 0; i < repaired.length; i++) {
+          const ch = repaired[i];
+          if (ch === '"' && (i === 0 || repaired[i-1] !== '\\')) inString = !inString;
+          if (!inString) {
+            if (ch === '{') braceDepth++;
+            else if (ch === '}') braceDepth--;
+            else if (ch === '[') bracketDepth++;
+            else if (ch === ']') bracketDepth--;
+          }
+        }
+        for (let i = 0; i < bracketDepth; i++) repaired += ']';
+        for (let i = 0; i < braceDepth; i++) repaired += '}';
+        try {
+          theme = JSON.parse(repaired);
+        } catch (e2) {
+          throw new Error('Failed to parse theme JSON: ' + parseErr.message);
+        }
+      }
 
       if (!theme.theme_html || !theme.theme_css) {
         throw new Error('Invalid tweak response');
