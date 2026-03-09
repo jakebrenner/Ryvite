@@ -565,6 +565,32 @@
           <button class="btn btn-secondary" onclick="document.getElementById('bulkUploadSection').style.display=document.getElementById('bulkUploadSection').style.display==='none'?'block':'none'">Bulk Upload</button>
           <span style="font-size:12px;color:#888;display:flex;align-items:center;" id="styleCount">0 samples in library</span>
         </div>
+        <div id="styleFilters" style="display:none;margin-bottom:16px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="filterEventType" onchange="applyStyleFilter()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;">
+              <option value="">All Event Types</option>
+              <option value="kidsBirthday">Kids Birthday</option>
+              <option value="adultBirthday">Adult Birthday</option>
+              <option value="babyShower">Baby Shower</option>
+              <option value="engagement">Engagement</option>
+              <option value="wedding">Wedding</option>
+              <option value="graduation">Graduation</option>
+              <option value="holiday">Holiday</option>
+              <option value="dinnerParty">Dinner Party</option>
+              <option value="retirement">Retirement</option>
+              <option value="anniversary">Anniversary</option>
+              <option value="sports">Sports</option>
+              <option value="bridalShower">Bridal Shower</option>
+              <option value="corporate">Corporate</option>
+              <option value="other">Other</option>
+            </select>
+            <select id="filterTag" onchange="applyStyleFilter()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;">
+              <option value="">All Tags</option>
+            </select>
+            <input type="text" id="filterSearch" placeholder="Search name or description..." oninput="applyStyleFilter()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;flex:1;min-width:150px;">
+            <button class="btn btn-secondary btn-sm" onclick="clearStyleFilter()">Clear</button>
+          </div>
+        </div>
         <div id="bulkUploadSection" style="display:none;margin-bottom:20px;">
           <div class="bulk-dropzone" id="bulkDropzone" onclick="document.getElementById('bulkFileInput').click()">
             <div class="drop-icon">&#128194;</div>
@@ -1201,29 +1227,107 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         styleLibrary = res.library || [];
         renderStyleGrid();
         renderStyleCheckboxes();
-        document.getElementById('styleCount').textContent = styleLibrary.length + ' sample' + (styleLibrary.length !== 1 ? 's' : '') + ' in library';
+        updateStyleCount();
+        updateFilterUI();
       } catch (err) {
         console.error('Failed to load style library:', err);
       }
     }
 
-    function renderStyleGrid() {
+    function updateStyleCount() {
+      document.getElementById('styleCount').textContent = styleLibrary.length + ' sample' + (styleLibrary.length !== 1 ? 's' : '') + ' in library';
+    }
+
+    function updateFilterUI() {
+      // Show/hide filters based on library size
+      document.getElementById('styleFilters').style.display = styleLibrary.length > 0 ? 'block' : 'none';
+
+      // Populate tag dropdown with all unique tags
+      var allTags = {};
+      styleLibrary.forEach(function(item) {
+        (item.tags || []).forEach(function(t) { allTags[t.toLowerCase()] = t; });
+      });
+      var tagSelect = document.getElementById('filterTag');
+      var currentTag = tagSelect.value;
+      tagSelect.innerHTML = '<option value="">All Tags</option>' +
+        Object.keys(allTags).sort().map(function(k) {
+          return '<option value="' + escapeHtml(allTags[k]) + '">' + escapeHtml(allTags[k]) + '</option>';
+        }).join('');
+      tagSelect.value = currentTag;
+    }
+
+    function applyStyleFilter() {
+      var eventType = document.getElementById('filterEventType').value;
+      var tag = document.getElementById('filterTag').value;
+      var search = document.getElementById('filterSearch').value.trim();
+      var filter = null;
+      if (eventType || tag || search) {
+        filter = {};
+        if (eventType) filter.eventType = eventType;
+        if (tag) filter.tag = tag;
+        if (search) filter.search = search;
+      }
+      renderStyleGrid(filter);
+    }
+
+    function clearStyleFilter() {
+      document.getElementById('filterEventType').value = '';
+      document.getElementById('filterTag').value = '';
+      document.getElementById('filterSearch').value = '';
+      renderStyleGrid();
+    }
+
+    function renderStyleGrid(filter) {
       var grid = document.getElementById('styleGrid');
-      if (styleLibrary.length === 0) {
-        grid.innerHTML = '<div style="color:#888;font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">No style samples yet. Add HTML invite samples to build your reference library.</div>';
+      var items = styleLibrary;
+
+      // Apply filter
+      if (filter && filter.eventType) {
+        items = items.filter(function(item) { return (item.eventTypes || []).includes(filter.eventType); });
+      }
+      if (filter && filter.tag) {
+        var tagLower = filter.tag.toLowerCase();
+        items = items.filter(function(item) { return (item.tags || []).some(function(t) { return t.toLowerCase() === tagLower; }); });
+      }
+      if (filter && filter.search) {
+        var q = filter.search.toLowerCase();
+        items = items.filter(function(item) {
+          return (item.name || '').toLowerCase().includes(q)
+            || (item.description || '').toLowerCase().includes(q)
+            || (item.tags || []).some(function(t) { return t.toLowerCase().includes(q); });
+        });
+      }
+
+      if (items.length === 0) {
+        grid.innerHTML = '<div style="color:#888;font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">'
+          + (styleLibrary.length === 0 ? 'No style samples yet. Add HTML invite samples to build your reference library.' : 'No samples match the current filter.')
+          + '</div>';
         return;
       }
-      grid.innerHTML = styleLibrary.map(function(item) {
-        var previewHtml = wrapForPreview(item.html, false);
+
+      // Build cards with DOM so we can set srcdoc properly
+      grid.innerHTML = '';
+      items.forEach(function(item) {
+        var card = document.createElement('div');
+        card.className = 'style-card';
+
+        var previewDiv = document.createElement('div');
+        previewDiv.className = 'style-card-preview';
+        var iframe = document.createElement('iframe');
+        iframe.sandbox = 'allow-same-origin';
+        iframe.srcdoc = wrapForPreview(item.html, false);
+        previewDiv.appendChild(iframe);
+        card.appendChild(previewDiv);
+
         var tags = (item.tags || []).map(function(t) { return '<span class="style-tag">' + escapeHtml(t) + '</span>'; }).join('');
         var eventTypeBadges = (item.eventTypes || []).map(function(et) {
           var etObj = ALL_EVENT_TYPES.find(function(x) { return x.value === et; });
           return '<span class="style-tag" style="background:rgba(233,69,96,0.1);color:var(--party-coral);">' + (etObj ? etObj.label : et) + '</span>';
         }).join('');
-        return '<div class="style-card">'
-          + '<div class="style-card-preview"><iframe srcdoc="' + escapeHtml(previewHtml) + '" sandbox="allow-same-origin"></iframe></div>'
-          + '<div class="style-card-body">'
-          + '<h4>' + escapeHtml(item.name) + '</h4>'
+
+        var body = document.createElement('div');
+        body.className = 'style-card-body';
+        body.innerHTML = '<h4>' + escapeHtml(item.name) + '</h4>'
           + (item.description ? '<p>' + escapeHtml(item.description) + '</p>' : '')
           + (eventTypeBadges ? '<div style="margin-bottom:4px;">' + eventTypeBadges + '</div>' : '')
           + (tags ? '<div style="margin-bottom:8px;">' + tags + '</div>' : '')
@@ -1231,8 +1335,10 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           + '<button class="btn btn-secondary btn-sm" onclick="viewStyleItem(\'' + item.id + '\')">View</button>'
           + '<button class="btn btn-secondary btn-sm" onclick="editStyleItem(\'' + item.id + '\')">Edit</button>'
           + '<button class="btn btn-secondary btn-sm" style="color:var(--party-coral);" onclick="deleteStyleItem(\'' + item.id + '\')">Delete</button>'
-          + '</div></div></div>';
-      }).join('');
+          + '</div>';
+        card.appendChild(body);
+        grid.appendChild(card);
+      });
     }
 
     function renderStyleCheckboxes() {
@@ -1486,7 +1592,8 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       // Refresh the UI
       renderStyleGrid();
       renderStyleCheckboxes();
-      document.getElementById('styleCount').textContent = styleLibrary.length + ' sample' + (styleLibrary.length !== 1 ? 's' : '') + ' in library';
+      updateStyleCount();
+      updateFilterUI();
 
       // Summary
       var summary = document.createElement('div');
@@ -1542,7 +1649,8 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         styleLibrary = res.library || [];
         renderStyleGrid();
         renderStyleCheckboxes();
-        document.getElementById('styleCount').textContent = styleLibrary.length + ' sample' + (styleLibrary.length !== 1 ? 's' : '') + ' in library';
+        updateStyleCount();
+        updateFilterUI();
         closeStyleModal();
       } catch (err) {
         alert('Failed to save: ' + err.message);
@@ -1558,7 +1666,8 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         styleLibrary = res.library || [];
         renderStyleGrid();
         renderStyleCheckboxes();
-        document.getElementById('styleCount').textContent = styleLibrary.length + ' sample' + (styleLibrary.length !== 1 ? 's' : '') + ' in library';
+        updateStyleCount();
+        updateFilterUI();
       } catch (err) {
         alert('Failed to delete: ' + err.message);
       }
