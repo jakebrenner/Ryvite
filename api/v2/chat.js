@@ -101,6 +101,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  try {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -116,8 +117,6 @@ export default async function handler(req, res) {
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'Messages array is required' });
   }
-
-  try {
     const chatModel = await getChatModel();
     const startTime = Date.now();
     const response = await client.messages.create({
@@ -158,7 +157,18 @@ export default async function handler(req, res) {
       ...parsed
     });
   } catch (err) {
-    console.error('Chat error:', err);
-    return res.status(500).json({ error: 'Failed to process message' });
+    console.error('Chat error:', err?.message, err?.status, err);
+    return res.status(500).json({
+      error: 'Failed to process message',
+      message: err?.message || 'Unknown error',
+      detail: String(err)
+    });
+  }
+  } catch (outerErr) {
+    console.error('Chat handler error:', outerErr);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: outerErr?.message || 'Unknown error'
+    });
   }
 }

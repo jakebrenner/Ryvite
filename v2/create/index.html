@@ -614,7 +614,9 @@
             showConfirmationCard();
           }
         } else {
-          addChatBubble('Sorry, something went wrong. Please try again.', 'assistant');
+          var errMsg = result.message || result.error || 'Something went wrong';
+          console.error('Chat API error:', result);
+          addChatBubble('Sorry, something went wrong: ' + errMsg + '. Please try again.', 'assistant');
         }
       } catch (err) {
         var typingEl2 = document.getElementById('typingIndicator');
