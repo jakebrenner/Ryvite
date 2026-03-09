@@ -1712,6 +1712,25 @@
       var fontsImport = ver.config.googleFontsImport || '';
       var guestName = 'Sarah';
       var title = extractedData.title || 'the event';
+      var pc = ver.config.primaryColor || '#333';
+      var sc = ver.config.secondaryColor || '#4CAF50';
+      var ac = ver.config.accentColor || '#2196F3';
+      var bg = ver.config.backgroundColor || '#fff';
+
+      // Fallback CSS that ensures thank you page buttons are ALWAYS styled
+      var fallbackTyCSS = '.thankyou-page { max-width:393px; margin:0 auto; padding:60px 24px 40px; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }'
+        + '.thankyou-hero { margin-bottom:32px; }'
+        + '.thankyou-title { font-size:36px; font-weight:700; margin-bottom:12px; }'
+        + '.thankyou-subtitle { font-size:16px; line-height:1.5; opacity:0.8; }'
+        + '.thankyou-calendar-section { width:100%; max-width:320px; }'
+        + '.calendar-label { font-size:14px; margin-bottom:16px; opacity:0.7; }'
+        + '.calendar-buttons { display:flex; flex-direction:column; gap:12px; width:100%; }'
+        + '.cal-btn { display:block; width:100%; padding:16px 24px; border-radius:12px; border:none; font-family:inherit; font-size:16px; font-weight:600; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; text-align:center; color:#fff; }'
+        + '.cal-btn:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }'
+        + '.cal-apple, .cal-btn[data-cal="apple"] { background:' + pc + '; color:#fff; }'
+        + '.cal-google, .cal-btn[data-cal="google"] { background:' + sc + '; color:#fff; }'
+        + '.cal-outlook, .cal-btn[data-cal="outlook"] { background:' + ac + '; color:#fff; }'
+        + '.thankyou-footer { font-size:12px; opacity:0.5; margin-top:40px; }';
 
       // Use AI-generated thank you HTML if available
       if (ver.config.thankyouHtml) {
@@ -1719,24 +1738,47 @@
         // Replace placeholders with preview data
         tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
         tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(title) + '</span>');
-        // Always ensure calendar buttons are present
+
+        // Normalize calendar buttons to 3-button stacked layout if old format detected
+        if (tyHtml.indexOf('data-cal="yahoo"') !== -1) {
+          // Remove Yahoo button
+          tyHtml = tyHtml.replace(/<button[^>]*data-cal="yahoo"[^>]*>[^<]*<\/button>/g, '');
+        }
+        // Add cal-apple/cal-google/cal-outlook classes if missing
+        if (tyHtml.indexOf('cal-apple') === -1) {
+          tyHtml = tyHtml.replace(/(class="cal-btn"[^>]*data-cal="apple")/g, 'class="cal-btn cal-apple" data-cal="apple"');
+          tyHtml = tyHtml.replace(/(data-cal="apple"[^>]*class="cal-btn")/g, 'data-cal="apple" class="cal-btn cal-apple"');
+        }
+        if (tyHtml.indexOf('cal-google') === -1) {
+          tyHtml = tyHtml.replace(/(class="cal-btn"[^>]*data-cal="google")/g, 'class="cal-btn cal-google" data-cal="google"');
+          tyHtml = tyHtml.replace(/(data-cal="google"[^>]*class="cal-btn")/g, 'data-cal="google" class="cal-btn cal-google"');
+        }
+        if (tyHtml.indexOf('cal-outlook') === -1) {
+          tyHtml = tyHtml.replace(/(class="cal-btn"[^>]*data-cal="outlook")/g, 'class="cal-btn cal-outlook" data-cal="outlook"');
+          tyHtml = tyHtml.replace(/(data-cal="outlook"[^>]*class="cal-btn")/g, 'data-cal="outlook" class="cal-btn cal-outlook"');
+        }
+
+        // If no calendar buttons at all, inject them
         if (tyHtml.indexOf('calendar-buttons') === -1) {
-          var calSection = '<div class="calendar-buttons" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:24px auto;max-width:340px;">'
-            + '<button class="cal-btn" data-cal="google" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Google Calendar</button>'
-            + '<button class="cal-btn" data-cal="apple" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Apple Calendar</button>'
-            + '<button class="cal-btn" data-cal="outlook" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Outlook</button>'
-            + '<button class="cal-btn" data-cal="yahoo" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Yahoo Calendar</button>'
-            + '</div>';
-          if (tyHtml.indexOf('Made with') !== -1 && tyHtml.indexOf('Ryvite') !== -1) {
-            tyHtml = tyHtml.replace(/(Made with.*?Ryvite)/, calSection + '$1');
+          var calSection = '<div class="thankyou-calendar-section"><p class="calendar-label">Add to your calendar:</p>'
+            + '<div class="calendar-buttons">'
+            + '<button class="cal-btn cal-apple" data-cal="apple">Apple / Outlook (.ics)</button>'
+            + '<button class="cal-btn cal-google" data-cal="google">Google Calendar</button>'
+            + '<button class="cal-btn cal-outlook" data-cal="outlook">Outlook Web</button>'
+            + '</div></div>';
+          if (tyHtml.indexOf('thankyou-footer') !== -1) {
+            tyHtml = tyHtml.replace(/<p class="thankyou-footer"/, calSection + '<p class="thankyou-footer"');
+          } else if (tyHtml.indexOf('Made with') !== -1) {
+            tyHtml = tyHtml.replace(/(Made with)/, calSection + '$1');
           } else {
             tyHtml += calSection;
           }
         }
-        // Inject script to make calendar buttons post messages to parent
+
         var calScript = '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".cal-btn,[data-cal]");if(btn){var t=btn.getAttribute("data-cal")||btn.textContent.trim().toLowerCase();window.parent.postMessage({type:"calendar",cal:t},"*");}});<\/script>';
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
           + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
+          + '<style>' + fallbackTyCSS + '</style>'
           + '<style>' + (ver.css || '') + '</style>'
           + '</head><body>' + tyHtml + calScript + '</body></html>';
       }
@@ -1748,24 +1790,25 @@
       var headlineFont = ver.config.fontHeadline || 'serif';
       var bodyFont = ver.config.fontBody || 'sans-serif';
 
-      var thankYouHtml = '<div style="min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:' + bgColor + ';color:' + textColor + ';font-family:' + bodyFont + ',sans-serif;text-align:center;">'
-        + '<div style="font-size:48px;margin-bottom:16px;">&#127881;</div>'
-        + '<h1 style="font-family:' + headlineFont + ',serif;font-size:28px;margin-bottom:12px;color:' + accent + ';">You\'re all set!</h1>'
-        + '<p style="font-size:16px;line-height:1.6;margin-bottom:24px;max-width:320px;opacity:0.85;">Thanks for RSVPing, <strong>' + escapeHtml(guestName) + '</strong>! We can\'t wait to see you at <strong>' + escapeHtml(title) + '</strong>.</p>'
-        + '<div style="background:rgba(0,0,0,0.05);border-radius:12px;padding:20px;width:100%;max-width:340px;margin-bottom:24px;">'
-        + '<p style="font-size:13px;font-weight:600;margin-bottom:8px;opacity:0.7;">ADD TO CALENDAR</p>'
-        + '<div class="calendar-buttons" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'
-        + '<button class="cal-btn" data-cal="google" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Google Calendar</button>'
-        + '<button class="cal-btn" data-cal="apple" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Apple Calendar</button>'
-        + '<button class="cal-btn" data-cal="outlook" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Outlook</button>'
-        + '<button class="cal-btn" data-cal="yahoo" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Yahoo Calendar</button>'
+      var thankYouHtml = '<div class="thankyou-page" style="background:' + bgColor + ';color:' + textColor + ';font-family:' + bodyFont + ',sans-serif;">'
+        + '<div class="thankyou-hero">'
+        + '<h1 class="thankyou-title" style="font-family:' + headlineFont + ',serif;color:' + accent + ';">Thank You!</h1>'
+        + '<p class="thankyou-subtitle">Thanks for RSVPing, <span class="thankyou-guest">' + escapeHtml(guestName) + '</span>! We can\'t wait to see you at <span class="thankyou-event">' + escapeHtml(title) + '</span>.</p>'
+        + '</div>'
+        + '<div class="thankyou-calendar-section">'
+        + '<p class="calendar-label">Add to your calendar:</p>'
+        + '<div class="calendar-buttons">'
+        + '<button class="cal-btn cal-apple" data-cal="apple">Apple / Outlook (.ics)</button>'
+        + '<button class="cal-btn cal-google" data-cal="google">Google Calendar</button>'
+        + '<button class="cal-btn cal-outlook" data-cal="outlook">Outlook Web</button>'
         + '</div></div>'
-        + '<p style="font-size:12px;opacity:0.5;">Made with Love by <a href="/" style="color:inherit;text-decoration:none;">Ryvite</a></p>'
+        + '<p class="thankyou-footer">Made with love by <a href="/" style="color:inherit;text-decoration:none;">Ryvite</a></p>'
         + '</div>';
 
       var calScript2 = '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".cal-btn,[data-cal]");if(btn){var t=btn.getAttribute("data-cal")||btn.textContent.trim().toLowerCase();window.parent.postMessage({type:"calendar",cal:t},"*");}});<\/script>';
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + '<style>' + fallbackTyCSS + '</style>'
         + '</head><body>' + thankYouHtml + calScript2 + '</body></html>';
     }
 
@@ -2077,22 +2120,44 @@
         return;
       }
 
-      // Detect if user is asking for a completely new/different design
+      // Detect if user is asking for a new design OR is vague/unsure about what to change
       if (text && !skipRedesignDetection) {
-        var redesignKeywords = /\b(new design|redesign|start over|start fresh|completely different|totally different|whole new|from scratch|different design|different look|different style|redo it|redo the|redo this|try again|another design|new look|new theme|different theme|change everything|scrap this)\b/i;
-        if (redesignKeywords.test(text)) {
+        // Match explicit redesign requests
+        var redesignKeywords = /\b(new design|redesign|start over|start fresh|completely different|totally different|whole new|from scratch|different design|different look|different style|redo it|redo the|redo this|another design|new look|new theme|different theme|change everything|scrap this)\b/i;
+        // Match vague dissatisfaction / unclear change requests
+        var vagueKeywords = /\b(don'?t (like|love|know|feel)|not (sure|happy|feeling|loving|into|vibing|what)|make.{0,15}changes|change (it|this|the design)|switch it|something (different|else|new)|doesn'?t (feel|look|seem)|i'?m not |not.{0,8}right|want.{0,10}different|don'?t.{0,10}(like|love)|try.{0,5}again|meh|hmm|idk)\b/i;
+        // Only trigger clarification for vague messages — NOT for specific instructions like "make the background darker"
+        var hasSpecificInstruction = /\b(make the|change the|move the|add a|remove the|bigger|smaller|darker|lighter|bolder|font|color|background|button|text|photo|image|spacing|padding|margin|border|shadow|size|position)\b/i.test(text);
+
+        if (redesignKeywords.test(text) || (vagueKeywords.test(text) && !hasSpecificInstruction)) {
           pendingRedesignText = text;
           awaitingRedesignClarification = true;
           designChatHistory.push({ role: 'user', content: text });
+
+          // Tailor the question based on whether it's a full redesign or vague dissatisfaction
+          var isFullRedesign = redesignKeywords.test(text);
+          var clarifyMsg = isFullRedesign
+            ? "Before I redesign, a couple quick questions so I nail it:\n\nWhat do you want to KEEP from the current design, and what should change?"
+            : "I'd love to help! To make sure I get it right, what specifically would you like to change?";
+
+          var clarifyOptions = isFullRedesign
+            ? [
+                { label: 'Keep theme, change layout', value: 'Keep the same theme/vibe but give me a completely different layout and visual style' },
+                { label: 'Keep colors, new design', value: 'Keep the color palette but redesign everything else' },
+                { label: 'Keep photos, change everything', value: 'Keep the photos in the design but change the theme, layout, and style completely' },
+                { label: 'Change everything', value: 'Start completely fresh — new theme, new layout, new colors, surprise me' }
+              ]
+            : [
+                { label: 'Change the theme/vibe', value: 'I want a different theme or overall vibe — the current one doesn\'t feel right' },
+                { label: 'Change the layout', value: 'I like the theme but the layout and arrangement of elements needs to change' },
+                { label: 'Change colors/fonts', value: 'The structure is fine but I want different colors and fonts' },
+                { label: 'Start fresh', value: 'Start completely fresh — new theme, new layout, new colors, surprise me' }
+              ];
+
           designChatHistory.push({
             role: 'assistant',
-            content: "Before I redesign, a couple quick questions so I nail it:\n\n1. Is there anything you want to KEEP from the current design? (e.g., the theme/vibe, colors, layout, photos)\n\n2. What would you like to be DIFFERENT?",
-            options: [
-              { label: 'Keep theme, change layout', value: 'Keep the same theme/vibe but give me a completely different layout and visual style' },
-              { label: 'Keep colors, new design', value: 'Keep the color palette but redesign everything else' },
-              { label: 'Keep photos, change everything', value: 'Keep the photos in the design but change the theme, layout, and style completely' },
-              { label: 'Change everything', value: 'Start completely fresh — new theme, new layout, new colors, surprise me' }
-            ]
+            content: clarifyMsg,
+            options: clarifyOptions
           });
           renderDesignChat();
           input.value = '';

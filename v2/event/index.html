@@ -292,37 +292,75 @@
       }
     }
 
+    function buildThankyouFallbackCSS(config) {
+      var pc = config.primaryColor || '#333';
+      var sc = config.secondaryColor || '#4CAF50';
+      var ac = config.accentColor || '#2196F3';
+      return '.thankyou-page { max-width:393px; margin:0 auto; padding:60px 24px 40px; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }'
+        + '.thankyou-hero { margin-bottom:32px; }'
+        + '.thankyou-title { font-size:36px; font-weight:700; margin-bottom:12px; }'
+        + '.thankyou-subtitle { font-size:16px; line-height:1.5; opacity:0.8; }'
+        + '.thankyou-calendar-section { width:100%; max-width:320px; }'
+        + '.calendar-label { font-size:14px; margin-bottom:16px; opacity:0.7; }'
+        + '.calendar-buttons { display:flex; flex-direction:column; gap:12px; width:100%; }'
+        + '.cal-btn { display:block; width:100%; padding:16px 24px; border-radius:12px; border:none; font-family:inherit; font-size:16px; font-weight:600; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; text-align:center; color:#fff; }'
+        + '.cal-btn:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }'
+        + '.cal-apple, .cal-btn[data-cal="apple"] { background:' + pc + '; color:#fff; }'
+        + '.cal-google, .cal-btn[data-cal="google"] { background:' + sc + '; color:#fff; }'
+        + '.cal-outlook, .cal-btn[data-cal="outlook"] { background:' + ac + '; color:#fff; }'
+        + '.thankyou-footer { font-size:12px; opacity:0.5; margin-top:40px; }';
+    }
+
+    function normalizeThankyouHtml(tyHtml) {
+      // Remove Yahoo button if present (old format)
+      tyHtml = tyHtml.replace(/<button[^>]*data-cal="yahoo"[^>]*>[^<]*<\/button>/g, '');
+      // Add cal-apple/cal-google/cal-outlook classes if missing
+      if (tyHtml.indexOf('cal-apple') === -1) {
+        tyHtml = tyHtml.replace(/(class="cal-btn"[^>]*data-cal="apple")/g, 'class="cal-btn cal-apple" data-cal="apple"');
+        tyHtml = tyHtml.replace(/(data-cal="apple"[^>]*class="cal-btn")/g, 'data-cal="apple" class="cal-btn cal-apple"');
+      }
+      if (tyHtml.indexOf('cal-google') === -1) {
+        tyHtml = tyHtml.replace(/(class="cal-btn"[^>]*data-cal="google")/g, 'class="cal-btn cal-google" data-cal="google"');
+        tyHtml = tyHtml.replace(/(data-cal="google"[^>]*class="cal-btn")/g, 'data-cal="google" class="cal-btn cal-google"');
+      }
+      if (tyHtml.indexOf('cal-outlook') === -1) {
+        tyHtml = tyHtml.replace(/(class="cal-btn"[^>]*data-cal="outlook")/g, 'class="cal-btn cal-outlook" data-cal="outlook"');
+        tyHtml = tyHtml.replace(/(data-cal="outlook"[^>]*class="cal-btn")/g, 'data-cal="outlook" class="cal-btn cal-outlook"');
+      }
+      // Inject calendar buttons if missing entirely
+      if (tyHtml.indexOf('calendar-buttons') === -1) {
+        var calSection = '<div class="thankyou-calendar-section"><p class="calendar-label">Add to your calendar:</p>'
+          + '<div class="calendar-buttons">'
+          + '<button class="cal-btn cal-apple" data-cal="apple">Apple / Outlook (.ics)</button>'
+          + '<button class="cal-btn cal-google" data-cal="google">Google Calendar</button>'
+          + '<button class="cal-btn cal-outlook" data-cal="outlook">Outlook Web</button>'
+          + '</div></div>';
+        if (tyHtml.indexOf('thankyou-footer') !== -1) {
+          tyHtml = tyHtml.replace(/<p class="thankyou-footer"/, calSection + '<p class="thankyou-footer"');
+        } else if (tyHtml.indexOf('Made with') !== -1) {
+          tyHtml = tyHtml.replace(/(Made with)/, calSection + '$1');
+        } else {
+          tyHtml += calSection;
+        }
+      }
+      return tyHtml;
+    }
+
     function showThankYouPage(guestName, rsvpStatus) {
       var config = currentEventData.themeConfig || {};
       var eventTitle = currentEventData.title || 'the event';
+      var fallbackCSS = buildThankyouFallbackCSS(config);
 
       // If we have AI-generated thank you HTML, show it in the theme iframe
       if (config.thankyouHtml) {
         var tyHtml = config.thankyouHtml;
         tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
         tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(eventTitle) + '</span>');
-
-        // Always ensure calendar buttons are present in the thank you page
-        if (tyHtml.indexOf('calendar-buttons') === -1) {
-          var pc = config.primaryColor || '#333';
-          var sc = config.secondaryColor || '#4CAF50';
-          var ac = config.accentColor || '#2196F3';
-          var calSection = '<div class="calendar-buttons" style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:24px auto;">'
-            + '<button class="cal-btn cal-apple" data-cal="apple" style="display:block;width:100%;padding:16px 24px;border-radius:12px;border:none;font-size:16px;font-weight:600;cursor:pointer;background:' + pc + ';color:#fff;">Apple / Outlook (.ics)</button>'
-            + '<button class="cal-btn cal-google" data-cal="google" style="display:block;width:100%;padding:16px 24px;border-radius:12px;border:none;font-size:16px;font-weight:600;cursor:pointer;background:' + sc + ';color:#fff;">Google Calendar</button>'
-            + '<button class="cal-btn cal-outlook" data-cal="outlook" style="display:block;width:100%;padding:16px 24px;border-radius:12px;border:none;font-size:16px;font-weight:600;cursor:pointer;background:' + ac + ';color:#fff;">Outlook Web</button>'
-            + '</div>';
-          // Insert before the closing body tag or at the end
-          if (tyHtml.indexOf('Made with') !== -1 && tyHtml.indexOf('Ryvite') !== -1) {
-            tyHtml = tyHtml.replace(/(Made with.*?Ryvite)/, calSection + '$1');
-          } else {
-            tyHtml += calSection;
-          }
-        }
+        tyHtml = normalizeThankyouHtml(tyHtml);
 
         var fontsImport = config.googleFontsImport || '';
         var iframe = document.getElementById('themeFrame');
-        iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 0; background: transparent; } ' + fontsImport + '</style><style>' + (currentEventData.themeCss || '') + '</style></head><body>' + tyHtml + '</body></html>';
+        iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 0; background: transparent; } ' + fontsImport + '</style><style>' + fallbackCSS + '</style><style>' + (currentEventData.themeCss || '') + '</style></head><body>' + tyHtml + '</body></html>';
         iframe.onload = function() { try { iframe.style.height = Math.max(iframe.contentDocument.body.scrollHeight + 40, 600) + 'px'; } catch(e) {} };
 
         // Wire up calendar buttons inside the iframe after load
