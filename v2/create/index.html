@@ -469,7 +469,7 @@
 
               <!-- Versions tab -->
               <div id="tabVersions" class="tab-content">
-                <div id="versionList" style="display:flex;flex-direction:column;gap:8px;"></div>
+                <div id="versionList" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start;"></div>
               </div>
             </div>
           </div>
@@ -1187,19 +1187,12 @@
         var v = item.ver;
         var i = item.idx;
         var isActive = i === activeVersionIndex;
-        var borderColor = isActive ? 'var(--party-coral)' : '#eee';
-        var badge = isActive ? '<span style="font-size:10px;background:var(--party-coral);color:white;padding:2px 8px;border-radius:10px;font-weight:600;">Active</span>' : '';
-        return '<div onclick="switchVersion(' + i + ')" style="display:flex;gap:12px;align-items:center;padding:10px;border:2px solid ' + borderColor + ';border-radius:10px;cursor:pointer;transition:all 0.2s;background:' + (isActive ? 'rgba(233,69,96,0.03)' : 'white') + ';">'
-          + '<div style="width:48px;height:104px;border-radius:8px;overflow:hidden;flex-shrink:0;position:relative;background:#f0f0f0;border:1px solid #ddd;">'
-          + '<iframe srcdoc="' + escapeAttr(buildSrcdoc(v)) + '" style="width:393px;height:852px;border:none;transform:scale(0.112);transform-origin:top left;pointer-events:none;"></iframe>'
+        var borderColor = isActive ? 'var(--party-coral)' : '#ddd';
+        return '<div onclick="switchVersion(' + i + ')" style="width:72px;cursor:pointer;text-align:center;" title="Version ' + v.version + (v.prompt ? ' — ' + (v.prompt || '').substring(0, 60) : '') + '">'
+          + '<div style="width:72px;height:156px;border-radius:10px;overflow:hidden;position:relative;background:#f0f0f0;border:2px solid ' + borderColor + ';' + (isActive ? 'box-shadow:0 0 0 2px rgba(233,69,96,0.3);' : '') + 'transition:all 0.2s;">'
+          + '<iframe srcdoc="' + escapeAttr(buildSrcdoc(v)) + '" style="width:393px;height:852px;border:none;transform:scale(0.168);transform-origin:top left;pointer-events:none;"></iframe>'
           + '</div>'
-          + '<div style="flex:1;min-width:0;">'
-          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-          + '<span style="font-weight:600;font-size:14px;">Version ' + v.version + '</span>'
-          + badge
-          + '</div>'
-          + (v.prompt ? '<p style="font-size:11px;color:#888;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml((v.prompt || '').substring(0, 60)) + '</p>' : '')
-          + '</div>'
+          + '<div style="margin-top:4px;font-size:11px;font-weight:' + (isActive ? '700' : '500') + ';color:' + (isActive ? 'var(--party-coral)' : '#666') + ';">v' + v.version + (isActive ? ' <span style="font-size:9px;vertical-align:middle;">(active)</span>' : '') + '</div>'
           + '</div>';
       }).join('');
     }
