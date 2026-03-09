@@ -583,6 +583,23 @@
       var urlParams = new URLSearchParams(window.location.search);
       var resumeId = urlParams.get('eventId');
       if (resumeId) {
+        // Immediately show loading state instead of step 1 chat
+        document.querySelector('.chat-container').style.display = 'none';
+        var resumeStep3 = document.querySelector('.container .step[data-step="3"]');
+        resumeStep3.classList.add('active');
+        var genView = document.getElementById('generatingView');
+        genView.style.display = 'block';
+        genView.innerHTML = '<div class="design-chat-loader" style="padding:80px 20px;">'
+          + '<div class="loader-dots"><span></span><span></span><span></span></div>'
+          + '<div class="loader-pun">Getting this party started...</div>'
+          + '</div>';
+        var resumePuns = eventPuns.slice().sort(function() { return Math.random() - 0.5; });
+        var resumePunIdx = 0;
+        var resumePunInterval = setInterval(function() {
+          resumePunIdx = (resumePunIdx + 1) % resumePuns.length;
+          var el = genView.querySelector('.loader-pun');
+          if (el) { el.style.opacity = '0'; setTimeout(function() { el.textContent = resumePuns[resumePunIdx]; el.style.opacity = '1'; }, 300); }
+        }, 2500);
         try {
           var res = await authFetch('/api/v2/events?action=get&eventId=' + encodeURIComponent(resumeId));
           var result = await res.json();
@@ -615,17 +632,26 @@
               themeVersions = [{ id: null, version: 1, html: ev.themeHtml, css: ev.themeCss, config: ev.themeConfig }];
               activeVersionIndex = 0;
             }
+            // Stop the resume loader
+            clearInterval(resumePunInterval);
+            // Restore generatingView original content
+            genView.innerHTML = '<div class="loading-state">'
+              + '<span class="loading-spinner" style="width: 40px; height: 40px; border-width: 3px;"></span>'
+              + '<h3>Generating Your Invite...</h3>'
+              + '<p>Our AI is creating a custom design based on your vision</p>'
+              + '<div class="progress-bar"><div class="progress-bar-fill"></div></div>'
+              + '</div>';
             // Jump to the right step
             var step = (ev.settings && ev.settings.creation_step) || 2;
             if (step === 4 && themeVersions.length > 0) {
               goToStep(4);
             } else if (step >= 3 && themeVersions.length > 0) {
               // Has theme — show preview
-              document.getElementById('generatingView').style.display = 'none';
+              genView.style.display = 'none';
               document.getElementById('generatedView').style.display = 'block';
               renderPreview(themeVersions[0]);
               renderVersionGallery();
-              initDesignChatIfNeeded(true);
+              initDesignChatIfNeeded(false);
               goToStep(3);
             } else {
               // Has details but no theme — go to creative direction
@@ -635,6 +661,10 @@
           }
         } catch (e) {
           console.error('Failed to resume event:', e);
+          clearInterval(resumePunInterval);
+          // Fall back to step 1
+          resumeStep3.classList.remove('active');
+          document.querySelector('.chat-container').style.display = 'flex';
         }
       }
     })();
