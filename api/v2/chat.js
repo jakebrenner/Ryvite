@@ -158,11 +158,11 @@ export default async function handler(req, res) {
       ...parsed
     });
   } catch (err) {
-    console.error('Chat error:', err?.message, err?.status, err);
+    console.error('Chat error:', err?.message, err?.status, JSON.stringify(err));
     return res.status(500).json({
       error: 'Failed to process message',
       message: err?.message || 'Unknown error',
-      detail: String(err)
+      detail: err?.status ? `API error ${err.status}: ${err?.error?.message || err.message}` : String(err)
     });
   }
 }

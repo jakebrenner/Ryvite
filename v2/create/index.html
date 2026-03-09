@@ -614,8 +614,8 @@
             showConfirmationCard();
           }
         } else {
-          var errMsg = result.message || result.error || 'Something went wrong';
-          console.error('Chat API error:', result);
+          var errMsg = result.detail || result.message || result.error || 'Something went wrong';
+          console.error('Chat API error:', JSON.stringify(result));
           addChatBubble('Sorry, something went wrong: ' + errMsg + '. Please try again.', 'assistant');
         }
       } catch (err) {
