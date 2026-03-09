@@ -175,7 +175,7 @@
 
     /* Responsive phone sizing */
     @media (max-width: 900px) {
-      [data-step="3"] > div > div:first-child > div:first-child { flex-direction: column; align-items: center; }
+      [data-step="2"] > div > div:first-child > div:first-child { flex-direction: column; align-items: center; }
       #editPanel { max-width: 100% !important; min-width: 0 !important; width: 100%; }
     }
     @media (max-width: 640px) {
@@ -288,7 +288,6 @@
     <div class="step-dot active" data-step="1">1</div>
     <div class="step-dot" data-step="2">2</div>
     <div class="step-dot" data-step="3">3</div>
-    <div class="step-dot" data-step="4">4</div>
   </div>
 
   <!-- Hide step 1 immediately when resuming an existing event (prevents flash) -->
@@ -313,35 +312,8 @@
     <div id="message" class="message"></div>
 
     <!-- Step 2: Creative Direction -->
+    <!-- Step 2: Generate & Preview -->
     <div class="step" data-step="2">
-      <h2>Creative Direction</h2>
-      <p class="step-desc">Describe the vibe. Get inspired with images.</p>
-      <div class="form-group"><label for="prompt">How should this invite feel? *</label><textarea id="prompt" placeholder="Describe the mood, style, colors, themes... e.g., 'Modern and minimalist with gold accents. Sophisticated but playful.'"></textarea></div>
-      <div class="example-chips">
-        <button class="chip" onclick="addPrompt('Elegant and luxurious with gold accents')">Elegant + Gold</button>
-        <button class="chip" onclick="addPrompt('Playful and colorful with confetti patterns')">Playful + Colorful</button>
-        <button class="chip" onclick="addPrompt('Modern minimalist with sleek typography')">Modern + Minimal</button>
-        <button class="chip" onclick="addPrompt('Rustic and cozy with warm earth tones')">Rustic + Warm</button>
-        <button class="chip" onclick="addPrompt('Underwater theme with blues and greens')">Underwater</button>
-        <button class="chip" onclick="addPrompt('Vintage floral with botanical elements')">Vintage + Floral</button>
-      </div>
-      <div class="form-group" style="margin-top: 24px;">
-        <label>Inspiration Images (optional, up to 4)</label>
-        <div class="image-upload-area" id="dropZone" onclick="document.getElementById('imageInput').click()">
-          <p>Drag & drop images here or click to upload</p>
-          <p style="font-size: 12px; color: #999; margin-top: 4px;">JPG, PNG, HEIC, WebP (max 5MB each)</p>
-        </div>
-        <input type="file" id="imageInput" multiple accept=".jpg,.jpeg,.png,.heic,.heif,.webp" style="display: none;" onchange="handleImageUpload(event)">
-        <div id="imagePreviews" class="image-previews"></div>
-      </div>
-      <div class="button-group">
-        <button class="btn btn-secondary" onclick="goToStep(1)">Back</button>
-        <button class="btn btn-primary" onclick="nextStep()">Next: Generate Theme</button>
-      </div>
-    </div>
-
-    <!-- Step 3: Generate & Preview -->
-    <div class="step" data-step="3">
       <div id="generatingView">
         <div class="loading-state">
           <span class="loading-spinner" style="width: 40px; height: 40px; border-width: 3px;"></span>
@@ -448,7 +420,7 @@
     </div>
 
     <!-- Step 4: Review & Publish -->
-    <div class="step" data-step="4">
+    <div class="step" data-step="3">
       <h2>Review & Publish</h2>
       <p class="step-desc">Confirm your event details before publishing</p>
       <div id="summaryContent"></div>
@@ -461,7 +433,8 @@
 
   <script>
     let currentStep = 1;
-    var totalSteps = 4;
+    var totalSteps = 3;
+    var designPrompt = ''; // Collected from chat style flow
     let currentEvent = null;
     let inspirationImageBase64Array = [];
     let extractedData = {};
@@ -551,7 +524,7 @@
       if (resumeId) {
         // Immediately show loading state instead of step 1 chat
         document.querySelector('.chat-container').style.display = 'none';
-        var resumeStep3 = document.querySelector('.container .step[data-step="3"]');
+        var resumeStep3 = document.querySelector('.container .step[data-step="2"]');
         resumeStep3.classList.add('active');
         var genView = document.getElementById('generatingView');
         genView.style.display = 'block';
@@ -607,21 +580,21 @@
               + '<p>Our AI is creating a custom design based on your vision</p>'
               + '<div class="progress-bar"><div class="progress-bar-fill"></div></div>'
               + '</div>';
-            // Jump to the right step
+            // Jump to the right step (old step 3/4 → new step 2/3)
             var step = (ev.settings && ev.settings.creation_step) || 2;
-            if (step === 4 && themeVersions.length > 0) {
-              goToStep(4);
-            } else if (step >= 3 && themeVersions.length > 0) {
+            if (step >= 3 && themeVersions.length > 0) {
+              goToStep(3); // Review & Publish
+            } else if (step >= 2 && themeVersions.length > 0) {
               // Has theme — show preview
               genView.style.display = 'none';
               document.getElementById('generatedView').style.display = 'block';
               renderPreview(themeVersions[0]);
               renderVersionGallery();
               initDesignChatIfNeeded(false);
-              goToStep(3);
-            } else {
-              // Has details but no theme — go to creative direction
               goToStep(2);
+            } else {
+              // Has details but no theme — go back to chat
+              goToStep(1);
             }
             return;
           }
@@ -758,7 +731,7 @@
           + '</div>';
       }
 
-      html += '<button class="btn btn-primary chat-proceed" onclick="proceedToCreativeDirection()" style="margin-top:16px;width:100%;">Looks good — design my invite!</button>';
+      html += '<button class="btn btn-primary chat-proceed" onclick="confirmDetailsAndAskStyle()" style="margin-top:16px;width:100%;">Looks good!</button>';
 
       card.innerHTML = html;
       document.getElementById('chatMessages').appendChild(card);
@@ -850,57 +823,284 @@
       cancelAddField();
     }
 
-    async function proceedToCreativeDirection() {
-      if (extractedData.prompt) {
-        document.getElementById('prompt').value = extractedData.prompt;
-      }
+    // ---- Style Selection Flow (in chat) ----
 
-      // Create the event in the DB immediately so progress is saved
-      if (!currentEvent) {
-        try {
-          // Ensure profile exists
-          await authFetch('/api/v2/auth?action=profile');
+    var brainstormAnswers = {};
 
-          var res = await authFetch('/api/v2/events?action=create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: extractedData.title || 'Untitled Event',
-              description: extractedData.description || '',
-              eventDate: extractedData.startDate || '',
-              endDate: extractedData.endDate || '',
-              locationName: extractedData.locationName || '',
-              locationAddress: extractedData.locationAddress || '',
-              dressCode: extractedData.dressCode || '',
-              eventType: extractedData.eventType || 'other',
-              settings: { creation_step: 2 }
-            })
-          });
-          var result = await res.json();
-          if (result.success) {
-            currentEvent = { id: result.eventId, slug: result.slug };
-            // Save RSVP fields immediately
-            await saveCustomFields();
-            // Update URL so refreshing resumes this event
-            window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
-          } else {
-            showMessage(result.error || 'Error creating event', 'error');
-            return;
-          }
-        } catch (err) {
-          showMessage('Error saving event. Please try again.', 'error');
-          return;
+    async function saveEventToDB() {
+      if (currentEvent) return true;
+      try {
+        await authFetch('/api/v2/auth?action=profile');
+        var res = await authFetch('/api/v2/events?action=create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: extractedData.title || 'Untitled Event',
+            description: extractedData.description || '',
+            eventDate: extractedData.startDate || '',
+            endDate: extractedData.endDate || '',
+            locationName: extractedData.locationName || '',
+            locationAddress: extractedData.locationAddress || '',
+            dressCode: extractedData.dressCode || '',
+            eventType: extractedData.eventType || 'other',
+            settings: { creation_step: 1 }
+          })
+        });
+        var result = await res.json();
+        if (result.success) {
+          currentEvent = { id: result.eventId, slug: result.slug };
+          await saveCustomFields();
+          window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
+          return true;
         }
+        showMessage(result.error || 'Error creating event', 'error');
+        return false;
+      } catch (err) {
+        showMessage('Error saving event. Please try again.', 'error');
+        return false;
       }
+    }
 
+    function confirmDetailsAndAskStyle() {
+      // Remove the confirmation card's button
+      var btn = document.querySelector('#confirmationCard .chat-proceed');
+      if (btn) btn.remove();
+
+      addChatBubble('Looks good!', 'user');
+
+      // Ask about style preference
+      var card = document.createElement('div');
+      card.className = 'chat-bubble assistant';
+      card.innerHTML = '<div style="margin-bottom:12px;">Now let\'s design your invite! Do you already have a style in mind, or would you like to explore some options?</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+        + '<button class="btn btn-primary" onclick="showCustomStyleInput()" style="padding:10px 16px;font-size:13px;">I have a style in mind</button>'
+        + '<button class="btn btn-secondary" onclick="startBrainstorm()" style="padding:10px 16px;font-size:13px;">Help me brainstorm</button>'
+        + '</div>';
+      document.getElementById('chatMessages').appendChild(card);
+      scrollChat();
+    }
+
+    // ---- "I have a style in mind" flow ----
+
+    function showCustomStyleInput() {
+      // Remove the choice buttons
+      var lastBubble = document.querySelector('#chatMessages .chat-bubble:last-child');
+      if (lastBubble) lastBubble.querySelector('div:last-child').remove();
+
+      addChatBubble('I have a style in mind', 'user');
+
+      var card = document.createElement('div');
+      card.className = 'chat-bubble assistant';
+      card.id = 'customStyleCard';
+      card.innerHTML = '<div style="margin-bottom:12px;">Describe the mood, colors, and style you\'re going for. You can also upload inspiration images!</div>'
+        + '<textarea id="customStyleText" placeholder="e.g., Modern minimalist with gold accents and a warm, elegant feel..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:Inter,sans-serif;min-height:80px;resize:none;margin-bottom:10px;box-sizing:border-box;"></textarea>'
+        + '<div style="margin-bottom:12px;">'
+        + '<div class="example-chips" style="margin-top:0;">'
+        + '<button class="chip" onclick="addToCustomStyle(\'Elegant and luxurious with gold accents\')">Elegant + Gold</button>'
+        + '<button class="chip" onclick="addToCustomStyle(\'Playful and colorful with confetti\')">Playful + Colorful</button>'
+        + '<button class="chip" onclick="addToCustomStyle(\'Modern minimalist with sleek typography\')">Modern + Minimal</button>'
+        + '<button class="chip" onclick="addToCustomStyle(\'Rustic and cozy with warm earth tones\')">Rustic + Warm</button>'
+        + '</div></div>'
+        + '<div style="margin-bottom:12px;">'
+        + '<div class="image-upload-area" id="chatDropZone" onclick="document.getElementById(\'chatImageInput\').click()" style="padding:16px;border-radius:8px;">'
+        + '<p style="font-size:13px;">Drop inspiration images here or click to upload</p>'
+        + '<p style="font-size:11px;color:#999;margin-top:2px;">JPG, PNG, HEIC, WebP (max 4 images)</p>'
+        + '</div>'
+        + '<input type="file" id="chatImageInput" multiple accept=".jpg,.jpeg,.png,.heic,.heif,.webp" style="display:none;" onchange="handleImageUpload(event)">'
+        + '<div id="imagePreviews" class="image-previews"></div>'
+        + '</div>'
+        + '<button class="btn btn-primary" onclick="submitCustomStyle()" style="width:100%;padding:12px;font-size:14px;">Generate My Invite</button>';
+      document.getElementById('chatMessages').appendChild(card);
+      scrollChat();
+
+      // Set up drag & drop on the new drop zone
+      setupDropZone('chatDropZone');
+    }
+
+    function addToCustomStyle(text) {
+      var el = document.getElementById('customStyleText');
+      if (el) el.value = el.value ? el.value + ' ' + text : text;
+    }
+
+    async function submitCustomStyle() {
+      var text = document.getElementById('customStyleText').value.trim();
+      if (!text) {
+        document.getElementById('customStyleText').style.borderColor = '#E94560';
+        document.getElementById('customStyleText').focus();
+        return;
+      }
+      designPrompt = text;
+      // Remove the style card
+      var card = document.getElementById('customStyleCard');
+      if (card) card.remove();
+      addChatBubble(text, 'user');
+      addChatBubble('Great choice! Let me generate your invite...', 'assistant');
+
+      if (!(await saveEventToDB())) return;
       goToStep(2);
+    }
+
+    // ---- Brainstorm flow ----
+
+    var brainstormQuestions = [
+      {
+        key: 'vibe',
+        question: 'What vibe are you going for?',
+        options: [
+          { label: 'Elegant & Classy', emoji: '✨', desc: 'Sophisticated, luxurious, refined' },
+          { label: 'Fun & Playful', emoji: '🎉', desc: 'Bright colors, whimsical, energetic' },
+          { label: 'Modern & Minimal', emoji: '◻️', desc: 'Clean lines, sleek, contemporary' },
+          { label: 'Warm & Cozy', emoji: '🕯️', desc: 'Rustic, earthy, inviting' },
+          { label: 'Bold & Dramatic', emoji: '🔥', desc: 'Eye-catching, vibrant, statement' },
+          { label: 'Whimsical & Dreamy', emoji: '🌙', desc: 'Soft, magical, fairy-tale feel' }
+        ]
+      },
+      {
+        key: 'colors',
+        question: 'What colors feel right?',
+        options: [
+          { label: 'Gold & Black', emoji: '🖤', desc: 'Glamorous, timeless' },
+          { label: 'Pastels', emoji: '🌸', desc: 'Soft pinks, blues, lavenders' },
+          { label: 'Bright & Bold', emoji: '🌈', desc: 'Vibrant, saturated, lively' },
+          { label: 'Earth Tones', emoji: '🍂', desc: 'Browns, greens, warm neutrals' },
+          { label: 'Blues & Whites', emoji: '🌊', desc: 'Cool, crisp, oceanic' },
+          { label: 'Let AI decide', emoji: '🎨', desc: 'Based on your event type & vibe' }
+        ]
+      },
+      {
+        key: 'style',
+        question: 'Any particular style?',
+        options: [
+          { label: 'Illustrated', emoji: '🎨', desc: 'Hand-drawn feel, artistic elements' },
+          { label: 'Photo-realistic', emoji: '📸', desc: 'Gradients, rich textures' },
+          { label: 'Typography-focused', emoji: '🔤', desc: 'Beautiful fonts, minimal decoration' },
+          { label: 'Pattern-based', emoji: '🔷', desc: 'Geometric, floral, or abstract patterns' },
+          { label: 'Themed', emoji: '🎭', desc: 'Match the event theme (e.g., tropical, vintage)' },
+          { label: 'Surprise me!', emoji: '✨', desc: 'Let AI pick the best approach' }
+        ]
+      }
+    ];
+
+    var brainstormStep = 0;
+
+    function startBrainstorm() {
+      // Remove the choice buttons
+      var lastBubble = document.querySelector('#chatMessages .chat-bubble:last-child');
+      if (lastBubble) lastBubble.querySelector('div:last-child').remove();
+
+      addChatBubble('Help me brainstorm', 'user');
+      brainstormStep = 0;
+      brainstormAnswers = {};
+      showBrainstormQuestion(0);
+    }
+
+    function showBrainstormQuestion(idx) {
+      if (idx >= brainstormQuestions.length) {
+        finishBrainstorm();
+        return;
+      }
+      var q = brainstormQuestions[idx];
+
+      var card = document.createElement('div');
+      card.className = 'chat-bubble assistant';
+      card.id = 'brainstormQ' + idx;
+      card.innerHTML = '<div style="margin-bottom:12px;font-weight:500;">' + q.question + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+        + q.options.map(function(opt) {
+            return '<button class="brainstorm-option" onclick="pickBrainstormOption(' + idx + ',this)" style="display:flex;flex-direction:column;align-items:center;padding:14px 10px;border:2px solid #eee;border-radius:12px;background:white;cursor:pointer;transition:all 0.2s;font-family:Inter,sans-serif;text-align:center;">'
+              + '<span style="font-size:24px;margin-bottom:6px;">' + opt.emoji + '</span>'
+              + '<span style="font-size:13px;font-weight:600;color:var(--midnight);">' + escapeHtml(opt.label) + '</span>'
+              + '<span style="font-size:11px;color:#888;margin-top:2px;">' + escapeHtml(opt.desc) + '</span>'
+              + '</button>';
+          }).join('')
+        + '</div>';
+      document.getElementById('chatMessages').appendChild(card);
+      scrollChat();
+    }
+
+    function pickBrainstormOption(qIdx, btn) {
+      var q = brainstormQuestions[qIdx];
+      var label = btn.querySelector('span:nth-child(2)').textContent;
+      brainstormAnswers[q.key] = label;
+
+      // Highlight selection and disable other buttons
+      var card = document.getElementById('brainstormQ' + qIdx);
+      card.querySelectorAll('.brainstorm-option').forEach(function(b) {
+        b.disabled = true;
+        b.style.opacity = '0.4';
+        b.style.cursor = 'default';
+      });
+      btn.style.opacity = '1';
+      btn.style.borderColor = 'var(--party-coral)';
+      btn.style.background = 'rgba(233,69,96,0.08)';
+
+      addChatBubble(label, 'user');
+
+      brainstormStep = qIdx + 1;
+      setTimeout(function() { showBrainstormQuestion(qIdx + 1); }, 400);
+    }
+
+    async function finishBrainstorm() {
+      // Build the design prompt from brainstorm answers
+      var parts = [];
+      if (brainstormAnswers.vibe) parts.push(brainstormAnswers.vibe + ' vibe');
+      if (brainstormAnswers.colors && brainstormAnswers.colors !== 'Let AI decide') parts.push(brainstormAnswers.colors + ' color palette');
+      if (brainstormAnswers.style && brainstormAnswers.style !== 'Surprise me!') parts.push(brainstormAnswers.style + ' style');
+
+      designPrompt = parts.join(', ') + '. Make it feel unique and custom-designed for this event.';
+      if (brainstormAnswers.colors === 'Let AI decide') designPrompt += ' Choose colors that best match the event theme.';
+      if (brainstormAnswers.style === 'Surprise me!') designPrompt += ' Pick the most creative visual approach.';
+
+      // Offer chance to add inspiration images
+      var card = document.createElement('div');
+      card.className = 'chat-bubble assistant';
+      card.id = 'brainstormFinish';
+      card.innerHTML = '<div style="margin-bottom:10px;">Love it! Here\'s what I\'m going with:</div>'
+        + '<div style="background:rgba(0,0,0,0.03);padding:10px 14px;border-radius:8px;font-size:13px;font-style:italic;margin-bottom:12px;color:var(--midnight);">' + escapeHtml(designPrompt) + '</div>'
+        + '<div style="margin-bottom:12px;">'
+        + '<div class="image-upload-area" id="brainstormDropZone" onclick="document.getElementById(\'brainstormImageInput\').click()" style="padding:14px;border-radius:8px;">'
+        + '<p style="font-size:13px;">Want to add inspiration images? (optional)</p>'
+        + '<p style="font-size:11px;color:#999;margin-top:2px;">Drop images here or click to upload</p>'
+        + '</div>'
+        + '<input type="file" id="brainstormImageInput" multiple accept=".jpg,.jpeg,.png,.heic,.heif,.webp" style="display:none;" onchange="handleImageUpload(event)">'
+        + '<div id="imagePreviews" class="image-previews"></div>'
+        + '</div>'
+        + '<button class="btn btn-primary" onclick="submitBrainstorm()" style="width:100%;padding:12px;font-size:14px;">Generate My Invite</button>';
+      document.getElementById('chatMessages').appendChild(card);
+      scrollChat();
+
+      setupDropZone('brainstormDropZone');
+    }
+
+    async function submitBrainstorm() {
+      var card = document.getElementById('brainstormFinish');
+      if (card) card.remove();
+      addChatBubble('Let\'s go!', 'user');
+      addChatBubble('Creating your invite now...', 'assistant');
+
+      if (!(await saveEventToDB())) return;
+      goToStep(2);
+    }
+
+    function setupDropZone(zoneId) {
+      var zone = document.getElementById(zoneId);
+      if (!zone) return;
+      zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('dragover'); });
+      zone.addEventListener('dragleave', function() { zone.classList.remove('dragover'); });
+      zone.addEventListener('drop', function(e) {
+        e.preventDefault(); zone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) addFiles(Array.from(e.dataTransfer.files));
+      });
+    }
+
+    // Keep old function name as alias for backward compat with resume flow
+    async function proceedToCreativeDirection() {
+      confirmDetailsAndAskStyle();
     }
 
     // ---- Step Navigation ----
 
     function goToStep(step) {
-      if (step === 3 && currentStep === 2 && !validateStep(2)) return;
-
       document.querySelector('.chat-container').style.display = step === 1 ? 'flex' : 'none';
 
       document.querySelectorAll('.container .step').forEach(function(s) { s.classList.remove('active'); });
@@ -916,20 +1116,20 @@
       });
 
       currentStep = step;
-      if (step === 3 && !themeVersions.length) generateTheme();
-      else if (step === 3 && themeVersions.length) {
-        // Returning to step 3 with existing themes — show preview
+      if (step === 2 && !themeVersions.length) generateTheme();
+      else if (step === 2 && themeVersions.length) {
+        // Returning to step 2 with existing themes — show preview
         document.getElementById('generatingView').style.display = 'none';
         document.getElementById('generatedView').style.display = 'block';
         renderPreview(themeVersions[activeVersionIndex]);
         renderVersionGallery();
       }
-      if (step === 4) {
+      if (step === 3) {
         showSummary();
         if (currentEvent) {
           authFetch('/api/v2/events?action=update', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 4 } })
+            body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 3 } })
           }).catch(function() {});
         }
       }
@@ -939,11 +1139,7 @@
     function previousStep() { if (currentStep > 1) goToStep(currentStep - 1); }
 
     function validateStep(step) {
-      if (step === 2) {
-        if (!document.getElementById('prompt').value.trim()) {
-          showMessage('Please describe the vibe for your invite', 'error');
-          return false;
-        }
+      if (false) { // No longer needed — style prompt collected in chat
       }
       return true;
     }
@@ -980,15 +1176,15 @@
         return;
       }
 
-      // Update progress to step 3
+      // Update progress to step 2
       authFetch('/api/v2/events?action=update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 3 } })
+        body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 2 } })
       }).catch(function() {});
 
       try {
-        var promptText = document.getElementById('prompt').value || extractedData.prompt || '';
+        var promptText = designPrompt || extractedData.prompt || '';
         var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
         var payload = {
           eventId: currentEvent.id,
@@ -1075,7 +1271,7 @@
         + '<h3 style="color:var(--party-coral);">Oops!</h3>'
         + '<p style="margin-bottom:16px;">' + escapeHtml(msg) + '</p>'
         + '<div style="display:flex;gap:8px;justify-content:center;">'
-        + '<button class="btn btn-secondary" onclick="goToStep(2)" style="font-size:13px;padding:10px 20px;">Back</button>'
+        + '<button class="btn btn-secondary" onclick="goToStep(1)" style="font-size:13px;padding:10px 20px;">Back</button>'
         + '<button class="btn btn-primary" onclick="retryGenerate()" style="font-size:13px;padding:10px 20px;">Try Again</button>'
         + '</div></div>';
     }
@@ -1925,10 +2121,7 @@
       }
     }
 
-    function addPrompt(text) {
-      var el = document.getElementById('prompt');
-      el.value = el.value ? el.value + ' ' + text : text;
-    }
+    // addPrompt removed — style chips now in chat via addToCustomStyle()
 
     // ---- Image Upload with HEIC support and drag & drop ----
 
@@ -2060,21 +2253,7 @@
       document.querySelectorAll('.image-preview').forEach(function(el, i) { el.setAttribute('data-idx', i); });
     }
 
-    // Drag & Drop
-    (function setupDragDrop() {
-      var dropZone = document.getElementById('dropZone');
-      if (!dropZone) return;
-      ['dragenter', 'dragover'].forEach(function(evt) {
-        dropZone.addEventListener(evt, function(e) { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); });
-      });
-      ['dragleave', 'drop'].forEach(function(evt) {
-        dropZone.addEventListener(evt, function(e) { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); });
-      });
-      dropZone.addEventListener('drop', function(e) {
-        var files = Array.from(e.dataTransfer.files);
-        if (files.length > 0) addFiles(files);
-      });
-    })();
+    // Drag & Drop setup removed — now handled dynamically via setupDropZone()
 
     // ---- Summary & Publish ----
 
@@ -2086,7 +2265,7 @@
         ['Date & Time', d.startDate ? formatDate(d.startDate) : 'Not set'],
         ['Location', d.locationName || 'Not set'],
         ['Event Type', formatEventType(d.eventType || 'other')],
-        ['Design Mood', (document.getElementById('prompt').value || d.prompt || '').substring(0, 80) + '...'],
+        ['Design Mood', (designPrompt || d.prompt || '').substring(0, 80) + '...'],
         ['RSVP Fields', enabledRsvp.length > 0 ? enabledRsvp.map(function(f) { return f.label; }).join(', ') : 'Default only']
       ];
       document.getElementById('summaryContent').innerHTML = items.map(function(item) {
