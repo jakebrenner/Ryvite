@@ -437,6 +437,7 @@
     var designPrompt = ''; // Collected from chat style flow
     let currentEvent = null;
     let inspirationImageBase64Array = [];
+    let inspirationImageUrls = []; // Supabase Storage URLs for photos to embed in the invite
     let extractedData = {};
     let rsvpFields = []; // { field_key, label, field_type, is_required, options, placeholder, enabled }
     let themeVersions = []; // [{id, version, html, css, config}]
@@ -1427,7 +1428,8 @@
             hostName: extractedData.hostName || '',
             tagline: extractedData.tagline || ''
           },
-          inspirationImages: inspirationImageBase64Array
+          inspirationImages: inspirationImageBase64Array,
+          photoUrls: inspirationImageUrls.filter(function(u) { return !!u; })
         };
         var res2 = await authFetch('/api/v2/generate-theme', {
           method: 'POST',
@@ -2507,6 +2509,26 @@
           inspirationImageBase64Array.push(result.base64);
           placeholder.setAttribute('data-idx', idx);
           placeholder.innerHTML = '<img src="' + result.dataUrl + '" alt="Preview"><button class="remove" onclick="removeImage(this)">&times;</button>';
+          // Also upload to Supabase Storage to get a persistent URL for embedding in the invite
+          try {
+            var uploadRes = await authFetch('/api/v2/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                base64: result.base64,
+                eventId: currentEvent ? currentEvent.id : null,
+                filename: file.name || 'photo.jpg'
+              })
+            });
+            var uploadResult = await uploadRes.json();
+            if (uploadResult.success && uploadResult.url) {
+              inspirationImageUrls.push(uploadResult.url);
+            } else {
+              inspirationImageUrls.push(null);
+            }
+          } catch (e) {
+            inspirationImageUrls.push(null);
+          }
         } else {
           placeholder.remove();
         }
@@ -2519,6 +2541,7 @@
       var preview = btn.parentElement;
       var idx = parseInt(preview.getAttribute('data-idx'));
       inspirationImageBase64Array.splice(idx, 1);
+      inspirationImageUrls.splice(idx, 1);
       preview.remove();
       document.querySelectorAll('.image-preview').forEach(function(el, i) { el.setAttribute('data-idx', i); });
     }
