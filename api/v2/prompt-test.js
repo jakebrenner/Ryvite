@@ -296,43 +296,36 @@ Guidelines:
     // Load style library references — auto-select by event type + manual picks
     let styleContext = '';
     {
-      const { data: configData } = await supabaseAdmin
-        .from('app_config')
-        .select('value')
-        .eq('key', 'style_library')
-        .single();
+      const selected = [];
+      const seenIds = new Set();
 
-      if (configData?.value) {
-        try {
-          const library = JSON.parse(configData.value);
-          // Combine manually selected + auto-matched by event type (deduplicated)
-          const manualIds = new Set(styleLibraryIds || []);
-          const selected = [];
-          const seenIds = new Set();
+      // Manual picks first
+      if (styleLibraryIds && styleLibraryIds.length > 0) {
+        const { data: manualData } = await supabaseAdmin
+          .from('style_library')
+          .select('*')
+          .in('id', styleLibraryIds);
+        for (const row of (manualData || [])) {
+          selected.push({ name: row.name, description: row.description, html: row.html, eventTypes: row.event_types || [], designNotes: row.design_notes });
+          seenIds.add(row.id);
+        }
+      }
 
-          // Manual picks first
-          for (const item of library) {
-            if (manualIds.has(item.id) && !seenIds.has(item.id)) {
-              selected.push(item);
-              seenIds.add(item.id);
-            }
-          }
-          // Auto-match by event type (up to 2 auto-selected)
-          let autoCount = 0;
-          for (const item of library) {
-            if (autoCount >= 2) break;
-            if (seenIds.has(item.id)) continue;
-            if (item.eventTypes?.includes(eventType)) {
-              selected.push(item);
-              seenIds.add(item.id);
-              autoCount++;
-            }
-          }
+      // Auto-match by event type (up to 2 auto-selected, excluding manual picks)
+      const { data: autoData } = await supabaseAdmin
+        .from('style_library')
+        .select('*')
+        .contains('event_types', [eventType])
+        .limit(2 + seenIds.size);
+      for (const row of (autoData || [])) {
+        if (selected.length >= (styleLibraryIds?.length || 0) + 2) break;
+        if (seenIds.has(row.id)) continue;
+        selected.push({ name: row.name, description: row.description, html: row.html, eventTypes: row.event_types || [], designNotes: row.design_notes });
+        seenIds.add(row.id);
+      }
 
-          if (selected.length > 0) {
-            styleContext = buildStyleContext(selected);
-          }
-        } catch {}
+      if (selected.length > 0) {
+        styleContext = buildStyleContext(selected);
       }
     }
 

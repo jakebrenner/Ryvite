@@ -393,16 +393,23 @@ export default async function handler(req, res) {
 
     // ---- GET STYLE LIBRARY ----
     if (action === 'getStyleLibrary') {
-      const { data } = await supabaseAdmin
-        .from('app_config')
-        .select('value')
-        .eq('key', 'style_library')
-        .single();
+      const { data, error } = await supabaseAdmin
+        .from('style_library')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      let library = [];
-      if (data?.value) {
-        try { library = JSON.parse(data.value); } catch {}
-      }
+      const library = (data || []).map(row => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        html: row.html,
+        tags: row.tags || [],
+        eventTypes: row.event_types || [],
+        designNotes: row.design_notes,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        addedBy: row.added_by
+      }));
 
       return res.status(200).json({ success: true, library });
     }
@@ -414,43 +421,43 @@ export default async function handler(req, res) {
       const { id, name, description, html, tags, eventTypes, designNotes } = req.body;
       if (!name || !html) return res.status(400).json({ error: 'name and html are required' });
 
-      // Load existing library
-      const { data } = await supabaseAdmin
-        .from('app_config')
-        .select('value')
-        .eq('key', 'style_library')
-        .single();
-
-      let library = [];
-      if (data?.value) {
-        try { library = JSON.parse(data.value); } catch {}
-      }
+      const row = {
+        name,
+        description: description || '',
+        html,
+        tags: tags || [],
+        event_types: eventTypes || [],
+        design_notes: designNotes || '',
+      };
 
       if (id) {
         // Update existing item
-        const idx = library.findIndex(item => item.id === id);
-        if (idx !== -1) {
-          library[idx] = { ...library[idx], name, description: description || '', html, tags: tags || [], eventTypes: eventTypes || [], designNotes: designNotes || '', updatedAt: new Date().toISOString() };
-        }
+        const { error } = await supabaseAdmin
+          .from('style_library')
+          .update(row)
+          .eq('id', id);
+        if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
       } else {
-        // Add new item
-        library.push({
-          id: 'style_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
-          name,
-          description: description || '',
-          html,
-          tags: tags || [],
-          eventTypes: eventTypes || [],
-          designNotes: designNotes || '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          addedBy: admin.email
-        });
+        // Insert new item
+        row.id = 'style_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        row.added_by = admin.email;
+        const { error } = await supabaseAdmin
+          .from('style_library')
+          .insert(row);
+        if (error) return res.status(500).json({ error: 'Failed to insert: ' + error.message });
       }
 
-      await supabaseAdmin
-        .from('app_config')
-        .upsert({ key: 'style_library', value: JSON.stringify(library), updated_by: admin.id, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      // Return updated library
+      const { data } = await supabaseAdmin
+        .from('style_library')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const library = (data || []).map(r => ({
+        id: r.id, name: r.name, description: r.description, html: r.html,
+        tags: r.tags || [], eventTypes: r.event_types || [], designNotes: r.design_notes,
+        createdAt: r.created_at, updatedAt: r.updated_at, addedBy: r.added_by
+      }));
 
       return res.status(200).json({ success: true, library });
     }
@@ -462,22 +469,23 @@ export default async function handler(req, res) {
       const { id } = req.body;
       if (!id) return res.status(400).json({ error: 'id is required' });
 
+      const { error } = await supabaseAdmin
+        .from('style_library')
+        .delete()
+        .eq('id', id);
+      if (error) return res.status(500).json({ error: 'Failed to delete: ' + error.message });
+
+      // Return updated library
       const { data } = await supabaseAdmin
-        .from('app_config')
-        .select('value')
-        .eq('key', 'style_library')
-        .single();
+        .from('style_library')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      let library = [];
-      if (data?.value) {
-        try { library = JSON.parse(data.value); } catch {}
-      }
-
-      library = library.filter(item => item.id !== id);
-
-      await supabaseAdmin
-        .from('app_config')
-        .upsert({ key: 'style_library', value: JSON.stringify(library), updated_by: admin.id, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      const library = (data || []).map(r => ({
+        id: r.id, name: r.name, description: r.description, html: r.html,
+        tags: r.tags || [], eventTypes: r.event_types || [], designNotes: r.design_notes,
+        createdAt: r.created_at, updatedAt: r.updated_at, addedBy: r.added_by
+      }));
 
       return res.status(200).json({ success: true, library });
     }

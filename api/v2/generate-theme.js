@@ -333,20 +333,15 @@ function buildStyleContext(selected) {
 async function loadStyleReferences(eventType) {
   try {
     const { data } = await supabase
-      .from('app_config')
-      .select('value')
-      .eq('key', 'style_library')
-      .single();
-    if (!data?.value) return '';
-    const library = JSON.parse(data.value);
-    const matched = [];
-    for (const item of library) {
-      if (matched.length >= 2) break;
-      if (item.eventTypes?.includes(eventType)) {
-        matched.push(item);
-      }
-    }
-    if (matched.length === 0) return '';
+      .from('style_library')
+      .select('*')
+      .contains('event_types', [eventType])
+      .limit(2);
+    if (!data || data.length === 0) return '';
+    const matched = data.map(row => ({
+      name: row.name, description: row.description, html: row.html,
+      eventTypes: row.event_types || [], designNotes: row.design_notes
+    }));
     return buildStyleContext(matched);
   } catch {
     return '';
