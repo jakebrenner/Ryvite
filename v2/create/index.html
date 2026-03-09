@@ -174,6 +174,10 @@
     .phone-home-bar { width: 100px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 6px auto 2px; }
 
     /* Responsive phone sizing */
+    @media (max-width: 900px) {
+      [data-step="3"] > div > div:first-child > div:first-child { flex-direction: column; align-items: center; }
+      #editPanel { max-width: 100% !important; min-width: 0 !important; width: 100%; }
+    }
     @media (max-width: 640px) {
       .phone-mockup { width: 240px; }
       .phone-frame { border-radius: 38px; padding: 8px; }
@@ -198,6 +202,34 @@
     .feedback-modal textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; resize: vertical; }
     .feedback-modal textarea:focus { outline: none; border-color: var(--party-coral); box-shadow: 0 0 0 3px rgba(233,69,96,0.1); }
     .feedback-modal .feedback-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+
+    /* Right panel tabs */
+    .panel-tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 16px; }
+    .panel-tab { flex: 1; padding: 10px 8px; text-align: center; font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #999; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; font-family: 'Inter', sans-serif; }
+    .panel-tab:hover { color: var(--midnight); }
+    .panel-tab.active { color: var(--party-coral); border-bottom-color: var(--party-coral); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Design chat */
+    .design-chat { display: flex; flex-direction: column; height: calc(80vh - 80px); min-height: 400px; }
+    .design-chat-messages { flex: 1; overflow-y: auto; padding: 4px 0; display: flex; flex-direction: column; gap: 12px; }
+    .design-chat-msg { max-width: 90%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
+    .design-chat-msg.assistant { align-self: flex-start; background: #f0f0f0; border-bottom-left-radius: 4px; }
+    .design-chat-msg.user { align-self: flex-end; background: var(--party-coral); color: white; border-bottom-right-radius: 4px; }
+    .design-chat-msg.system { align-self: center; background: #fff3cd; color: #856404; font-size: 12px; text-align: center; border-radius: 8px; }
+    .design-chat-input-area { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid #eee; margin-top: 8px; align-items: flex-end; }
+    .design-chat-input-area textarea { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 13px; resize: none; min-height: 40px; max-height: 100px; line-height: 1.4; }
+    .design-chat-input-area textarea:focus { outline: none; border-color: var(--party-coral); box-shadow: 0 0 0 3px rgba(233,69,96,0.1); }
+    .design-chat-send { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--party-coral); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; }
+    .design-chat-send:hover { background: var(--blush-pop); }
+    .design-chat-send:disabled { background: #ccc; cursor: not-allowed; }
+    .design-chat-photo-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; transition: all 0.2s; }
+    .design-chat-photo-btn:hover { border-color: var(--party-coral); background: rgba(233,69,96,0.05); }
+    .design-chat-photo-preview { display: flex; gap: 6px; padding: 6px 0; flex-wrap: wrap; }
+    .design-chat-photo-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
+    .design-chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .design-chat-chips .chip { font-size: 11px; padding: 5px 10px; }
 
     .summary-item { background: #f9f9f9; padding: 16px; border-radius: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .summary-label { font-weight: 600; }
@@ -302,7 +334,8 @@
         <h2>Preview Your Theme</h2>
         <p class="step-desc">Love it? Continue to publish. Switch between versions below.</p>
         <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
-          <div style="flex:1;min-width:340px;">
+          <!-- Left: Phone preview -->
+          <div style="flex:0 0 auto;">
             <div class="phone-mockup">
               <div class="phone-frame">
                 <div class="phone-notch"></div>
@@ -314,91 +347,80 @@
             </div>
             <div id="versionGallery" class="version-gallery"></div>
           </div>
-          <div id="editPanel" style="flex:1;min-width:280px;max-width:400px;display:none;">
+          <!-- Right: Tabbed panel (always visible) -->
+          <div id="editPanel" style="flex:1;min-width:280px;max-width:440px;">
             <div style="background:white;border:1px solid #eee;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);max-height:80vh;overflow-y:auto;">
-              <h3 style="font-family:'Playfair Display',serif;font-size:18px;margin-bottom:16px;">Edit Details</h3>
-              <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-size:12px;">Title</label>
-                <input type="text" id="editTitle" style="font-size:13px;padding:8px 10px;">
+              <div class="panel-tabs">
+                <button class="panel-tab active" onclick="switchTab('details')">Edit Details</button>
+                <button class="panel-tab" onclick="switchTab('design')">Edit Design</button>
               </div>
-              <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <div class="form-group" style="flex:1;margin-bottom:0;">
-                  <label style="font-size:12px;">Start Date</label>
-                  <input type="date" id="editDate" style="font-size:13px;padding:8px 10px;">
+
+              <!-- Edit Details tab -->
+              <div id="tabDetails" class="tab-content active">
+                <div class="form-group" style="margin-bottom:12px;">
+                  <label style="font-size:12px;">Title</label>
+                  <input type="text" id="editTitle" style="font-size:13px;padding:8px 10px;">
                 </div>
-                <div class="form-group" style="flex:1;margin-bottom:0;">
-                  <label style="font-size:12px;">Start Time</label>
-                  <input type="time" id="editTime" style="font-size:13px;padding:8px 10px;">
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                  <div class="form-group" style="flex:1;margin-bottom:0;">
+                    <label style="font-size:12px;">Start Date</label>
+                    <input type="date" id="editDate" style="font-size:13px;padding:8px 10px;">
+                  </div>
+                  <div class="form-group" style="flex:1;margin-bottom:0;">
+                    <label style="font-size:12px;">Start Time</label>
+                    <input type="time" id="editTime" style="font-size:13px;padding:8px 10px;">
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                  <div class="form-group" style="flex:1;margin-bottom:0;">
+                    <label style="font-size:12px;">End Date</label>
+                    <input type="date" id="editEndDate" style="font-size:13px;padding:8px 10px;">
+                  </div>
+                  <div class="form-group" style="flex:1;margin-bottom:0;">
+                    <label style="font-size:12px;">End Time</label>
+                    <input type="time" id="editEndTime" style="font-size:13px;padding:8px 10px;">
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                  <label style="font-size:12px;">Location Name</label>
+                  <input type="text" id="editLocation" style="font-size:13px;padding:8px 10px;">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                  <label style="font-size:12px;">Location Address</label>
+                  <input type="text" id="editAddress" style="font-size:13px;padding:8px 10px;">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                  <label style="font-size:12px;">Dress Code</label>
+                  <input type="text" id="editDressCode" style="font-size:13px;padding:8px 10px;">
+                </div>
+                <div id="editCustomFields" style="margin-bottom:12px;"></div>
+                <button class="btn btn-primary btn-sm" onclick="saveEditedDetails()" style="width:100%;margin-top:8px;">Save Changes</button>
+                <p style="font-size:11px;color:#999;margin-top:8px;text-align:center;">Changes are saved to the event. Design is not affected — use "Edit Design" to modify the theme.</p>
+              </div>
+
+              <!-- Edit Design tab (chat interface) -->
+              <div id="tabDesign" class="tab-content">
+                <div class="design-chat">
+                  <div id="designChatMessages" class="design-chat-messages"></div>
+                  <div id="designChatPhotoPreview" class="design-chat-photo-preview"></div>
+                  <div class="design-chat-input-area">
+                    <button class="design-chat-photo-btn" onclick="document.getElementById('designChatPhotoInput').click()" title="Upload a photo">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                    </button>
+                    <input type="file" id="designChatPhotoInput" accept=".jpg,.jpeg,.png,.webp,.heic,.heif" style="display:none;" onchange="handleDesignChatPhoto(event)">
+                    <textarea id="designChatInput" placeholder="Describe what you'd like to change..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDesignChat()}" oninput="autoResizeTextarea(this)"></textarea>
+                    <button class="design-chat-send" onclick="sendDesignChat()" id="designChatSendBtn" title="Send">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <div class="form-group" style="flex:1;margin-bottom:0;">
-                  <label style="font-size:12px;">End Date</label>
-                  <input type="date" id="editEndDate" style="font-size:13px;padding:8px 10px;">
-                </div>
-                <div class="form-group" style="flex:1;margin-bottom:0;">
-                  <label style="font-size:12px;">End Time</label>
-                  <input type="time" id="editEndTime" style="font-size:13px;padding:8px 10px;">
-                </div>
-              </div>
-              <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-size:12px;">Location Name</label>
-                <input type="text" id="editLocation" style="font-size:13px;padding:8px 10px;">
-              </div>
-              <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-size:12px;">Location Address</label>
-                <input type="text" id="editAddress" style="font-size:13px;padding:8px 10px;">
-              </div>
-              <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-size:12px;">Dress Code</label>
-                <input type="text" id="editDressCode" style="font-size:13px;padding:8px 10px;">
-              </div>
-              <!-- Custom RSVP Fields -->
-              <div id="editCustomFields" style="margin-bottom:12px;"></div>
-              <button class="btn btn-primary btn-sm" onclick="saveEditedDetails()" style="width:100%;margin-top:8px;">Save Changes</button>
-              <p style="font-size:11px;color:#999;margin-top:8px;text-align:center;">Changes are saved to the event. Design is not affected — use "Update Design" to modify the theme.</p>
             </div>
           </div>
         </div>
         <div class="button-group">
-          <button class="btn btn-secondary" onclick="toggleEditPanel()">Edit Details</button>
           <button class="btn btn-secondary" onclick="openLivePreview()">View Live Preview</button>
-          <button class="btn btn-secondary" onclick="showUpdateDesignModal()">Update Design</button>
           <button class="btn btn-primary" onclick="nextStep()">Publish</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Update Design Modal -->
-    <div id="updateDesignModal" class="feedback-overlay" style="display:none;" onclick="if(event.target===this)closeUpdateDesignModal()">
-      <div class="feedback-modal" style="max-width:520px;">
-        <h3>Update Design</h3>
-        <p>Make targeted tweaks to the current design, or generate a completely new version.</p>
-
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <button class="btn btn-secondary" id="modeTweak" onclick="setUpdateMode('tweak')" style="flex:1;border:2px solid var(--party-coral);color:var(--party-coral);">Tweak Current</button>
-          <button class="btn btn-secondary" id="modeRegenerate" onclick="setUpdateMode('regenerate')" style="flex:1;">Full Regenerate</button>
-        </div>
-
-        <div id="tweakDescription" style="font-size:13px;color:#666;margin-bottom:12px;">Describe what you want to change — colors, fonts, spacing, text, layout. The overall design stays the same.</div>
-        <div id="regenDescription" style="font-size:13px;color:#666;margin-bottom:12px;display:none;">Tell us what you liked and didn't like. A completely new design will be generated from scratch.</div>
-
-        <textarea id="feedbackText" placeholder="e.g. 'Change the background to navy blue' or 'Make the title font bigger and add more spacing between sections'"></textarea>
-
-        <div style="margin-top:12px;">
-          <label style="font-size:12px;font-weight:600;margin-bottom:6px;display:block;">Upload a photo (optional)</label>
-          <p style="font-size:11px;color:#999;margin-bottom:8px;">Add a photo to include in the invite — like a portrait for a birthday or a couple's photo for a wedding.</p>
-          <div style="display:flex;align-items:center;gap:12px;">
-            <input type="file" id="designPhotoInput" accept=".jpg,.jpeg,.png,.webp,.heic,.heif" style="font-size:13px;" onchange="handleDesignPhoto(event)">
-            <div id="designPhotoPreview" style="width:48px;height:48px;border-radius:8px;overflow:hidden;display:none;flex-shrink:0;">
-              <img id="designPhotoImg" style="width:100%;height:100%;object-fit:cover;">
-            </div>
-          </div>
-        </div>
-
-        <div class="feedback-actions" style="margin-top:16px;">
-          <button class="btn btn-secondary" onclick="closeUpdateDesignModal()">Cancel</button>
-          <button class="btn btn-primary" id="updateDesignSubmit" onclick="submitDesignUpdate()">Apply Changes</button>
         </div>
       </div>
     </div>
@@ -546,6 +568,7 @@
               document.getElementById('generatedView').style.display = 'block';
               renderPreview(themeVersions[0]);
               renderVersionGallery();
+              populateEditFields();
               goToStep(3);
             } else {
               // Has details but no theme — go to creative direction
@@ -943,6 +966,7 @@
           document.getElementById('generatedView').style.display = 'block';
           renderPreview(ver);
           renderVersionGallery();
+          populateEditFields();
         } else {
           showMessage(result2.error || result2.message || 'Failed to generate theme', 'error');
           // If we have existing themes, show them instead of going back
@@ -966,11 +990,70 @@
       }
     }
 
+    function buildRsvpFormHtml() {
+      var config = themeVersions[activeVersionIndex] ? themeVersions[activeVersionIndex].config : {};
+      var accent = config.accentColor || config.primaryColor || '#E94560';
+      var html = '<div style="font-family:inherit;">';
+
+      // Name field (always present)
+      html += '<div style="margin-bottom:12px;">'
+        + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;opacity:0.9;">Name <span style="color:' + accent + ';">*</span></label>'
+        + '<input type="text" placeholder="Your name" disabled style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;">'
+        + '</div>';
+
+      // Email field
+      html += '<div style="margin-bottom:12px;">'
+        + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;opacity:0.9;">Email</label>'
+        + '<input type="email" placeholder="your@email.com" disabled style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;">'
+        + '</div>';
+
+      // RSVP Status
+      html += '<div style="margin-bottom:12px;">'
+        + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;opacity:0.9;">RSVP Status <span style="color:' + accent + ';">*</span></label>'
+        + '<select disabled style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;-webkit-appearance:none;">'
+        + '<option>Attending / Declined / Maybe</option></select>'
+        + '</div>';
+
+      // Custom RSVP fields
+      rsvpFields.forEach(function(f) {
+        var reqStar = f.is_required ? ' <span style="color:' + accent + ';">*</span>' : '';
+        html += '<div style="margin-bottom:12px;">'
+          + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;opacity:0.9;">' + escapeHtml(f.label) + reqStar + '</label>';
+        if (f.field_type === 'select' && f.options && f.options.length > 0) {
+          html += '<select disabled style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;-webkit-appearance:none;">'
+            + '<option>' + escapeHtml(f.options[0]) + '</option></select>';
+        } else if (f.field_type === 'textarea') {
+          html += '<textarea disabled placeholder="' + escapeHtml(f.placeholder || '') + '" style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;min-height:60px;resize:none;"></textarea>';
+        } else if (f.field_type === 'number') {
+          html += '<input type="number" placeholder="' + escapeHtml(f.placeholder || '0') + '" disabled style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;">';
+        } else {
+          html += '<input type="text" placeholder="' + escapeHtml(f.placeholder || '') + '" disabled style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;">';
+        }
+        html += '</div>';
+      });
+
+      html += '</div>';
+      return html;
+    }
+
     function buildSrcdoc(ver) {
       var fontsImport = ver.config.googleFontsImport || '';
+      var themeHtml = ver.html;
+      // Inject functional form inputs into rsvp-slot
+      var rsvpFormHtml = buildRsvpFormHtml();
+      // Replace contents between rsvp-slot div and the rsvp-button, inserting form fields before the button
+      var rsvpScript = '<script>'
+        + 'document.addEventListener("DOMContentLoaded", function() {'
+        + '  var slot = document.querySelector(".rsvp-slot");'
+        + '  if (!slot) return;'
+        + '  var btn = slot.querySelector(".rsvp-button");'
+        + '  var btnHtml = btn ? btn.outerHTML : "";'
+        + '  slot.innerHTML = ' + JSON.stringify(rsvpFormHtml) + ' + btnHtml;'
+        + '});'
+        + '<\/script>';
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; } ' + fontsImport + '</style>'
-        + '<style>' + ver.css + '</style></head><body>' + ver.html + '</body></html>';
+        + '<style>' + ver.css + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
     }
 
     function renderPreview(ver) {
@@ -1009,114 +1092,6 @@
       }).catch(function() {});
     }
 
-    // ---- Update Design modal ----
-    var updateMode = 'tweak';
-    var designPhotoBase64 = null;
-
-    function showUpdateDesignModal() {
-      document.getElementById('feedbackText').value = '';
-      designPhotoBase64 = null;
-      document.getElementById('designPhotoPreview').style.display = 'none';
-      document.getElementById('designPhotoInput').value = '';
-      setUpdateMode('tweak');
-      document.getElementById('updateDesignModal').style.display = 'flex';
-    }
-    function closeUpdateDesignModal() {
-      document.getElementById('updateDesignModal').style.display = 'none';
-    }
-    function setUpdateMode(mode) {
-      updateMode = mode;
-      document.getElementById('modeTweak').style.borderColor = mode === 'tweak' ? 'var(--party-coral)' : '#ddd';
-      document.getElementById('modeTweak').style.color = mode === 'tweak' ? 'var(--party-coral)' : 'var(--midnight)';
-      document.getElementById('modeRegenerate').style.borderColor = mode === 'regenerate' ? 'var(--party-coral)' : '#ddd';
-      document.getElementById('modeRegenerate').style.color = mode === 'regenerate' ? 'var(--party-coral)' : 'var(--midnight)';
-      document.getElementById('tweakDescription').style.display = mode === 'tweak' ? 'block' : 'none';
-      document.getElementById('regenDescription').style.display = mode === 'regenerate' ? 'block' : 'none';
-      document.getElementById('updateDesignSubmit').textContent = mode === 'tweak' ? 'Apply Changes' : 'Generate New Version';
-      document.getElementById('feedbackText').placeholder = mode === 'tweak'
-        ? "e.g. 'Change the background to navy blue' or 'Make the title font bigger'"
-        : "e.g. 'Love the colors but make it more minimalist. Less decorative elements.'";
-    }
-
-    async function handleDesignPhoto(event) {
-      var file = event.target.files[0];
-      if (!file) return;
-      try {
-        var result = await processFile(file);
-        if (result) {
-          designPhotoBase64 = result.base64;
-          document.getElementById('designPhotoImg').src = result.dataUrl;
-          document.getElementById('designPhotoPreview').style.display = 'block';
-        }
-      } catch (e) {
-        showMessage('Failed to process photo', 'error');
-      }
-    }
-
-    async function submitDesignUpdate() {
-      var text = document.getElementById('feedbackText').value.trim();
-      if (!text && !designPhotoBase64) { showMessage('Please describe what you want to change', 'error'); return; }
-      closeUpdateDesignModal();
-
-      if (updateMode === 'regenerate') {
-        generateTheme(text);
-        return;
-      }
-
-      // Tweak mode — send current theme + instructions
-      var ver = themeVersions[activeVersionIndex];
-      document.getElementById('generatingView').style.display = 'block';
-      document.getElementById('generatedView').style.display = 'none';
-
-      try {
-        var payload = {
-          action: 'tweak',
-          eventId: currentEvent.id,
-          tweakInstructions: text + (designPhotoBase64 ? '\n\nAlso incorporate the uploaded photo into the design.' : ''),
-          currentHtml: ver.html,
-          currentCss: ver.css,
-          currentConfig: ver.config,
-          photoBase64: designPhotoBase64 || undefined
-        };
-        var res = await authFetch('/api/v2/generate-theme?action=tweak', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.status === 413 && designPhotoBase64) {
-          payload.photoBase64 = undefined;
-          res = await authFetch('/api/v2/generate-theme?action=tweak', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        }
-        var result = await res.json();
-        if (result.success) {
-          var newVer = { id: result.theme.id, version: result.theme.version, html: result.theme.html, css: result.theme.css, config: result.theme.config };
-          themeVersions.push(newVer);
-          activeVersionIndex = themeVersions.length - 1;
-          currentEvent.themeHtml = newVer.html;
-          currentEvent.themeCss = newVer.css;
-          currentEvent.themeConfig = newVer.config;
-          document.getElementById('generatingView').style.display = 'none';
-          document.getElementById('generatedView').style.display = 'block';
-          renderPreview(newVer);
-          renderVersionGallery();
-        } else {
-          showMessage(result.error || 'Failed to update design', 'error');
-          document.getElementById('generatingView').style.display = 'none';
-          document.getElementById('generatedView').style.display = 'block';
-          renderPreview(ver);
-        }
-      } catch (err) {
-        showMessage('Error updating design. Please try again.', 'error');
-        document.getElementById('generatingView').style.display = 'none';
-        document.getElementById('generatedView').style.display = 'block';
-        renderPreview(ver);
-      }
-    }
-
     function openLivePreview() {
       if (!currentEvent) { showMessage('Event not saved yet', 'error'); return; }
       window.open('/v2/preview/?eventId=' + encodeURIComponent(currentEvent.id), '_blank');
@@ -1132,7 +1107,163 @@
       }
     });
 
-    // ---- Inline edit panel ----
+    // ---- Tab switching & edit panel ----
+    var designChatHistory = [];
+    var designChatPhotoBase64 = null;
+
+    function switchTab(tab) {
+      document.querySelectorAll('.panel-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      if (tab === 'details') {
+        document.querySelector('.panel-tab:nth-child(1)').classList.add('active');
+        document.getElementById('tabDetails').classList.add('active');
+        populateEditFields();
+      } else {
+        document.querySelector('.panel-tab:nth-child(2)').classList.add('active');
+        document.getElementById('tabDesign').classList.add('active');
+        if (designChatHistory.length === 0) initDesignChat();
+      }
+    }
+
+    function populateEditFields() {
+      document.getElementById('editTitle').value = extractedData.title || '';
+      var start = parseISOToDateAndTime(extractedData.startDate);
+      document.getElementById('editDate').value = start.date;
+      document.getElementById('editTime').value = start.time;
+      var end = parseISOToDateAndTime(extractedData.endDate);
+      document.getElementById('editEndDate').value = end.date;
+      document.getElementById('editEndTime').value = end.time;
+      document.getElementById('editLocation').value = extractedData.locationName || '';
+      document.getElementById('editAddress').value = extractedData.locationAddress || '';
+      document.getElementById('editDressCode').value = extractedData.dressCode || '';
+      renderEditCustomFields();
+    }
+
+    function initDesignChat() {
+      var ver = themeVersions[activeVersionIndex];
+      var config = ver ? ver.config : {};
+      var mood = config.mood || 'custom';
+      var title = extractedData.title || 'your event';
+
+      var welcomeMsg = "Hey! I'm your design assistant. I can help you tweak the look and feel of your " + title + " invite.\n\n"
+        + "Here are some things I can help with:\n"
+        + "- Change colors, fonts, or background\n"
+        + "- Adjust spacing, layout, or text sizes\n"
+        + "- Add or modify decorative elements\n"
+        + "- Completely regenerate with a new style\n\n"
+        + "You can also upload a photo to incorporate into your design. Just describe what you'd like!";
+
+      designChatHistory = [{ role: 'assistant', content: welcomeMsg }];
+      renderDesignChat();
+    }
+
+    function renderDesignChat() {
+      var container = document.getElementById('designChatMessages');
+      container.innerHTML = designChatHistory.map(function(msg) {
+        var cls = msg.role === 'user' ? 'user' : (msg.role === 'system' ? 'system' : 'assistant');
+        return '<div class="design-chat-msg ' + cls + '">' + escapeHtml(msg.content).replace(/\n/g, '<br>') + '</div>';
+      }).join('');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function autoResizeTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    }
+
+    async function handleDesignChatPhoto(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      try {
+        var result = await processFile(file);
+        if (result) {
+          designChatPhotoBase64 = result.base64;
+          var preview = document.getElementById('designChatPhotoPreview');
+          preview.innerHTML = '<img src="' + result.dataUrl + '" alt="Upload"><button onclick="clearDesignChatPhoto()" style="background:none;border:none;color:#999;cursor:pointer;font-size:16px;padding:4px;">&times;</button>';
+        }
+      } catch (e) {
+        showMessage('Failed to process photo', 'error');
+      }
+      event.target.value = '';
+    }
+
+    function clearDesignChatPhoto() {
+      designChatPhotoBase64 = null;
+      document.getElementById('designChatPhotoPreview').innerHTML = '';
+    }
+
+    async function sendDesignChat() {
+      var input = document.getElementById('designChatInput');
+      var text = input.value.trim();
+      if (!text && !designChatPhotoBase64) return;
+
+      var userMsg = text || '(uploaded a photo)';
+      if (designChatPhotoBase64 && text) userMsg = text + ' (with photo)';
+
+      designChatHistory.push({ role: 'user', content: userMsg });
+      renderDesignChat();
+      input.value = '';
+      input.style.height = 'auto';
+
+      var sendBtn = document.getElementById('designChatSendBtn');
+      sendBtn.disabled = true;
+
+      // Add thinking message
+      designChatHistory.push({ role: 'system', content: 'Updating your design...' });
+      renderDesignChat();
+
+      var ver = themeVersions[activeVersionIndex];
+      try {
+        var payload = {
+          action: 'tweak',
+          eventId: currentEvent.id,
+          tweakInstructions: text + (designChatPhotoBase64 ? '\n\nAlso incorporate the uploaded photo into the design.' : ''),
+          currentHtml: ver.html,
+          currentCss: ver.css,
+          currentConfig: ver.config,
+          photoBase64: designChatPhotoBase64 || undefined
+        };
+        var res = await authFetch('/api/v2/generate-theme?action=tweak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 413 && designChatPhotoBase64) {
+          payload.photoBase64 = undefined;
+          res = await authFetch('/api/v2/generate-theme?action=tweak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+        var result = await res.json();
+
+        // Remove thinking message
+        designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
+
+        if (result.success) {
+          var newVer = { id: result.theme.id, version: result.theme.version, html: result.theme.html, css: result.theme.css, config: result.theme.config };
+          themeVersions.push(newVer);
+          activeVersionIndex = themeVersions.length - 1;
+          currentEvent.themeHtml = newVer.html;
+          currentEvent.themeCss = newVer.css;
+          currentEvent.themeConfig = newVer.config;
+          renderPreview(newVer);
+          renderVersionGallery();
+          designChatHistory.push({ role: 'assistant', content: 'Done! I\'ve updated the design. Take a look at the preview on the left. Want to make any more changes?' });
+        } else {
+          designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change: ' + (result.error || result.message || 'Unknown error') + '. Could you try rephrasing?' });
+        }
+      } catch (err) {
+        designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
+        designChatHistory.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
+      }
+
+      clearDesignChatPhoto();
+      sendBtn.disabled = false;
+      renderDesignChat();
+    }
+
     function parseISOToDateAndTime(isoStr) {
       if (!isoStr) return { date: '', time: '' };
       try {
@@ -1153,25 +1284,7 @@
       return dateStr + 'T' + timeStr;
     }
 
-    function toggleEditPanel() {
-      var panel = document.getElementById('editPanel');
-      if (panel.style.display === 'none') {
-        document.getElementById('editTitle').value = extractedData.title || '';
-        var start = parseISOToDateAndTime(extractedData.startDate);
-        document.getElementById('editDate').value = start.date;
-        document.getElementById('editTime').value = start.time;
-        var end = parseISOToDateAndTime(extractedData.endDate);
-        document.getElementById('editEndDate').value = end.date;
-        document.getElementById('editEndTime').value = end.time;
-        document.getElementById('editLocation').value = extractedData.locationName || '';
-        document.getElementById('editAddress').value = extractedData.locationAddress || '';
-        document.getElementById('editDressCode').value = extractedData.dressCode || '';
-        renderEditCustomFields();
-        panel.style.display = 'block';
-      } else {
-        panel.style.display = 'none';
-      }
-    }
+    // populateEditFields is called by switchTab('details') above
 
     function renderEditCustomFields() {
       var container = document.getElementById('editCustomFields');
@@ -1229,7 +1342,6 @@
         } catch (e) { /* ignore */ }
       }
       showMessage('Details saved!', 'success');
-      document.getElementById('editPanel').style.display = 'none';
     }
 
     async function saveCustomFields() {
