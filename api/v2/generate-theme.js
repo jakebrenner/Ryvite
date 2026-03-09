@@ -515,6 +515,21 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid session' });
   }
 
+  // Check generation limits
+  try {
+    const { checkUserLimits } = await import('./billing.js');
+    const limits = await checkUserLimits(user.id);
+    if (!limits.hasActivePlan) {
+      return res.status(403).json({ error: 'You need an active plan to generate themes.', needsPlan: true });
+    }
+    if (!limits.canGenerate) {
+      return res.status(403).json({ error: limits.reason || 'Generation limit reached for your plan.', limitReached: true });
+    }
+  } catch (e) {
+    // If billing check fails, allow generation (don't block on billing errors)
+    console.warn('Billing check failed, allowing generation:', e.message);
+  }
+
   const action = req.query?.action || req.body?.action || 'generate';
   const { eventId, prompt, feedback, rsvpFields, eventDetails, inspirationImages, tweakInstructions, currentHtml, currentCss, currentConfig, photoBase64, photoUrl, photoUrls } = req.body;
 

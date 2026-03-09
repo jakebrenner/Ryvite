@@ -104,6 +104,26 @@ export default async function handler(req, res) {
         .eq('id', user.id)
         .single();
 
+      // Fetch active subscription
+      const { data: activeSub } = await supabase
+        .from('subscriptions')
+        .select('id, status, plan_id, events_used, generations_used')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let planInfo = null;
+      if (activeSub) {
+        const { data: plan } = await supabase
+          .from('plans')
+          .select('name, display_name, max_events, max_generations')
+          .eq('id', activeSub.plan_id)
+          .single();
+        planInfo = plan;
+      }
+
       return res.status(200).json({
         success: true,
         user: {
@@ -113,7 +133,16 @@ export default async function handler(req, res) {
           phone: profile?.phone || '',
           avatarUrl: profile?.avatar_url || '',
           tier: profile?.tier || 'free',
-          createdAt: profile?.created_at || user.created_at
+          createdAt: profile?.created_at || user.created_at,
+          hasActivePlan: !!activeSub,
+          subscription: activeSub ? {
+            id: activeSub.id,
+            planName: planInfo?.display_name || '',
+            maxEvents: planInfo?.max_events || 0,
+            maxGenerations: planInfo?.max_generations || 0,
+            eventsUsed: activeSub.events_used || 0,
+            generationsUsed: activeSub.generations_used || 0
+          } : null
         }
       });
     }

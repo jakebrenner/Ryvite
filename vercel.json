@@ -10,6 +10,9 @@
     "api/v2/prompt-test.js": {
       "maxDuration": 180,
       "memory": 1024
+    },
+    "api/v2/stripe-webhook.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

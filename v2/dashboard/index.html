@@ -298,10 +298,20 @@
       try { var res = await fetch('/api/v2/auth?action=profile', { headers: { 'Authorization': 'Bearer ' + token } }); if (!res.ok) await refreshToken(); } catch (err) {}
     })();
 
-    // Published event toast
+    // Status toasts from URL params
     var params = new URLSearchParams(window.location.search);
     if (params.get('published')) {
       showToast('Event published successfully!');
+      window.history.replaceState({}, '', '/v2/dashboard/');
+    }
+    if (params.get('purchased')) {
+      showToast('Plan purchased! You can now create your event.');
+      // Refresh user profile to pick up new subscription
+      fetch('/api/v2/auth?action=profile', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+          if (result.success) { user = result.user; localStorage.setItem('v2_user', JSON.stringify(user)); }
+        }).catch(function(){});
       window.history.replaceState({}, '', '/v2/dashboard/');
     }
 
