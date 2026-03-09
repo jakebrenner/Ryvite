@@ -32,6 +32,7 @@ Return a JSON object with exactly these keys:
 {
   "theme_html": "...",
   "theme_css": "...",
+  "theme_thankyou_html": "...",
   "theme_config": {
     "primaryColor": "#hex",
     "secondaryColor": "#hex",
@@ -85,6 +86,21 @@ The generated invite MUST always include ALL of the following sections. These ar
 6. Add subtle CSS animations (fade-ins, gentle floating) but nothing distracting
 7. The design should feel unique and custom — NOT like a template
 8. Keep overall height reasonable — the invite should fit in ~3-4 phone screen scrolls maximum
+
+## THANK YOU PAGE (theme_thankyou_html)
+Generate a matching thank you / confirmation page that shares the SAME visual design as the invite. This page is shown after a guest RSVPs.
+
+### Requirements:
+- Use the SAME CSS (theme_css applies to both pages) — same backgrounds, gradients, patterns, decorative elements
+- Use the same fonts, colors, and overall aesthetic
+- Include these sections:
+  1. A celebratory heading (e.g., "You're all set!", "See you there!", etc.) — style it like the invite title
+  2. A confirmation message with placeholders: \`<span class="thankyou-guest">Guest</span>\` for the guest name and \`<span class="thankyou-event">Event</span>\` for the event title (the platform replaces these at runtime)
+  3. An "Add to Calendar" section with class \`calendar-buttons\`: \`<div class="calendar-buttons"><button class="cal-btn" data-cal="google">Google</button><button class="cal-btn" data-cal="outlook">Outlook</button><button class="cal-btn" data-cal="ics">.ics</button></div>\`
+  4. A "Made with Ryvite" footer
+- Keep it vertically centered, max-width 393px, same card style as the invite
+- Reuse CSS classes from the invite theme where possible (backgrounds, card containers, etc.)
+- Should feel like a natural continuation of the invite — same world, same aesthetic
 
 ## WHAT NOT TO DO
 - No JavaScript in the output
@@ -162,7 +178,12 @@ ${tweakInstructions}`;
         tweakMessage += `\n\nThe user has also provided a photo they want incorporated into the design. Use this image as an inline base64 data URI in an <img> tag where it makes sense for the design.`;
       }
 
-      tweakMessage += `\n\nReturn the COMPLETE updated theme as a JSON object with the same format: { "theme_html": "...", "theme_css": "...", "theme_config": { ... } }. Make ONLY the changes the user requested — keep everything else exactly the same.`;
+      const existingThankyou = currentConfig?.thankyouHtml || '';
+      if (existingThankyou) {
+        tweakMessage += `\n\n**Current Thank You Page HTML:**\n\`\`\`html\n${existingThankyou}\n\`\`\`\nUpdate the thank you page to match any style/color/font changes you make to the invite.`;
+      }
+
+      tweakMessage += `\n\nReturn the COMPLETE updated theme as a JSON object: { "theme_html": "...", "theme_css": "...", "theme_thankyou_html": "...", "theme_config": { ... } }. Make ONLY the changes the user requested — keep everything else exactly the same. The theme_thankyou_html should match the invite's aesthetic.`;
 
       // Use URL-based approach (no vision API needed — much faster)
       // Only fall back to base64 vision if no URL available
@@ -176,7 +197,7 @@ ${tweakInstructions}`;
       const response = await client.messages.create({
         model: themeModel,
         max_tokens: 8192,
-        system: 'You are an expert HTML/CSS designer. Modify the given invite theme based on the user\'s instructions. Return ONLY a valid JSON object with theme_html, theme_css, and theme_config keys. Make minimal changes — only what the user asked for.',
+        system: 'You are an expert HTML/CSS designer. Modify the given invite theme based on the user\'s instructions. Return ONLY a valid JSON object with theme_html, theme_css, theme_thankyou_html, and theme_config keys. Make minimal changes — only what the user asked for. The thank you page must match the invite\'s aesthetic.',
         messages: [{ role: 'user', content: messageContent }]
       });
 
@@ -194,6 +215,14 @@ ${tweakInstructions}`;
 
       if (!theme.theme_html || !theme.theme_css) {
         throw new Error('Invalid tweak response');
+      }
+
+      // Store thank you HTML in config
+      const tweakConfig = theme.theme_config || currentConfig || {};
+      if (theme.theme_thankyou_html) {
+        tweakConfig.thankyouHtml = theme.theme_thankyou_html;
+      } else if (currentConfig?.thankyouHtml) {
+        tweakConfig.thankyouHtml = currentConfig.thankyouHtml;
       }
 
       // Save as new version
@@ -221,7 +250,7 @@ ${tweakInstructions}`;
           prompt: 'Tweak: ' + tweakInstructions.substring(0, 200),
           html: theme.theme_html,
           css: theme.theme_css,
-          config: theme.theme_config || currentConfig || {},
+          config: tweakConfig,
           model: themeModel,
           input_tokens: response.usage?.input_tokens || 0,
           output_tokens: response.usage?.output_tokens || 0,
@@ -240,7 +269,7 @@ ${tweakInstructions}`;
 
       return res.status(200).json({
         success: true,
-        theme: { id: newTheme.id, version: newTheme.version, html: theme.theme_html, css: theme.theme_css, config: theme.theme_config || currentConfig || {} }
+        theme: { id: newTheme.id, version: newTheme.version, html: theme.theme_html, css: theme.theme_css, config: tweakConfig }
       });
     } catch (err) {
       console.error('Theme tweak error:', err);
@@ -348,6 +377,11 @@ ${effectivePrompt}`;
 
     if (!theme.theme_html || !theme.theme_css || !theme.theme_config) {
       throw new Error('Invalid theme response from Claude');
+    }
+
+    // Store thank you HTML in config to avoid DB schema change
+    if (theme.theme_thankyou_html) {
+      theme.theme_config.thankyouHtml = theme.theme_thankyou_html;
     }
 
     // Determine next version number

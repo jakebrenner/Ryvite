@@ -1166,18 +1166,32 @@
 
     function buildThankYouSrcdoc(ver) {
       var fontsImport = ver.config.googleFontsImport || '';
+      var guestName = 'Sarah';
+      var title = extractedData.title || 'the event';
+
+      // Use AI-generated thank you HTML if available
+      if (ver.config.thankyouHtml) {
+        var tyHtml = ver.config.thankyouHtml;
+        // Replace placeholders with preview data
+        tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
+        tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(title) + '</span>');
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+          + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
+          + '<style>' + (ver.css || '') + '</style>'
+          + '</head><body>' + tyHtml + '</body></html>';
+      }
+
+      // Fallback: build from theme config colors/fonts
       var accent = ver.config.accentColor || ver.config.primaryColor || '#E94560';
       var bgColor = ver.config.backgroundColor || '#FFFAF5';
       var textColor = ver.config.textColor || '#1A1A2E';
       var headlineFont = ver.config.fontHeadline || 'serif';
       var bodyFont = ver.config.fontBody || 'sans-serif';
-      var guestName = 'Sarah';
-      var title = extractedData.title || 'the event';
 
       var thankYouHtml = '<div style="min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:' + bgColor + ';color:' + textColor + ';font-family:' + bodyFont + ',sans-serif;text-align:center;">'
         + '<div style="font-size:48px;margin-bottom:16px;">&#127881;</div>'
         + '<h1 style="font-family:' + headlineFont + ',serif;font-size:28px;margin-bottom:12px;color:' + accent + ';">You\'re all set!</h1>'
-        + '<p style="font-size:16px;line-height:1.6;margin-bottom:24px;max-width:320px;opacity:0.85;">Thanks for RSVPing, <strong>' + guestName + '</strong>! We can\'t wait to see you at <strong>' + escapeHtml(title) + '</strong>.</p>'
+        + '<p style="font-size:16px;line-height:1.6;margin-bottom:24px;max-width:320px;opacity:0.85;">Thanks for RSVPing, <strong>' + escapeHtml(guestName) + '</strong>! We can\'t wait to see you at <strong>' + escapeHtml(title) + '</strong>.</p>'
         + '<div style="background:rgba(0,0,0,0.05);border-radius:12px;padding:20px;width:100%;max-width:340px;margin-bottom:24px;">'
         + '<p style="font-size:13px;font-weight:600;margin-bottom:8px;opacity:0.7;">ADD TO CALENDAR</p>'
         + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'

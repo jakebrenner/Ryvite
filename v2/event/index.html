@@ -249,11 +249,62 @@
         });
         var result = await res.json();
         if (result.success) {
-          document.getElementById('rsvpForm').innerHTML = '<div class="rsvp-success">RSVP received! Thanks for confirming, ' + escapeHtml(name) + '.</div>';
+          showThankYouPage(name, status);
           triggerConfetti();
         } else { alert(result.error || 'Error submitting RSVP. Please try again.'); }
       } catch (err) { alert('Error submitting RSVP. Please try again.'); }
       finally { btn.disabled = false; btn.textContent = 'Submit RSVP'; }
+    }
+
+    function showThankYouPage(guestName, rsvpStatus) {
+      var config = currentEventData.themeConfig || {};
+      var eventTitle = currentEventData.title || 'the event';
+
+      // If we have AI-generated thank you HTML, show it in the theme iframe
+      if (config.thankyouHtml) {
+        var tyHtml = config.thankyouHtml;
+        tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
+        tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(eventTitle) + '</span>');
+
+        var fontsImport = config.googleFontsImport || '';
+        var iframe = document.getElementById('themeFrame');
+        iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; } ' + fontsImport + '</style><style>' + (currentEventData.themeCss || '') + '</style></head><body>' + tyHtml + '</body></html>';
+        iframe.onload = function() { try { iframe.style.height = Math.max(iframe.contentDocument.body.scrollHeight + 40, 600) + 'px'; } catch(e) {} };
+
+        // Wire up calendar buttons inside the iframe after load
+        iframe.addEventListener('load', function() {
+          try {
+            var btns = iframe.contentDocument.querySelectorAll('.cal-btn, [data-cal]');
+            btns.forEach(function(btn) {
+              btn.style.cursor = 'pointer';
+              btn.addEventListener('click', function() {
+                var calType = btn.getAttribute('data-cal') || btn.textContent.trim().toLowerCase();
+                if (calType === 'google') { window.open(generateGoogleCalendarLink(currentEventData), '_blank'); }
+                else if (calType === 'outlook') { window.open(generateOutlookLink(currentEventData), '_blank'); }
+                else { downloadICS(); }
+              });
+            });
+          } catch(e) {}
+        });
+
+        // Hide the RSVP section, scroll to top
+        document.getElementById('rsvpSection').style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // Fallback: show simple success in the form area with calendar buttons
+      var calHtml = buildCalendarButtons();
+      document.getElementById('rsvpForm').innerHTML = '<div class="rsvp-success">RSVP received! Thanks for confirming, ' + escapeHtml(guestName) + '.</div>' + calHtml;
+    }
+
+    function buildCalendarButtons() {
+      if (!currentEventData) return '';
+      return '<div class="calendar-buttons">'
+        + '<a class="calendar-btn" href="' + generateGoogleCalendarLink(currentEventData) + '" target="_blank">Google Calendar</a>'
+        + '<a class="calendar-btn" href="' + generateOutlookLink(currentEventData) + '" target="_blank">Outlook</a>'
+        + '<a class="calendar-btn" href="javascript:void(0)" onclick="downloadICS()">Download .ics</a>'
+        + '</div>';
     }
 
     function triggerConfetti() {
