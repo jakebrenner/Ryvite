@@ -1251,6 +1251,20 @@
         // Replace placeholders with preview data
         tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
         tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(title) + '</span>');
+        // Always ensure calendar buttons are present
+        if (tyHtml.indexOf('calendar-buttons') === -1) {
+          var calSection = '<div class="calendar-buttons" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:24px auto;max-width:340px;">'
+            + '<button class="cal-btn" data-cal="google" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Google Calendar</button>'
+            + '<button class="cal-btn" data-cal="apple" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Apple Calendar</button>'
+            + '<button class="cal-btn" data-cal="outlook" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Outlook</button>'
+            + '<button class="cal-btn" data-cal="yahoo" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Yahoo Calendar</button>'
+            + '</div>';
+          if (tyHtml.indexOf('Made with Ryvite') !== -1) {
+            tyHtml = tyHtml.replace(/(Made with Ryvite)/, calSection + '$1');
+          } else {
+            tyHtml += calSection;
+          }
+        }
         // Inject script to make calendar buttons post messages to parent
         var calScript = '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".cal-btn,[data-cal]");if(btn){var t=btn.getAttribute("data-cal")||btn.textContent.trim().toLowerCase();window.parent.postMessage({type:"calendar",cal:t},"*");}});<\/script>';
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
@@ -1272,17 +1286,19 @@
         + '<p style="font-size:16px;line-height:1.6;margin-bottom:24px;max-width:320px;opacity:0.85;">Thanks for RSVPing, <strong>' + escapeHtml(guestName) + '</strong>! We can\'t wait to see you at <strong>' + escapeHtml(title) + '</strong>.</p>'
         + '<div style="background:rgba(0,0,0,0.05);border-radius:12px;padding:20px;width:100%;max-width:340px;margin-bottom:24px;">'
         + '<p style="font-size:13px;font-weight:600;margin-bottom:8px;opacity:0.7;">ADD TO CALENDAR</p>'
-        + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'
-        + '<span style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;">Google</span>'
-        + '<span style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;">Outlook</span>'
-        + '<span style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;">.ics</span>'
+        + '<div class="calendar-buttons" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'
+        + '<button class="cal-btn" data-cal="google" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Google Calendar</button>'
+        + '<button class="cal-btn" data-cal="apple" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Apple Calendar</button>'
+        + '<button class="cal-btn" data-cal="outlook" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Outlook</button>'
+        + '<button class="cal-btn" data-cal="yahoo" style="padding:8px 16px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;opacity:0.6;background:transparent;cursor:pointer;">Yahoo Calendar</button>'
         + '</div></div>'
         + '<p style="font-size:12px;opacity:0.5;">Made with Ryvite</p>'
         + '</div>';
 
+      var calScript2 = '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".cal-btn,[data-cal]");if(btn){var t=btn.getAttribute("data-cal")||btn.textContent.trim().toLowerCase();window.parent.postMessage({type:"calendar",cal:t},"*");}});<\/script>';
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
-        + '</head><body>' + thankYouHtml + '</body></html>';
+        + '</head><body>' + thankYouHtml + calScript2 + '</body></html>';
     }
 
     // Handle calendar button clicks from thank you preview iframe
@@ -1298,6 +1314,13 @@
           var s2 = new Date(ev.event_date || ev.eventDate), end2 = ev.end_date || ev.endDate;
           var ed2 = end2 ? new Date(end2) : new Date(s2.getTime() + 3600000);
           window.open('https://outlook.live.com/calendar/0/deeplink/compose?' + new URLSearchParams({ path: '/calendar/action/compose', rru: 'addevent', subject: ev.title, startdt: s2.toISOString(), enddt: ed2.toISOString(), location: (ev.location_name || ev.locationName || '') + (ev.location_address || ev.locationAddress ? ', ' + (ev.location_address || ev.locationAddress) : ''), body: ev.description || '' }).toString(), '_blank');
+        } else if (e.data.cal === 'yahoo') {
+          var s4 = new Date(ev.event_date || ev.eventDate), end4 = ev.end_date || ev.endDate;
+          var ed4 = end4 ? new Date(end4) : new Date(s4.getTime() + 3600000);
+          var fmt4 = function(d) { return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; };
+          var dur4 = Math.round((ed4 - s4) / 3600000);
+          var durStr4 = (dur4 < 10 ? '0' : '') + dur4 + '00';
+          window.open('https://calendar.yahoo.com/?' + new URLSearchParams({ v: '60', title: ev.title, st: fmt4(s4), dur: durStr4, in_loc: (ev.location_name || ev.locationName || '') + (ev.location_address || ev.locationAddress ? ', ' + (ev.location_address || ev.locationAddress) : ''), desc: ev.description || '' }).toString(), '_blank');
         } else {
           var s3 = new Date(ev.event_date || ev.eventDate), end3 = ev.end_date || ev.endDate;
           var ed3 = end3 ? new Date(end3) : new Date(s3.getTime() + 3600000);

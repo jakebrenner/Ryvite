@@ -276,6 +276,22 @@
         tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
         tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(eventTitle) + '</span>');
 
+        // Always ensure calendar buttons are present in the thank you page
+        if (tyHtml.indexOf('calendar-buttons') === -1) {
+          var calSection = '<div class="calendar-buttons" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:24px auto;max-width:340px;">'
+            + '<button class="cal-btn" data-cal="google" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Google Calendar</button>'
+            + '<button class="cal-btn" data-cal="apple" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Apple Calendar</button>'
+            + '<button class="cal-btn" data-cal="outlook" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Outlook</button>'
+            + '<button class="cal-btn" data-cal="yahoo" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:white;cursor:pointer;">Yahoo Calendar</button>'
+            + '</div>';
+          // Insert before the closing body tag or at the end
+          if (tyHtml.indexOf('Made with Ryvite') !== -1) {
+            tyHtml = tyHtml.replace(/(Made with Ryvite)/, calSection + '$1');
+          } else {
+            tyHtml += calSection;
+          }
+        }
+
         var fontsImport = config.googleFontsImport || '';
         var iframe = document.getElementById('themeFrame');
         iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; } ' + fontsImport + '</style><style>' + (currentEventData.themeCss || '') + '</style></head><body>' + tyHtml + '</body></html>';
@@ -291,7 +307,8 @@
                 var calType = btn.getAttribute('data-cal') || btn.textContent.trim().toLowerCase();
                 if (calType === 'google') { window.open(generateGoogleCalendarLink(currentEventData), '_blank'); }
                 else if (calType === 'outlook') { window.open(generateOutlookLink(currentEventData), '_blank'); }
-                else { downloadICS(); }
+                else if (calType === 'yahoo') { window.open(generateYahooLink(currentEventData), '_blank'); }
+                else { downloadICS(); } // apple, ics, or any other
               });
             });
           } catch(e) {}
@@ -312,8 +329,9 @@
       if (!currentEventData) return '';
       return '<div class="calendar-buttons">'
         + '<a class="calendar-btn" href="' + generateGoogleCalendarLink(currentEventData) + '" target="_blank">Google Calendar</a>'
+        + '<a class="calendar-btn" href="javascript:void(0)" onclick="downloadICS()">Apple Calendar</a>'
         + '<a class="calendar-btn" href="' + generateOutlookLink(currentEventData) + '" target="_blank">Outlook</a>'
-        + '<a class="calendar-btn" href="javascript:void(0)" onclick="downloadICS()">Download .ics</a>'
+        + '<a class="calendar-btn" href="' + generateYahooLink(currentEventData) + '" target="_blank">Yahoo Calendar</a>'
         + '</div>';
     }
 
@@ -343,6 +361,13 @@
     function generateOutlookLink(event) {
       var s = new Date(event.eventDate), e = event.endDate ? new Date(event.endDate) : new Date(s.getTime() + 3600000);
       return 'https://outlook.live.com/calendar/0/deeplink/compose?' + new URLSearchParams({ path: '/calendar/action/compose', rru: 'addevent', subject: event.title, startdt: s.toISOString(), enddt: e.toISOString(), location: event.locationName + (event.locationAddress ? ', ' + event.locationAddress : ''), body: event.description || '' }).toString();
+    }
+
+    function generateYahooLink(event) {
+      var s = new Date(event.eventDate), e = event.endDate ? new Date(event.endDate) : new Date(s.getTime() + 3600000);
+      var dur = Math.round((e - s) / 3600000);
+      var durStr = (dur < 10 ? '0' : '') + dur + '00';
+      return 'https://calendar.yahoo.com/?' + new URLSearchParams({ v: '60', title: event.title, st: fmtDate(s), dur: durStr, in_loc: event.locationName + (event.locationAddress ? ', ' + event.locationAddress : ''), desc: event.description || '' }).toString();
     }
 
     function downloadICS() {
