@@ -66,6 +66,14 @@
     .event-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.2s; }
     .event-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.12); }
     .event-card-header { position: relative; min-height: 160px; overflow: hidden; }
+    .archive-x-btn {
+      position: absolute; top: 8px; right: 8px; z-index: 2;
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: rgba(0,0,0,0.45); color: white; font-size: 16px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, transform 0.2s; backdrop-filter: blur(4px);
+    }
+    .archive-x-btn:hover { background: rgba(220,53,69,0.85); transform: scale(1.1); }
     .event-card-header.has-preview { padding: 0; }
     .event-card-header.no-preview { background: linear-gradient(135deg, var(--party-coral), var(--confetti-gold)); padding: 20px; color: white; display: flex; flex-direction: column; justify-content: space-between; }
     .event-card-header iframe { width: 393px; height: 852px; border: none; pointer-events: none; transform-origin: top left; position: absolute; top: 0; left: 50%; }
@@ -159,6 +167,11 @@
             <div class="profile-dropdown-name" id="profileName"></div>
             <div class="profile-dropdown-email" id="profileEmail"></div>
           </div>
+          <a class="profile-dropdown-item" href="/v2/profile/" style="text-decoration:none;">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            Profile
+          </a>
+          <div class="profile-dropdown-divider"></div>
           <button class="profile-dropdown-item danger" onclick="logout()">
             <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
             Log Out
@@ -348,10 +361,9 @@
         } else {
           actionsHtml += '<a href="/v2/event/' + encodeURIComponent(event.slug) + '" target="_blank">View</a>';
         }
-        if (!isArchived) {
-          actionsHtml += '<button onclick="archiveEvent(\'' + event.id + '\', this)">Archive</button>';
-        }
         actionsHtml += '</div>';
+
+        var archiveXHtml = !isArchived ? '<button class="archive-x-btn" onclick="event.stopPropagation();archiveEvent(\'' + event.id + '\', this)" title="Archive">&times;</button>' : '';
 
         var hasTheme = event.themeHtml && event.themeCss;
         var headerHtml = '';
@@ -360,6 +372,7 @@
           var fontsImport = config.googleFontsImport || '';
           var srcdoc = '<!DOCTYPE html><html><head><meta charset=&quot;UTF-8&quot;><meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1.0&quot;><style>*{margin:0;padding:0;box-sizing:border-box}html,body{background:#f9f9f9;overflow:hidden}' + fontsImport.replace(/"/g, '&quot;') + '</style><style>' + event.themeCss.replace(/"/g, '&quot;') + '</style></head><body>' + event.themeHtml.replace(/"/g, '&quot;') + '</body></html>';
           headerHtml = '<div class="event-card-header has-preview"' + (isArchived ? ' style="opacity:0.7"' : '') + '>'
+            + archiveXHtml
             + '<iframe srcdoc="' + srcdoc + '" sandbox="allow-same-origin" loading="lazy"></iframe>'
             + '<div class="event-card-header-overlay">'
             + '<h3>' + escapeHtml(event.title) + '</h3>'
@@ -367,6 +380,7 @@
             + '</div></div>';
         } else {
           headerHtml = '<div class="event-card-header no-preview"' + (isArchived ? ' style="opacity:0.7"' : '') + '>'
+            + archiveXHtml
             + '<h3>' + escapeHtml(event.title) + '</h3>'
             + '<span class="event-card-date">' + eventDate + '</span>'
             + '</div>';
@@ -459,7 +473,7 @@
 
     async function archiveEvent(eventId, btn) {
       if (!confirm('Archive this event?')) return;
-      btn.disabled = true; btn.textContent = 'Archiving...';
+      btn.disabled = true; btn.style.opacity = '0.5';
       try {
         await authFetch('/api/v2/events?action=update', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -467,7 +481,7 @@
         });
         showToast('Event archived');
         loadDashboard();
-      } catch (err) { btn.disabled = false; btn.textContent = 'Archive'; }
+      } catch (err) { btn.disabled = false; btn.style.opacity = '1'; }
     }
 
     function logout() {

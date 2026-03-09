@@ -100,9 +100,63 @@ export default async function handler(req, res) {
           id: user.id,
           email: user.email,
           displayName: profile?.display_name || user.user_metadata?.display_name || '',
-          phone: profile?.phone || ''
+          phone: profile?.phone || '',
+          avatarUrl: profile?.avatar_url || '',
+          tier: profile?.tier || 'free',
+          createdAt: profile?.created_at || user.created_at
         }
       });
+    }
+
+    if (action === 'updateProfile') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error || !user) {
+        return res.status(401).json({ success: false, error: 'Invalid session' });
+      }
+
+      const { displayName, phone } = req.body || {};
+      const updates = {};
+      if (displayName !== undefined) updates.display_name = displayName;
+      if (phone !== undefined) updates.phone = phone;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ success: false, error: 'No fields to update' });
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (updateError) {
+        return res.status(500).json({ success: false, error: updateError.message });
+      }
+
+      // Fetch updated profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      const updatedUser = {
+        id: user.id,
+        email: user.email,
+        displayName: profile?.display_name || '',
+        phone: profile?.phone || '',
+        avatarUrl: profile?.avatar_url || '',
+        tier: profile?.tier || 'free',
+        createdAt: profile?.created_at || user.created_at
+      };
+
+      return res.status(200).json({ success: true, user: updatedUser });
     }
 
     if (action === 'refresh') {
