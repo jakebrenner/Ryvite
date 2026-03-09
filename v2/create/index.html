@@ -868,6 +868,9 @@
 
       addChatBubble('Looks good!', 'user');
 
+      // Hide the chat input area — the user is done describing their event
+      document.querySelector('.chat-input-area').style.display = 'none';
+
       // Ask about style preference
       var card = document.createElement('div');
       card.className = 'chat-bubble assistant';
@@ -1225,6 +1228,7 @@
       setTimeout(function() { showBrainstormQuestion(qIdx + 1); }, 400);
     }
 
+    // Photo recommendations by event type
     // Photo recommendations by event type
     var photoRecommendations = {
       kidsBirthday: { emoji: '📸', strength: 'Strongly recommended', text: 'Upload 1-6 close-up photos of the birthday child. Natural light, face fills most of the frame. These become the hero of the page with fun birthday hat overlays!' },
