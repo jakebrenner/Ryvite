@@ -346,7 +346,7 @@
         <div class="loading-state">
           <span class="loading-spinner" style="width: 40px; height: 40px; border-width: 3px;"></span>
           <h3>Generating Your Invite...</h3>
-          <p>Our AI is creating a custom design based on your vision</p>
+          <p id="generatingPun" style="transition:opacity 0.3s;">Our AI is creating a custom design based on your vision</p>
           <div class="progress-bar"><div class="progress-bar-fill"></div></div>
         </div>
       </div>
@@ -950,9 +950,29 @@
 
     // ---- Theme Generation ----
 
+    var genPunIntervalId = null;
+
+    function startGeneratingPuns() {
+      var punEl = document.getElementById('generatingPun');
+      if (!punEl) return;
+      var shuffled = eventPuns.slice().sort(function() { return Math.random() - 0.5; });
+      var idx = 0;
+      punEl.textContent = shuffled[0];
+      genPunIntervalId = setInterval(function() {
+        idx = (idx + 1) % shuffled.length;
+        punEl.style.opacity = '0';
+        setTimeout(function() { punEl.textContent = shuffled[idx]; punEl.style.opacity = '1'; }, 300);
+      }, 2500);
+    }
+
+    function stopGeneratingPuns() {
+      if (genPunIntervalId) { clearInterval(genPunIntervalId); genPunIntervalId = null; }
+    }
+
     async function generateTheme(feedback) {
       document.getElementById('generatingView').style.display = 'block';
       document.getElementById('generatedView').style.display = 'none';
+      startGeneratingPuns();
 
       if (!currentEvent) {
         showMessage('Event not saved yet. Please go back and confirm your details.', 'error');
@@ -1015,12 +1035,14 @@
           currentEvent.themeHtml = ver.html;
           currentEvent.themeCss = ver.css;
           currentEvent.themeConfig = ver.config;
+          stopGeneratingPuns();
           document.getElementById('generatingView').style.display = 'none';
           document.getElementById('generatedView').style.display = 'block';
           renderPreview(ver);
           renderVersionGallery();
           initDesignChatIfNeeded();
         } else {
+          stopGeneratingPuns();
           showMessage(result2.error || result2.message || 'Failed to generate theme', 'error');
           // If we have existing themes, show them instead of going back
           if (themeVersions.length > 0) {
@@ -1032,6 +1054,7 @@
           }
         }
       } catch (err) {
+        stopGeneratingPuns();
         showMessage('Error generating theme. Please try again.', 'error');
         if (themeVersions.length > 0) {
           document.getElementById('generatingView').style.display = 'none';
