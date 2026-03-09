@@ -29,12 +29,14 @@
 </head>
 <body>
   <div class="preview-banner">
-    <span>This is just a preview — form entries will not be saved</span>
+    <span>Preview mode — RSVP submissions won't be saved</span>
     <button class="close-preview" onclick="window.close()">Close Preview</button>
   </div>
   <div id="loading" class="loading">Loading preview...</div>
   <iframe id="previewFrame" style="display:none;"></iframe>
   <script>
+    function escapeHtml(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
     (async function() {
       var params = new URLSearchParams(window.location.search);
       var eventId = params.get('eventId');
@@ -57,54 +59,117 @@
         }
         var config = ev.themeConfig || {};
         var fontsImport = config.googleFontsImport || '';
+        var accent = config.accentColor || config.primaryColor || '#E94560';
         var iframe = document.getElementById('previewFrame');
         var customFields = ev.customFields || [];
 
-        // Build RSVP form fields from the event's actual custom fields
-        var fieldStyle = 'width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:16px;background:#f9f9f9;font-family:Inter,sans-serif;';
-        var labelStyle = 'display:block;margin-bottom:6px;font-weight:600;font-size:14px;';
-        var groupStyle = 'margin-bottom:16px;';
-        var rsvpFormHtml = '<div style="margin-bottom:16px;"><label style="' + labelStyle + '">Name <span style="color:#E94560;">*</span></label><input type="text" placeholder="Your name" disabled style="' + fieldStyle + '"></div>'
-          + '<div style="' + groupStyle + '"><label style="' + labelStyle + '">RSVP Status <span style="color:#E94560;">*</span></label>'
-          + '<div style="display:flex;gap:6px;">'
-          + '<label style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px 6px;border:2px solid #E94560;border-radius:8px;font-size:13px;font-weight:500;background:#E94560;color:#fff;"><input type="radio" name="rsvpStatus" value="Attending" checked disabled style="display:none;">Attending</label>'
-          + '<label style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px 6px;border:2px solid #ddd;border-radius:8px;font-size:13px;font-weight:500;background:#f9f9f9;color:#333;"><input type="radio" name="rsvpStatus" value="Declined" disabled style="display:none;">Declined</label>'
-          + '<label style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px 6px;border:2px solid #ddd;border-radius:8px;font-size:13px;font-weight:500;background:#f9f9f9;color:#333;"><input type="radio" name="rsvpStatus" value="Maybe" disabled style="display:none;">Maybe</label>'
-          + '</div></div>';
+        // Build RSVP form — uses inherit styles to match theme, fields are interactive
+        var html = '<div style="font-family:inherit;">';
 
-        // Add custom fields from event config
-        customFields.forEach(function(f) {
-          if (f.key === 'email' || f.key === 'name' || f.key === 'status') return; // skip built-ins already rendered
-          var req = f.required ? ' <span style="color:#E94560;">*</span>' : '';
-          var label = (f.label || f.key || '').replace(/</g, '&lt;');
-          rsvpFormHtml += '<div style="' + groupStyle + '"><label style="' + labelStyle + '">' + label + req + '</label>';
-          if (f.type === 'checkbox') {
-            rsvpFormHtml += '<label style="display:flex;align-items:center;gap:8px;font-size:16px;cursor:pointer;">'
-              + '<input type="checkbox" disabled style="width:18px;height:18px;">'
-              + '<span>' + (f.placeholder || f.label || '').replace(/</g, '&lt;') + '</span></label>';
-          } else if (f.type === 'select' && f.options && f.options.length > 0) {
-            rsvpFormHtml += '<select disabled style="' + fieldStyle + '"><option>' + f.options[0].replace(/</g, '&lt;') + '</option></select>';
-          } else if (f.type === 'textarea') {
-            rsvpFormHtml += '<textarea disabled placeholder="' + (f.placeholder || '').replace(/"/g, '&quot;') + '" style="' + fieldStyle + 'min-height:60px;resize:none;"></textarea>';
-          } else if (f.type === 'number') {
-            rsvpFormHtml += '<input type="number" placeholder="' + (f.placeholder || '0').replace(/"/g, '&quot;') + '" disabled style="' + fieldStyle + '">';
-          } else if (f.type === 'email') {
-            rsvpFormHtml += '<input type="email" placeholder="' + (f.placeholder || 'your@email.com').replace(/"/g, '&quot;') + '" disabled style="' + fieldStyle + '">';
-          } else if (f.type === 'phone' || f.type === 'tel') {
-            rsvpFormHtml += '<input type="tel" placeholder="' + (f.placeholder || '(555) 123-4567').replace(/"/g, '&quot;') + '" disabled style="' + fieldStyle + '">';
-          } else {
-            rsvpFormHtml += '<input type="text" placeholder="' + (f.placeholder || '').replace(/"/g, '&quot;') + '" disabled style="' + fieldStyle + '">';
-          }
-          rsvpFormHtml += '</div>';
+        // Name field
+        html += '<div style="margin-bottom:12px;">'
+          + '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:4px;opacity:0.9;">Name <span style="color:' + accent + ';">*</span></label>'
+          + '<input type="text" name="name" placeholder="Your name" required style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;box-sizing:border-box;">'
+          + '</div>';
+
+        // Email field
+        html += '<div style="margin-bottom:12px;">'
+          + '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:4px;opacity:0.9;">Email</label>'
+          + '<input type="email" name="email" placeholder="your@email.com" style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;box-sizing:border-box;">'
+          + '</div>';
+
+        // RSVP Status — radio buttons
+        html += '<div style="margin-bottom:12px;">'
+          + '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;opacity:0.9;">RSVP Status <span style="color:' + accent + ';">*</span></label>'
+          + '<div class="rsvp-status-group" style="display:flex;gap:6px;">';
+        ['Attending', 'Declined', 'Maybe'].forEach(function(opt, idx) {
+          var isFirst = idx === 0;
+          html += '<label class="rsvp-status-option" style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px 6px;border:2px solid ' + (isFirst ? accent : 'rgba(255,255,255,0.3)') + ';border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;background:' + (isFirst ? accent : 'rgba(255,255,255,0.1)') + ';color:' + (isFirst ? '#fff' : 'inherit') + ';transition:all 0.2s;">'
+            + '<input type="radio" name="rsvpStatus" value="' + opt + '"' + (isFirst ? ' checked' : '') + ' style="display:none;">'
+            + opt + '</label>';
         });
+        html += '</div></div>';
 
-        rsvpFormHtml += '<button disabled style="width:100%;padding:14px;background:#ccc;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:not-allowed;font-family:Inter,sans-serif;">Preview Only — RSVP Disabled</button>';
+        // Custom fields
+        customFields.forEach(function(f) {
+          if (f.key === 'email' || f.key === 'name' || f.key === 'status') return;
+          var req = f.required ? ' <span style="color:' + accent + ';">*</span>' : '';
+          var label = escapeHtml(f.label || f.key || '');
+          html += '<div style="margin-bottom:12px;">'
+            + '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:4px;opacity:0.9;">' + label + req + '</label>';
+          if (f.type === 'checkbox') {
+            html += '<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">'
+              + '<input type="checkbox" name="' + escapeHtml(f.key) + '" style="width:18px;height:18px;accent-color:' + accent + ';cursor:pointer;">'
+              + '<span style="opacity:0.9;">' + escapeHtml(f.placeholder || f.label || '') + '</span></label>';
+          } else if (f.type === 'select' && f.options && f.options.length > 0) {
+            html += '<select name="' + escapeHtml(f.key) + '" style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;box-sizing:border-box;">'
+              + f.options.map(function(o) { return '<option>' + escapeHtml(o) + '</option>'; }).join('') + '</select>';
+          } else if (f.type === 'textarea') {
+            html += '<textarea name="' + escapeHtml(f.key) + '" placeholder="' + escapeHtml(f.placeholder || '') + '" style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;min-height:60px;resize:none;box-sizing:border-box;"></textarea>';
+          } else if (f.type === 'number') {
+            html += '<input type="number" name="' + escapeHtml(f.key) + '" placeholder="' + escapeHtml(f.placeholder || '0') + '" style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;box-sizing:border-box;">';
+          } else {
+            html += '<input type="text" name="' + escapeHtml(f.key) + '" placeholder="' + escapeHtml(f.placeholder || '') + '" style="width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:14px;background:rgba(255,255,255,0.15);color:inherit;font-family:inherit;box-sizing:border-box;">';
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+        var rsvpFormHtml = html;
 
-        // Inject RSVP form into the theme's .rsvp-slot container (if it exists)
-        // This replaces the placeholder RSVP button in the generated theme
+        // Build thank you page HTML
+        var thankyouHtml = config.thankyouHtml || '';
+
+        // Script that: injects RSVP form, makes radio buttons interactive, handles submit to show thank you page
         var injectScript = '<script>'
-          + 'var slot = document.querySelector(".rsvp-slot");'
-          + 'if (slot) { slot.innerHTML = \'' + rsvpFormHtml.replace(/'/g, "\\'").replace(/\n/g, '') + '\'; }'
+          + 'var ACCENT = ' + JSON.stringify(accent) + ';'
+          + 'var THANKYOU_HTML = ' + JSON.stringify(thankyouHtml) + ';'
+          + 'var THEME_CSS = ' + JSON.stringify(ev.themeCss) + ';'
+          + 'var FONTS_IMPORT = ' + JSON.stringify(fontsImport) + ';'
+          + 'document.addEventListener("DOMContentLoaded", function() {'
+          + '  var slot = document.querySelector(".rsvp-slot");'
+          + '  if (!slot) return;'
+          + '  var btn = slot.querySelector(".rsvp-button");'
+          + '  var btnHtml = btn ? btn.outerHTML : "";'
+          + '  slot.innerHTML = ' + JSON.stringify(rsvpFormHtml) + ' + btnHtml;'
+          // Make radio buttons interactive
+          + '  var radios = slot.querySelectorAll(".rsvp-status-option");'
+          + '  radios.forEach(function(label) {'
+          + '    label.addEventListener("click", function() {'
+          + '      radios.forEach(function(l) {'
+          + '        l.style.background = "rgba(255,255,255,0.1)";'
+          + '        l.style.borderColor = "rgba(255,255,255,0.3)";'
+          + '        l.style.color = "inherit";'
+          + '      });'
+          + '      this.style.background = ACCENT;'
+          + '      this.style.borderColor = ACCENT;'
+          + '      this.style.color = "#fff";'
+          + '    });'
+          + '  });'
+          // Make RSVP button submit the form (show thank you page)
+          + '  var rsvpBtn = slot.querySelector(".rsvp-button");'
+          + '  if (rsvpBtn) {'
+          + '    rsvpBtn.addEventListener("click", function(e) {'
+          + '      e.preventDefault();'
+          + '      var nameInput = slot.querySelector("input[name=name]");'
+          + '      if (nameInput && !nameInput.value.trim()) {'
+          + '        nameInput.style.borderColor = "#E94560";'
+          + '        nameInput.focus();'
+          + '        return;'
+          + '      }'
+          + '      if (THANKYOU_HTML) {'
+          + '        document.open();'
+          + '        document.write("<!DOCTYPE html><html><head><meta charset=UTF-8><meta name=viewport content=\\"width=device-width, initial-scale=1.0\\">"'
+          + '          + "<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { background: #f9f9f9; } " + FONTS_IMPORT + "</style>"'
+          + '          + "<style>" + THEME_CSS + "</style></head><body>"'
+          + '          + THANKYOU_HTML'
+          + '          + "</body></html>");'
+          + '        document.close();'
+          + '      } else {'
+          + '        alert("Thank you for your RSVP! (Preview mode — nothing was saved)");'
+          + '      }'
+          + '    });'
+          + '  }'
+          + '});'
           + '<\/script>';
 
         iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
