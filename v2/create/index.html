@@ -1104,7 +1104,10 @@
       var card = document.createElement('div');
       card.className = 'chat-bubble assistant';
       card.id = 'customStyleCard';
-      card.innerHTML = '<div style="margin-bottom:12px;">Describe the mood, colors, and style you\'re going for.</div>'
+      var stylePromptLabel = extractedData.prompt
+        ? 'Here\'s what I picked up from our chat — feel free to tweak it or add more detail!'
+        : 'Describe the mood, colors, and style you\'re going for.';
+      card.innerHTML = '<div style="margin-bottom:12px;">' + stylePromptLabel + '</div>'
         + '<textarea id="customStyleText" placeholder="e.g., Modern minimalist with gold accents and a warm, elegant feel..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:Inter,sans-serif;min-height:80px;resize:none;margin-bottom:10px;box-sizing:border-box;"></textarea>'
         + '<div style="margin-bottom:12px;">'
         + '<div class="example-chips" style="margin-top:0;">'
@@ -1134,6 +1137,12 @@
         + '</div>'
         + '<button class="btn btn-primary" onclick="submitCustomStyle()" style="width:100%;padding:12px;font-size:14px;">Generate My Invite</button>';
       document.getElementById('chatMessages').appendChild(card);
+
+      // Pre-fill with vibe/style the user already described in the chat
+      if (extractedData.prompt) {
+        document.getElementById('customStyleText').value = extractedData.prompt;
+      }
+
       scrollChat();
 
       // Set up drag & drop on the new drop zones
