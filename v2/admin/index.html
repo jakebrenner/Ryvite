@@ -123,7 +123,7 @@
     .phone-home-bar { width: 100px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 6px auto 2px; }
 
     /* Prompt Lab layout */
-    .promptlab-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+    .promptlab-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
     @media (max-width: 900px) { .promptlab-layout { grid-template-columns: 1fr; } }
     .promptlab-sidebar { position: sticky; top: 24px; }
     .preview-toggle-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 12px; }
@@ -467,13 +467,6 @@
 
     <!-- Prompt Lab Tab -->
     <div class="tab-content" id="tab-promptlab">
-      <!-- Quick Event Presets -->
-      <div class="config-section">
-        <h3>Quick Start — Pick an Event Type</h3>
-        <p style="font-size:13px;color:#888;margin-bottom:12px;">Select a preset to auto-fill event details and match styles from the library. Or customize everything below.</p>
-        <div class="preset-grid" id="eventPresetGrid"></div>
-      </div>
-
       <!-- Main layout: config left, phone preview right -->
       <div class="promptlab-layout" id="promptlabSingleLayout">
         <!-- Left: Config -->
@@ -831,7 +824,6 @@
         loadConfig();
         loadAdmins();
         loadStyleLibrary();
-        renderEventPresets();
       } catch (err) {
         document.getElementById('accessDenied').style.display = 'block';
       }
@@ -1550,7 +1542,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       });
       if (lastComparisonResults) {
         lastComparisonResults.forEach(function(r, i) {
-          if (r.success) {
+          if (r && r.success) {
             var iframe = document.querySelector('#compCard' + i + ' iframe');
             if (iframe) renderPhonePreview(iframe, r.theme, mode);
           }
@@ -1559,19 +1551,14 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     }
 
     // ── Main generation function ──
-    async function runPromptTest() {
-      var btn = document.getElementById('runTestBtn');
-      var status = document.getElementById('testStatus');
-      btn.disabled = true;
-      btn.textContent = 'Generating...';
-      status.textContent = isCompareMode ? 'Running 3 models in parallel...' : 'This may take 15-60s...';
+    var COMP_MODELS = [
+      { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', badge: 'haiku' },
+      { id: 'claude-sonnet-4-20250514', label: 'Sonnet 4', badge: 'sonnet' },
+      { id: 'claude-opus-4-20250514', label: 'Opus 4', badge: 'opus' }
+    ];
 
-      var styleIds = [];
-      document.querySelectorAll('#styleRefList input[type="checkbox"]:checked').forEach(function(cb) {
-        styleIds.push(cb.value);
-      });
-
-      var eventDetails = {
+    function getTestEventDetails() {
+      return {
         title: document.getElementById('testTitle').value,
         eventType: document.getElementById('testEventType').value,
         eventDate: document.getElementById('testStartDate').value,
@@ -1583,27 +1570,70 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         tagline: document.getElementById('testTagline').value,
         prompt: document.getElementById('testPrompt').value
       };
+    }
+
+    function getTestStyleIds() {
+      var ids = [];
+      document.querySelectorAll('#styleRefList input[type="checkbox"]:checked').forEach(function(cb) { ids.push(cb.value); });
+      return ids;
+    }
+
+    async function runPromptTest() {
+      var btn = document.getElementById('runTestBtn');
+      var status = document.getElementById('testStatus');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+
+      var styleIds = getTestStyleIds();
+      var eventDetails = getTestEventDetails();
 
       try {
         if (isCompareMode) {
-          // Multi-model comparison
-          var allModels = ['claude-haiku-4-5-20251001', 'claude-sonnet-4-20250514', 'claude-opus-4-20250514'];
-          var r = await fetch('/api/v2/prompt-test', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ models: allModels, eventDetails: eventDetails, styleLibraryIds: styleIds })
-          });
-          var data = await r.json();
-          if (!data.success) throw new Error(data.error || data.message || 'Generation failed');
-
-          lastComparisonResults = data.results;
+          status.textContent = 'Running 3 models in parallel...';
           lastTestResult = null;
-          renderComparisonResults(data.results);
+          lastComparisonResults = [null, null, null];
+
+          // Show comparison grid immediately with loading states
           document.getElementById('comparisonResultSection').style.display = 'block';
           document.getElementById('singlePreviewEmpty').style.display = 'block';
           document.getElementById('singlePreviewContent').style.display = 'none';
+          renderComparisonSkeleton();
           document.getElementById('comparisonResultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          // Fire each model individually in parallel
+          var completedCount = 0;
+          var promises = COMP_MODELS.map(function(m, i) {
+            var startTime = Date.now();
+            updateCompCardStatus(i, 'generating', 'Generating...');
+            return fetch('/api/v2/prompt-test', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model: m.id, eventDetails: eventDetails, styleLibraryIds: styleIds })
+            }).then(function(r) { return r.json(); }).then(function(data) {
+              completedCount++;
+              status.textContent = completedCount + '/3 models complete...';
+              if (data.success) {
+                var result = { success: true, theme: data.theme, metadata: data.metadata };
+                lastComparisonResults[i] = result;
+                renderCompCardResult(i, result);
+              } else {
+                lastComparisonResults[i] = { success: false, model: m.id, error: data.error || data.message || 'Failed' };
+                updateCompCardStatus(i, 'error', data.error || 'Generation failed');
+              }
+            }).catch(function(err) {
+              completedCount++;
+              status.textContent = completedCount + '/3 models complete...';
+              lastComparisonResults[i] = { success: false, model: m.id, error: err.message };
+              updateCompCardStatus(i, 'error', err.message);
+            });
+          });
+
+          await Promise.all(promises);
+          renderComparisonSummary(lastComparisonResults);
+          status.textContent = 'Done! All 3 models complete.';
+          setTimeout(function() { status.textContent = ''; }, 3000);
         } else {
+          status.textContent = 'This may take 15-60s...';
           // Single model
           var r = await fetch('/api/v2/prompt-test', {
             method: 'POST',
@@ -1617,10 +1647,9 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           lastComparisonResults = null;
           document.getElementById('comparisonResultSection').style.display = 'none';
           renderSingleResult(data);
+          status.textContent = 'Done!';
+          setTimeout(function() { status.textContent = ''; }, 3000);
         }
-
-        status.textContent = 'Done!';
-        setTimeout(function() { status.textContent = ''; }, 3000);
       } catch (err) {
         status.textContent = 'Error: ' + err.message;
         status.style.color = 'var(--party-coral)';
@@ -1629,6 +1658,110 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
       btn.disabled = false;
       btn.textContent = 'Generate Test Invite';
+    }
+
+    // ── Comparison: render skeleton with loading spinners ──
+    function renderComparisonSkeleton() {
+      var grid = document.getElementById('comparisonGrid');
+      grid.className = 'comparison-grid cols-3';
+      grid.innerHTML = COMP_MODELS.map(function(m, i) {
+        return '<div class="comparison-card" id="compCard' + i + '">'
+          + '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span></div>'
+          + '<div class="comparison-card-body" id="compCardBody' + i + '">'
+          + '<div class="generating-overlay" id="compCardLoading' + i + '">'
+          + '<div class="generating-spinner"></div>'
+          + '<div style="font-size:13px;color:#888;" id="compCardStatusText' + i + '">Waiting to start...</div>'
+          + '<div style="margin-top:8px;width:100%;max-width:200px;height:4px;background:#eee;border-radius:2px;overflow:hidden;">'
+          + '<div id="compCardProgress' + i + '" style="height:100%;background:var(--party-coral);border-radius:2px;width:0%;transition:width 0.3s;"></div>'
+          + '</div>'
+          + '</div>'
+          + '</div></div>';
+      }).join('');
+
+      // Start progress bar animations
+      COMP_MODELS.forEach(function(m, i) {
+        animateProgress(i);
+      });
+
+      document.getElementById('comparisonSummary').innerHTML = '';
+    }
+
+    var progressTimers = {};
+    function animateProgress(idx) {
+      var bar = document.getElementById('compCardProgress' + idx);
+      if (!bar) return;
+      var pct = 0;
+      if (progressTimers[idx]) clearInterval(progressTimers[idx]);
+      progressTimers[idx] = setInterval(function() {
+        if (pct >= 90) { clearInterval(progressTimers[idx]); return; }
+        pct += Math.random() * 3 + 0.5;
+        if (pct > 90) pct = 90;
+        bar.style.width = pct + '%';
+      }, 500);
+    }
+
+    function updateCompCardStatus(idx, state, text) {
+      var statusEl = document.getElementById('compCardStatusText' + idx);
+      var progressBar = document.getElementById('compCardProgress' + idx);
+      if (statusEl) statusEl.textContent = text;
+      if (state === 'generating') {
+        if (progressBar) progressBar.style.width = '5%';
+      } else if (state === 'error') {
+        if (progressTimers[idx]) clearInterval(progressTimers[idx]);
+        if (progressBar) { progressBar.style.width = '100%'; progressBar.style.background = 'var(--party-coral)'; }
+      }
+    }
+
+    // ── Comparison: fill in a single card with its result ──
+    function renderCompCardResult(idx, result) {
+      if (progressTimers[idx]) clearInterval(progressTimers[idx]);
+      var m = COMP_MODELS[idx];
+      var meta = result.metadata;
+      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-20250514': 3.00, 'claude-opus-4-20250514': 15.00 };
+      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-20250514': 15.00, 'claude-opus-4-20250514': 75.00 };
+      var estCost = (meta.tokens.input * (costPerMIn[meta.model] || 3) + meta.tokens.output * (costPerMOut[meta.model] || 15)) / 1000000;
+
+      var card = document.getElementById('compCard' + idx);
+      card.innerHTML = '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span></div>'
+        + '<div class="comparison-card-body">'
+        + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
+        + '</div>'
+        + '<div class="code-tabs">'
+        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'html\')">HTML</button>'
+        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'css\')">CSS</button>'
+        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'config\')">Config</button>'
+        + '</div>'
+        + '<div id="compCode' + idx + '" style="display:none;padding:0 16px 12px;"><div class="prompt-viewer" style="max-height:300px;" id="compCodeContent' + idx + '"></div></div>'
+        + '<div class="comparison-card-stats">'
+        + '<div class="stat"><div class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</div><div class="lbl">Latency</div></div>'
+        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.input) + '</div><div class="lbl">In Tokens</div></div>'
+        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.output) + '</div><div class="lbl">Out Tokens</div></div>'
+        + '<div class="stat"><div class="val">' + fmtCost(estCost) + '</div><div class="lbl">Est. Cost</div></div>'
+        + '</div>';
+
+      // Render preview
+      setTimeout(function() {
+        var iframe = card.querySelector('iframe');
+        if (iframe) renderPhonePreview(iframe, result.theme, testPreviewMode);
+      }, 50);
+    }
+
+    // ── Comparison summary (after all complete) ──
+    function renderComparisonSummary(results) {
+      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-20250514': 3.00, 'claude-opus-4-20250514': 15.00 };
+      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-20250514': 15.00, 'claude-opus-4-20250514': 75.00 };
+      var totalCost = 0;
+      var successCount = 0;
+      results.forEach(function(r) {
+        if (r && r.success) {
+          var m = r.metadata;
+          totalCost += (m.tokens.input * (costPerMIn[m.model] || 3) + m.tokens.output * (costPerMOut[m.model] || 15)) / 1000000;
+          successCount++;
+        }
+      });
+      document.getElementById('comparisonSummary').innerHTML =
+        '<div class="test-meta"><span>' + successCount + '/' + results.length + ' models succeeded</span>'
+        + '<span>Total cost: <span class="val">' + fmtCost(totalCost) + '</span></span></div>';
     }
 
     // ── Render single model result into phone sidebar ──
@@ -1662,76 +1795,6 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         btn.classList.toggle('active', i === 0);
       });
       showTestView('preview');
-    }
-
-    // ── Render multi-model comparison ──
-    function renderComparisonResults(results) {
-      var grid = document.getElementById('comparisonGrid');
-      var modelLabels = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-20250514': 'Sonnet 4', 'claude-opus-4-20250514': 'Opus 4' };
-      var modelBadges = { 'claude-haiku-4-5-20251001': 'haiku', 'claude-sonnet-4-20250514': 'sonnet', 'claude-opus-4-20250514': 'opus' };
-      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-20250514': 3.00, 'claude-opus-4-20250514': 15.00 };
-      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-20250514': 15.00, 'claude-opus-4-20250514': 75.00 };
-
-      grid.className = 'comparison-grid cols-' + results.length;
-
-      grid.innerHTML = results.map(function(r, i) {
-        var modelId = r.success ? r.metadata.model : r.model;
-        var label = modelLabels[modelId] || modelId;
-        var badge = modelBadges[modelId] || 'sonnet';
-
-        if (!r.success) {
-          return '<div class="comparison-card" id="compCard' + i + '">'
-            + '<div class="comparison-card-header"><h4>' + label + '</h4><span class="model-badge ' + badge + '">' + badge + '</span></div>'
-            + '<div class="comparison-card-error">Generation failed: ' + escapeHtml(r.error || 'Unknown error') + '</div>'
-            + '</div>';
-        }
-
-        var meta = r.metadata;
-        var estCost = (meta.tokens.input * (costPerMIn[modelId] || 3) + meta.tokens.output * (costPerMOut[modelId] || 15)) / 1000000;
-
-        return '<div class="comparison-card" id="compCard' + i + '">'
-          + '<div class="comparison-card-header"><h4>' + label + '</h4><span class="model-badge ' + badge + '">' + badge + '</span></div>'
-          + '<div class="comparison-card-body">'
-          + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
-          + '</div>'
-          + '<div class="code-tabs">'
-          + '<button class="code-tab" onclick="showCompCode(' + i + ',\'html\')">HTML</button>'
-          + '<button class="code-tab" onclick="showCompCode(' + i + ',\'css\')">CSS</button>'
-          + '<button class="code-tab" onclick="showCompCode(' + i + ',\'config\')">Config</button>'
-          + '</div>'
-          + '<div id="compCode' + i + '" style="display:none;padding:0 16px 12px;"><div class="prompt-viewer" style="max-height:300px;" id="compCodeContent' + i + '"></div></div>'
-          + '<div class="comparison-card-stats">'
-          + '<div class="stat"><div class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</div><div class="lbl">Latency</div></div>'
-          + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.input) + '</div><div class="lbl">In Tokens</div></div>'
-          + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.output) + '</div><div class="lbl">Out Tokens</div></div>'
-          + '<div class="stat"><div class="val">' + fmtCost(estCost) + '</div><div class="lbl">Est. Cost</div></div>'
-          + '</div></div>';
-      }).join('');
-
-      // Render iframes after DOM is ready
-      setTimeout(function() {
-        results.forEach(function(r, i) {
-          if (r.success) {
-            var iframe = document.querySelector('#compCard' + i + ' iframe');
-            if (iframe) renderPhonePreview(iframe, r.theme, testPreviewMode);
-          }
-        });
-      }, 50);
-
-      // Summary
-      var totalCost = 0;
-      var successCount = 0;
-      results.forEach(function(r) {
-        if (r.success) {
-          var m = r.metadata;
-          var mid = m.model;
-          totalCost += (m.tokens.input * (costPerMIn[mid] || 3) + m.tokens.output * (costPerMOut[mid] || 15)) / 1000000;
-          successCount++;
-        }
-      });
-      document.getElementById('comparisonSummary').innerHTML =
-        '<div class="test-meta"><span>' + successCount + '/' + results.length + ' models succeeded</span>'
-        + '<span>Total cost: <span class="val">' + fmtCost(totalCost) + '</span></span></div>';
     }
 
     function showCompCode(idx, type) {
