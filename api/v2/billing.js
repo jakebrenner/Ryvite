@@ -8,10 +8,15 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Disable body parsing so we can access raw body for Stripe webhook signature verification
+export const config = {
+  api: { bodyParser: false }
+};
+
 const PROD_URL = 'https://ryvite.com';
 
 function getBaseUrl(req) {
-  const origin = req.body?.origin || req.headers.origin;
+  const origin = req.parsedBody?.origin || req.headers.origin;
   if (origin) return origin;
   return process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : PROD_URL;
 }
@@ -26,7 +31,6 @@ async function getUser(req) {
 }
 
 async function getOrCreateStripeCustomer(user) {
-  // Check if profile already has a stripe_customer_id
   const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('stripe_customer_id, display_name, phone')
@@ -37,20 +41,36 @@ async function getOrCreateStripeCustomer(user) {
     return profile.stripe_customer_id;
   }
 
-  // Create a new Stripe customer
   const customer = await stripe.customers.create({
     email: user.email,
     name: profile?.display_name || '',
     metadata: { supabase_user_id: user.id }
   });
 
-  // Save to profile
   await supabaseAdmin
     .from('profiles')
     .update({ stripe_customer_id: customer.id })
     .eq('id', user.id);
 
   return customer.id;
+}
+
+async function getRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+async function parseBody(req) {
+  const rawBody = await getRawBody(req);
+  req.rawBody = rawBody;
+  try {
+    req.parsedBody = JSON.parse(rawBody.toString());
+  } catch {
+    req.parsedBody = {};
+  }
 }
 
 export default async function handler(req, res) {
@@ -61,6 +81,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { action } = req.query;
+
+  // ---- STRIPE WEBHOOK ----
+  if (action === 'webhook') {
+    return handleWebhook(req, res);
+  }
+
+  // Parse body for all non-webhook requests
+  await parseBody(req);
+  // Make parsed body accessible as req.body for downstream code
+  req.body = req.parsedBody;
 
   try {
     // ---- GET PLANS (public) ----
@@ -125,7 +155,6 @@ export default async function handler(req, res) {
       const { planId, couponCode } = req.body || {};
       if (!planId) return res.status(400).json({ error: 'planId required' });
 
-      // Fetch plan
       const { data: plan } = await supabaseAdmin
         .from('plans')
         .select('*')
@@ -135,7 +164,6 @@ export default async function handler(req, res) {
 
       if (!plan) return res.status(404).json({ error: 'Plan not found' });
 
-      // Validate coupon if provided
       let discount = null;
       let coupon = null;
       if (couponCode) {
@@ -150,7 +178,6 @@ export default async function handler(req, res) {
       const customerId = await getOrCreateStripeCustomer(user);
       const baseUrl = getBaseUrl(req);
 
-      // Calculate final price
       let finalAmountCents = plan.price_cents;
       let discountCents = 0;
       if (discount) {
@@ -211,7 +238,6 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      // Count actual events and generations used
       const { count: eventCount } = await supabaseAdmin
         .from('events')
         .select('id', { count: 'exact', head: true })
@@ -224,7 +250,6 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .eq('status', 'success');
 
-      // Find active subscription
       const activeSub = (subscriptions || []).find(s => s.status === 'active');
 
       return res.status(200).json({
@@ -293,6 +318,158 @@ export default async function handler(req, res) {
   }
 }
 
+// ---- STRIPE WEBHOOK HANDLER ----
+async function handleWebhook(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+
+  let event;
+
+  try {
+    const rawBody = await getRawBody(req);
+    const sig = req.headers['stripe-signature'];
+
+    if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
+      event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } else {
+      event = JSON.parse(rawBody.toString());
+    }
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).json({ error: 'Webhook signature verification failed' });
+  }
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutComplete(event.data.object);
+        break;
+
+      case 'payment_intent.succeeded':
+        break;
+
+      case 'charge.refunded':
+        await handleRefund(event.data.object);
+        break;
+
+      default:
+        break;
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('Webhook handler error:', err);
+    return res.status(500).json({ error: 'Webhook handler error' });
+  }
+}
+
+async function handleCheckoutComplete(session) {
+  const metadata = session.metadata || {};
+  const userId = metadata.supabase_user_id;
+  const planId = metadata.plan_id;
+  const couponId = metadata.coupon_id || null;
+  const couponCode = metadata.coupon_code || null;
+  const originalAmountCents = parseInt(metadata.original_amount_cents) || 0;
+  const discountCents = parseInt(metadata.discount_cents) || 0;
+
+  if (!userId || !planId) {
+    console.error('Missing userId or planId in checkout metadata');
+    return;
+  }
+
+  const { data: subscription, error: subError } = await supabaseAdmin
+    .from('subscriptions')
+    .insert({
+      user_id: userId,
+      plan_id: planId,
+      status: 'active',
+      stripe_customer_id: session.customer,
+      stripe_checkout_session_id: session.id,
+      coupon_id: couponId || null,
+      amount_paid_cents: session.amount_total || (originalAmountCents - discountCents),
+      discount_cents: discountCents,
+      events_used: 0,
+      generations_used: 0,
+      current_period_start: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (subError) {
+    console.error('Failed to create subscription:', subError);
+    return;
+  }
+
+  await supabaseAdmin
+    .from('billing_history')
+    .insert({
+      user_id: userId,
+      subscription_id: subscription.id,
+      stripe_payment_intent_id: session.payment_intent,
+      amount_cents: session.amount_total || (originalAmountCents - discountCents),
+      currency: session.currency || 'usd',
+      status: 'succeeded',
+      description: `Plan purchase: ${metadata.plan_name || 'Single Event'}`,
+      receipt_url: null
+    });
+
+  if (couponId) {
+    await supabaseAdmin
+      .from('coupon_redemptions')
+      .insert({
+        coupon_id: couponId,
+        user_id: userId,
+        subscription_id: subscription.id
+      });
+
+    await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: couponId })
+      .then(() => {})
+      .catch(async () => {
+        const { data: c } = await supabaseAdmin
+          .from('coupons')
+          .select('times_used')
+          .eq('id', couponId)
+          .single();
+        if (c) {
+          await supabaseAdmin
+            .from('coupons')
+            .update({ times_used: (c.times_used || 0) + 1 })
+            .eq('id', couponId);
+        }
+      });
+  }
+
+  await supabaseAdmin
+    .from('profiles')
+    .update({ stripe_customer_id: session.customer, tier: 'pro' })
+    .eq('id', userId);
+
+  if (session.payment_intent) {
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+      if (paymentIntent.latest_charge) {
+        const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
+        if (charge.receipt_url) {
+          await supabaseAdmin
+            .from('billing_history')
+            .update({ receipt_url: charge.receipt_url })
+            .eq('stripe_payment_intent_id', session.payment_intent);
+        }
+      }
+    } catch (e) {
+      // Non-critical, receipt URL is nice-to-have
+    }
+  }
+}
+
+async function handleRefund(charge) {
+  if (!charge.payment_intent) return;
+
+  await supabaseAdmin
+    .from('billing_history')
+    .update({ status: 'refunded' })
+    .eq('stripe_payment_intent_id', charge.payment_intent);
+}
+
 // ---- COUPON VALIDATION ENGINE ----
 async function validateCoupon(code, planName, userId, userEmail) {
   const { data: coupon, error } = await supabaseAdmin
@@ -308,7 +485,6 @@ async function validateCoupon(code, planName, userId, userEmail) {
 
   const now = new Date();
 
-  // Check date validity
   if (coupon.valid_from && new Date(coupon.valid_from) > now) {
     return { valid: false, error: 'This coupon is not yet active' };
   }
@@ -316,12 +492,10 @@ async function validateCoupon(code, planName, userId, userEmail) {
     return { valid: false, error: 'This coupon has expired' };
   }
 
-  // Check max global uses
   if (coupon.max_uses !== null && coupon.times_used >= coupon.max_uses) {
     return { valid: false, error: 'This coupon has reached its usage limit' };
   }
 
-  // Check per-user usage
   if (userId && coupon.max_uses_per_user) {
     const { count } = await supabaseAdmin
       .from('coupon_redemptions')
@@ -334,33 +508,27 @@ async function validateCoupon(code, planName, userId, userEmail) {
     }
   }
 
-  // Check allowed plans
   if (coupon.allowed_plans && coupon.allowed_plans.length > 0 && planName) {
     if (!coupon.allowed_plans.includes(planName)) {
       return { valid: false, error: 'This coupon does not apply to the selected plan' };
     }
   }
 
-  // Check allowed emails
   if (coupon.allowed_emails && coupon.allowed_emails.length > 0) {
     if (!userEmail || !coupon.allowed_emails.map(e => e.toLowerCase()).includes(userEmail.toLowerCase())) {
       return { valid: false, error: 'This coupon is not available for your account' };
     }
   }
 
-  // Calculate discount
-  // For the plan price, we need it from context. We'll calculate based on the default plan.
   let discountInfo;
   if (coupon.discount_type === 'percent') {
     discountInfo = {
       type: 'percent',
       percent: Number(coupon.discount_value),
-      // amountCents will be calculated against actual plan price at checkout
-      amountCents: 0, // placeholder - calculated at checkout
+      amountCents: 0,
       label: `${Number(coupon.discount_value)}% off`
     };
   } else {
-    // Fixed discount (discount_value is in cents)
     discountInfo = {
       type: 'fixed',
       amountCents: Math.round(Number(coupon.discount_value)),
@@ -373,7 +541,6 @@ async function validateCoupon(code, planName, userId, userEmail) {
 
 // ---- PLAN LIMIT CHECKING ----
 export async function checkUserLimits(userId) {
-  // Get active subscription
   const { data: activeSub } = await supabaseAdmin
     .from('subscriptions')
     .select('*, plans:plan_id (max_events, max_generations)')
@@ -395,14 +562,12 @@ export async function checkUserLimits(userId) {
   const maxEvents = activeSub.plans?.max_events || 0;
   const maxGenerations = activeSub.plans?.max_generations || 0;
 
-  // Count events (non-archived)
   const { count: eventCount } = await supabaseAdmin
     .from('events')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .neq('status', 'archived');
 
-  // Count generations
   const { count: genCount } = await supabaseAdmin
     .from('generation_log')
     .select('id', { count: 'exact', head: true })

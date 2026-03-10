@@ -11,11 +11,15 @@
       "maxDuration": 180,
       "memory": 1024
     },
-    "api/v2/stripe-webhook.js": {
+    "api/v2/billing.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
+    {
+      "source": "/api/v2/stripe-webhook",
+      "destination": "/api/v2/billing?action=webhook"
+    },
     {
       "source": "/v2/event/:slug",
       "destination": "/v2/event/index.html"
