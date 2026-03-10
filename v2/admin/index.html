@@ -564,7 +564,7 @@
             </div>
 
             <div class="compare-toggle" id="compareToggle" onclick="toggleCompareMode()">
-              <input type="checkbox" id="compareCheckbox" onclick="event.stopPropagation();">
+              <input type="checkbox" id="compareCheckbox" onclick="event.stopPropagation(); syncCompareMode();">
               <div>
                 <div class="compare-label">Compare All Models</div>
                 <div class="compare-hint">Runs Haiku, Sonnet &amp; Opus in parallel. Shows side-by-side results with cost breakdown.</div>
@@ -1388,6 +1388,10 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     function toggleCompareMode() {
       var cb = document.getElementById('compareCheckbox');
       cb.checked = !cb.checked;
+      syncCompareMode();
+    }
+    function syncCompareMode() {
+      var cb = document.getElementById('compareCheckbox');
       isCompareMode = cb.checked;
       document.getElementById('compareToggle').classList.toggle('active', isCompareMode);
       document.getElementById('testModelSelect').disabled = isCompareMode;
