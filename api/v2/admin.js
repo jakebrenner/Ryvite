@@ -884,7 +884,7 @@ export default async function handler(req, res) {
 
       const { promptVersionId, model, eventType, eventDetails: testEventDetails, resultHtml, resultCss, resultConfig, inputTokens, outputTokens, latencyMs, score, notes } = req.body;
 
-      const { error } = await supabaseAdmin
+      const { data: insertedRun, error } = await supabaseAdmin
         .from('prompt_test_runs')
         .insert({
           prompt_version_id: promptVersionId || null,
@@ -900,21 +900,24 @@ export default async function handler(req, res) {
           score: score || null,
           notes: notes || '',
           created_by: admin.email
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) return res.status(500).json({ error: 'Failed to save test run: ' + error.message });
 
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, testRunId: insertedRun?.id || null });
     }
 
     // ---- LIST TEST RUNS FOR A PROMPT VERSION ----
     if (action === 'listTestRuns') {
       const promptVersionId = req.query.promptVersionId;
+      const limit = parseInt(req.query.limit) || 100;
       let query = supabaseAdmin
         .from('prompt_test_runs')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(limit);
 
       if (promptVersionId) {
         query = query.eq('prompt_version_id', promptVersionId);
@@ -924,6 +927,145 @@ export default async function handler(req, res) {
       if (error) return res.status(400).json({ error: error.message });
 
       return res.status(200).json({ success: true, testRuns: data || [] });
+    }
+
+    // ---- UPDATE TEST RUN SCORE ----
+    if (action === 'updateTestRunScore') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { testRunId, score, notes } = req.body;
+      if (!testRunId) return res.status(400).json({ error: 'testRunId required' });
+
+      const updates = {};
+      if (score !== undefined) updates.score = score;
+      if (notes !== undefined) updates.notes = notes;
+
+      const { error } = await supabaseAdmin
+        .from('prompt_test_runs')
+        .update(updates)
+        .eq('id', testRunId);
+
+      if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- TEST RUN STATS / REPORTING ----
+    if (action === 'testRunStats') {
+      // Get all scored test runs with prompt version info
+      const { data: runs, error } = await supabaseAdmin
+        .from('prompt_test_runs')
+        .select('id, prompt_version_id, model, event_type, score, input_tokens, output_tokens, latency_ms, created_at')
+        .not('score', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      // Get prompt version names for mapping
+      const { data: versions } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('id, version, name');
+
+      const versionMap = {};
+      (versions || []).forEach(v => { versionMap[v.id] = { version: v.version, name: v.name }; });
+
+      // Aggregate stats
+      const scoredRuns = runs || [];
+      const totalTests = scoredRuns.length;
+
+      // By prompt version
+      const byPrompt = {};
+      scoredRuns.forEach(r => {
+        const key = r.prompt_version_id || 'default';
+        if (!byPrompt[key]) byPrompt[key] = { scores: [], totalLatency: 0, totalCost: 0, count: 0 };
+        byPrompt[key].scores.push(r.score);
+        byPrompt[key].totalLatency += r.latency_ms || 0;
+        byPrompt[key].count++;
+      });
+
+      const promptStats = Object.entries(byPrompt).map(([id, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        const info = versionMap[id] || { version: 0, name: 'Hardcoded Default' };
+        return {
+          promptVersionId: id === 'default' ? null : id,
+          promptLabel: id === 'default' ? 'Hardcoded Default' : `v${info.version} – ${info.name}`,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          avgLatency: Math.round(data.totalLatency / data.count)
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // By model
+      const byModel = {};
+      scoredRuns.forEach(r => {
+        if (!byModel[r.model]) byModel[r.model] = { scores: [], totalLatency: 0, count: 0 };
+        byModel[r.model].scores.push(r.score);
+        byModel[r.model].totalLatency += r.latency_ms || 0;
+        byModel[r.model].count++;
+      });
+
+      const modelStats = Object.entries(byModel).map(([model, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        return {
+          model,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          avgLatency: Math.round(data.totalLatency / data.count)
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // By prompt × model combo (the leaderboard)
+      const byCombo = {};
+      scoredRuns.forEach(r => {
+        const pvKey = r.prompt_version_id || 'default';
+        const key = `${pvKey}::${r.model}`;
+        if (!byCombo[key]) byCombo[key] = { promptVersionId: pvKey, model: r.model, scores: [], totalLatency: 0, count: 0 };
+        byCombo[key].scores.push(r.score);
+        byCombo[key].totalLatency += r.latency_ms || 0;
+        byCombo[key].count++;
+      });
+
+      const comboStats = Object.values(byCombo).map(data => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        const info = versionMap[data.promptVersionId] || { version: 0, name: 'Hardcoded Default' };
+        return {
+          promptLabel: data.promptVersionId === 'default' ? 'Hardcoded Default' : `v${info.version} – ${info.name}`,
+          model: data.model,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          avgLatency: Math.round(data.totalLatency / data.count)
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // By event type
+      const byEventType = {};
+      scoredRuns.forEach(r => {
+        if (!byEventType[r.event_type]) byEventType[r.event_type] = { scores: [], count: 0 };
+        byEventType[r.event_type].scores.push(r.score);
+        byEventType[r.event_type].count++;
+      });
+
+      const eventTypeStats = Object.entries(byEventType).map(([type, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        return { eventType: type, avgScore: Math.round(avg * 100) / 100, count: data.count };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // Score distribution
+      const distribution = [0, 0, 0, 0, 0]; // index 0=1star, 4=5star
+      scoredRuns.forEach(r => { if (r.score >= 1 && r.score <= 5) distribution[r.score - 1]++; });
+
+      return res.status(200).json({
+        success: true,
+        stats: {
+          totalTests,
+          overallAvg: totalTests > 0 ? Math.round(scoredRuns.reduce((a, r) => a + r.score, 0) / totalTests * 100) / 100 : 0,
+          distribution,
+          byPrompt: promptStats,
+          byModel: modelStats,
+          byCombo: comboStats,
+          byEventType: eventTypeStats
+        }
+      });
     }
 
     return res.status(400).json({ error: 'Unknown action' });

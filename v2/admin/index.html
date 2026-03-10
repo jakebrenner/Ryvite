@@ -220,6 +220,41 @@
     #tab-promptversions table { font-size: 13px; }
     #promptVersionModal textarea { tab-size: 2; }
 
+    /* Star ratings */
+    .star-rating { display: inline-flex; gap: 2px; cursor: pointer; }
+    .star-rating .star { font-size: 20px; color: #ddd; transition: color 0.15s; user-select: none; }
+    .star-rating .star.filled { color: #f59e0b; }
+    .star-rating .star:hover, .star-rating .star.hover { color: #fbbf24; }
+    .star-rating .star-label { font-size: 11px; color: #888; margin-left: 6px; align-self: center; }
+
+    /* Matrix results */
+    .matrix-results { margin-top: 24px; }
+    .matrix-row { margin-bottom: 24px; }
+    .matrix-row-header { font-size: 14px; font-weight: 700; color: var(--midnight); margin-bottom: 12px; padding: 8px 14px; background: #f0f0f0; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .matrix-row-header .avg-score { font-size: 12px; color: #888; font-weight: 600; }
+    .matrix-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .matrix-card { background: white; border: 1px solid #eee; border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+    .matrix-card:hover { border-color: var(--party-coral); }
+    .matrix-card-header { padding: 10px 14px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .matrix-card-header h4 { font-size: 13px; font-weight: 700; }
+    .matrix-card-preview { padding: 12px; display: flex; justify-content: center; }
+    .matrix-card-rating { padding: 10px 14px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+    .matrix-card-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 14px; background: #f9f9f9; font-size: 11px; }
+    .matrix-card-stats .stat .lbl { color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
+    .matrix-card-stats .stat .val { font-weight: 700; color: var(--midnight); font-size: 13px; }
+
+    /* Reporting */
+    .report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .report-card { background: white; border-radius: 8px; padding: 16px; border: 1px solid #eee; text-align: center; }
+    .report-card .report-val { font-size: 28px; font-weight: 700; color: var(--midnight); }
+    .report-card .report-lbl { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .leaderboard-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; background: #fafafa; border-bottom: 1px solid #eee; }
+    .leaderboard-table td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+    .leaderboard-table tr:hover td { background: #fafafa; }
+    .score-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--mint-fizz); vertical-align: middle; margin-left: 8px; }
+    .score-stars { color: #f59e0b; font-size: 13px; letter-spacing: -1px; }
+
     .loading { text-align: center; padding: 60px 20px; color: #888; }
     .access-denied { text-align: center; padding: 80px 20px; }
     .access-denied h2 { font-family: 'Playfair Display', serif; margin-bottom: 12px; }
@@ -602,11 +637,70 @@
         </div>
       </div>
 
-      <!-- Test Runs Section -->
-      <div class="config-section" id="testRunsSection" style="display:none;">
-        <h3>Test History</h3>
-        <p style="font-size:13px;color:#888;margin-bottom:16px;">Test runs from the Prompt Lab are logged here for comparison.</p>
-        <div id="testRunsList"></div>
+      <!-- Reporting Dashboard -->
+      <div class="config-section" id="reportingSection">
+        <h3>Test Results &amp; Insights</h3>
+        <p style="font-size:13px;color:#888;margin-bottom:16px;">Aggregated results from Prompt Lab tests. Rate generations in the Prompt Lab to populate these insights.</p>
+
+        <div id="reportingEmpty" style="text-align:center;padding:40px 20px;color:#888;">
+          <div style="font-size:36px;margin-bottom:8px;opacity:0.3;">&#9733;</div>
+          <p style="font-size:13px;">No rated test runs yet. Generate invites in the Prompt Lab and rate them to see insights here.</p>
+        </div>
+
+        <div id="reportingContent" style="display:none;">
+          <!-- Summary cards -->
+          <div class="report-grid" id="reportSummaryCards"></div>
+
+          <!-- Leaderboard: Prompt × Model combos -->
+          <div style="margin-bottom:24px;">
+            <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">Prompt × Model Leaderboard</h4>
+            <div class="table-container">
+              <table class="leaderboard-table" id="comboLeaderboard">
+                <thead><tr><th>Rank</th><th>Prompt</th><th>Model</th><th>Avg Score</th><th>Tests</th><th>Avg Latency</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- By Prompt Version -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">By Prompt Version</h4>
+              <div class="table-container">
+                <table class="leaderboard-table" id="promptLeaderboard">
+                  <thead><tr><th>Prompt</th><th>Avg Score</th><th>Tests</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">By Model</h4>
+              <div class="table-container">
+                <table class="leaderboard-table" id="modelLeaderboard">
+                  <thead><tr><th>Model</th><th>Avg Score</th><th>Tests</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Score distribution + by event type -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">Score Distribution</h4>
+              <div id="scoreDistribution" style="padding:16px;background:white;border:1px solid #eee;border-radius:8px;"></div>
+            </div>
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">By Event Type</h4>
+              <div class="table-container">
+                <table class="leaderboard-table" id="eventTypeLeaderboard">
+                  <thead><tr><th>Event Type</th><th>Avg Score</th><th>Tests</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -749,33 +843,41 @@
 
           <div class="config-section">
             <h3>Generation Settings</h3>
+
+            <!-- Prompt Versions multi-select -->
             <div class="config-field" style="margin-bottom:16px;">
-              <label>Prompt Version</label>
-              <select id="testPromptVersion" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
-                <option value="">Hardcoded Default (in code)</option>
-              </select>
-              <div class="hint">Select which prompt version to test. The active (live) version is marked with a star.</div>
-            </div>
-            <div class="config-field" style="margin-bottom:16px;">
-              <label>Model</label>
-              <select id="testModelSelect" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
-                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fast ($0.80/$4)</option>
-                <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 — Balanced ($3/$15)</option>
-                <option value="claude-opus-4-6">Claude Opus 4.6 — Best ($15/$75)</option>
-              </select>
+              <label>Prompt Versions</label>
+              <div id="promptVersionCheckboxes" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+                <label class="style-checkbox selected" style="margin-bottom:0;">
+                  <input type="checkbox" name="pvCheck" value="" checked> <span style="font-size:13px;">Hardcoded Default (in code)</span>
+                </label>
+              </div>
+              <div class="hint" style="margin-top:6px;">Select one or more prompt versions to test. Multiple selections run a matrix across all selected models.</div>
             </div>
 
-            <div class="compare-toggle" id="compareToggle" onclick="toggleCompareMode()">
-              <input type="checkbox" id="compareCheckbox" onclick="event.stopPropagation(); syncCompareMode();">
-              <div>
-                <div class="compare-label">Compare All Models</div>
-                <div class="compare-hint">Runs Haiku, Sonnet, Opus &amp; Hybrid (Haiku→Sonnet polish) in parallel. Side-by-side with cost breakdown.</div>
+            <!-- Models multi-select -->
+            <div class="config-field" style="margin-bottom:16px;">
+              <label>Models</label>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+                <label class="style-checkbox" style="margin-bottom:0;" id="modelCheck_haiku">
+                  <input type="checkbox" name="modelCheck" value="claude-haiku-4-5-20251001"> <span style="font-size:13px;">Haiku 4.5 — Fast ($0.80/$4)</span>
+                </label>
+                <label class="style-checkbox selected" style="margin-bottom:0;" id="modelCheck_sonnet">
+                  <input type="checkbox" name="modelCheck" value="claude-sonnet-4-6" checked> <span style="font-size:13px;">Sonnet 4.6 — Balanced ($3/$15)</span>
+                </label>
+                <label class="style-checkbox" style="margin-bottom:0;" id="modelCheck_opus">
+                  <input type="checkbox" name="modelCheck" value="claude-opus-4-6"> <span style="font-size:13px;">Opus 4.6 — Best ($15/$75)</span>
+                </label>
               </div>
             </div>
 
             <div id="styleLibraryCheckboxes" style="margin-top:16px;">
               <label style="display:block;font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Style References (auto-matched)</label>
               <div id="styleRefList"><span style="font-size:12px;color:#aaa;">Select an event type above to see matched styles.</span></div>
+            </div>
+
+            <div id="matrixSummary" style="display:none;margin-top:16px;padding:10px 14px;background:#f0f0ff;border:1px solid #c7d2fe;border-radius:8px;">
+              <span style="font-size:13px;font-weight:600;color:#4f46e5;" id="matrixSummaryText"></span>
             </div>
 
             <div style="display:flex;gap:12px;align-items:center;margin-top:16px;">
@@ -861,18 +963,17 @@
         </div>
       </div>
 
-      <!-- Multi-model comparison results (full width, shown when compare mode) -->
-      <div id="comparisonResultSection" style="display:none;">
+      <!-- Matrix results (full width, shown after generation) -->
+      <div id="matrixResultSection" style="display:none;">
         <div class="config-section">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h3>Model Comparison</h3>
+            <h3 id="matrixResultTitle">Results</h3>
             <div class="preview-toggle-row" style="margin-bottom:0;">
-              <button class="preview-toggle-btn active" onclick="setComparisonPreviewMode('invite')">Invite</button>
-              <button class="preview-toggle-btn" onclick="setComparisonPreviewMode('thankyou')">Thank You</button>
+              <button class="preview-toggle-btn active" onclick="setMatrixPreviewMode('invite')">Invite</button>
+              <button class="preview-toggle-btn" onclick="setMatrixPreviewMode('thankyou')">Thank You</button>
             </div>
           </div>
-          <div id="comparisonGrid" class="comparison-grid cols-3"></div>
-          <div id="comparisonSummary" style="margin-top:16px;"></div>
+          <div id="matrixResultGrid" class="matrix-results"></div>
         </div>
       </div>
     </div>
@@ -1623,25 +1724,46 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       renderStyleCheckboxes();
     }
 
-    // ── Compare mode toggle ──
-    var isCompareMode = false;
+    // ── Multi-select checkbox toggle helpers ──
+    document.addEventListener('click', function(e) {
+      var cb = e.target.closest('.style-checkbox');
+      if (cb && (cb.querySelector('input[name="modelCheck"]') || cb.querySelector('input[name="pvCheck"]'))) {
+        var input = cb.querySelector('input[type="checkbox"]');
+        if (e.target !== input) { input.checked = !input.checked; }
+        cb.classList.toggle('selected', input.checked);
+        updateMatrixSummary();
+      }
+    });
 
-    function toggleCompareMode() {
-      var cb = document.getElementById('compareCheckbox');
-      cb.checked = !cb.checked;
-      syncCompareMode();
+    function updateMatrixSummary() {
+      var prompts = getSelectedPromptVersions();
+      var models = getSelectedModels();
+      var total = prompts.length * models.length;
+      var summary = document.getElementById('matrixSummary');
+      if (total > 1) {
+        summary.style.display = 'block';
+        document.getElementById('matrixSummaryText').textContent = prompts.length + ' prompt' + (prompts.length > 1 ? 's' : '') + ' × ' + models.length + ' model' + (models.length > 1 ? 's' : '') + ' = ' + total + ' generations';
+      } else {
+        summary.style.display = 'none';
+      }
     }
-    function syncCompareMode() {
-      var cb = document.getElementById('compareCheckbox');
-      isCompareMode = cb.checked;
-      document.getElementById('compareToggle').classList.toggle('active', isCompareMode);
-      document.getElementById('testModelSelect').disabled = isCompareMode;
-      document.getElementById('testModelSelect').style.opacity = isCompareMode ? '0.5' : '1';
+
+    function getSelectedPromptVersions() {
+      var ids = [];
+      document.querySelectorAll('input[name="pvCheck"]:checked').forEach(function(cb) { ids.push(cb.value); });
+      return ids;
+    }
+
+    function getSelectedModels() {
+      var ids = [];
+      document.querySelectorAll('input[name="modelCheck"]:checked').forEach(function(cb) { ids.push(cb.value); });
+      return ids;
     }
 
     // ── Test preview state ──
     var lastTestResult = null;
     var lastComparisonResults = null;
+    var matrixResults = []; // [{promptLabel, promptVersionId, model, modelLabel, theme, metadata, testRunId, score}]
     var testPreviewMode = 'invite';
 
     // ── Build proper srcdoc (same as front-end create page) ──
@@ -1782,29 +1904,25 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
     }
 
-    // ── Comparison preview mode toggle ──
-    function setComparisonPreviewMode(mode) {
+    // ── Matrix preview mode toggle ──
+    function setMatrixPreviewMode(mode) {
       testPreviewMode = mode;
-      document.querySelectorAll('#comparisonResultSection .preview-toggle-btn').forEach(function(btn, i) {
+      document.querySelectorAll('#matrixResultSection .preview-toggle-btn').forEach(function(btn, i) {
         btn.classList.toggle('active', (mode === 'invite' && i === 0) || (mode === 'thankyou' && i === 1));
       });
-      if (lastComparisonResults) {
-        lastComparisonResults.forEach(function(r, i) {
-          if (r && r.success) {
-            var iframe = document.querySelector('#compCard' + i + ' iframe');
-            if (iframe) renderPhonePreview(iframe, r.theme, mode);
-          }
-        });
-      }
+      matrixResults.forEach(function(r, i) {
+        if (r && r.theme) {
+          var iframe = document.querySelector('#matrixCard' + i + ' iframe');
+          if (iframe) renderPhonePreview(iframe, r.theme, mode);
+        }
+      });
     }
 
-    // ── Main generation function ──
-    var COMP_MODELS = [
-      { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', badge: 'haiku' },
-      { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', badge: 'sonnet' },
-      { id: 'claude-opus-4-6', label: 'Opus 4.6', badge: 'opus' },
-      { id: 'hybrid', label: 'Hybrid', badge: 'hybrid', isHybrid: true, draftModel: 'claude-haiku-4-5-20251001', refineModel: 'claude-sonnet-4-6' }
-    ];
+    var MODEL_INFO = {
+      'claude-haiku-4-5-20251001': { label: 'Haiku 4.5', badge: 'haiku' },
+      'claude-sonnet-4-6': { label: 'Sonnet 4.6', badge: 'sonnet' },
+      'claude-opus-4-6': { label: 'Opus 4.6', badge: 'opus' }
+    };
 
     function getTestEventDetails() {
       return {
@@ -1827,6 +1945,40 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       return ids;
     }
 
+    // ── Cost calculation helper ──
+    var COST_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
+    var COST_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
+
+    function calcEstCost(meta) {
+      if (meta.hybrid) {
+        var d = meta.hybrid.draft, r = meta.hybrid.refine;
+        var draftCost = (d.tokens.input * (COST_IN[d.model] || 0.80) + d.tokens.output * (COST_OUT[d.model] || 4)) / 1000000;
+        var refineCost = (r.tokens.input * (COST_IN[r.model] || 3) + r.tokens.output * (COST_OUT[r.model] || 15)) / 1000000;
+        return draftCost + refineCost;
+      }
+      return (meta.tokens.input * (COST_IN[meta.model] || 3) + meta.tokens.output * (COST_OUT[meta.model] || 15)) / 1000000;
+    }
+
+    function shortModelName(model) {
+      if (model && model.indexOf('→') !== -1) return 'Hybrid';
+      var names = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-opus-4-6': 'Opus 4.6' };
+      return names[model] || model;
+    }
+
+    function showTestView(view) {
+      var isPreview = view === 'preview';
+      ['preview', 'html', 'css', 'config'].forEach(function(v) {
+        var el = document.getElementById('testView' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (el) el.style.display = v === view && !isPreview ? 'block' : 'none';
+        var btn = document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (btn) {
+          btn.style.background = v === view ? 'var(--midnight)' : '';
+          btn.style.color = v === view ? 'white' : '';
+        }
+      });
+    }
+
+    // ── Matrix-aware prompt test runner ──
     async function runPromptTest() {
       var btn = document.getElementById('runTestBtn');
       var status = document.getElementById('testStatus');
@@ -1835,82 +1987,98 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
       var styleIds = getTestStyleIds();
       var eventDetails = getTestEventDetails();
-      var promptVersionId = document.getElementById('testPromptVersion').value || null;
+      var selectedPrompts = getSelectedPromptVersions();
+      var selectedModels = getSelectedModels();
+
+      if (selectedModels.length === 0) {
+        status.textContent = 'Select at least one model.';
+        btn.disabled = false;
+        btn.textContent = 'Generate Test Invite';
+        return;
+      }
+
+      // Build the matrix: every prompt × every model
+      var combos = [];
+      selectedPrompts.forEach(function(pvId) {
+        var pvData = promptVersionsData.find(function(v) { return v.id === pvId; });
+        var pvLabel = pvId ? ('v' + (pvData ? pvData.version : '?') + ' – ' + (pvData ? pvData.name : 'Unknown')) : 'Hardcoded Default';
+        selectedModels.forEach(function(modelId) {
+          var mi = MODEL_INFO[modelId] || { label: modelId, badge: '' };
+          combos.push({ promptVersionId: pvId || null, promptLabel: pvLabel, model: modelId, modelLabel: mi.label, modelBadge: mi.badge });
+        });
+      });
+
+      var total = combos.length;
+      var isMatrix = total > 1;
 
       try {
-        if (isCompareMode) {
-          var totalModels = COMP_MODELS.length;
-          status.textContent = 'Running ' + totalModels + ' models in parallel...';
-          lastTestResult = null;
-          lastComparisonResults = COMP_MODELS.map(function() { return null; });
-
-          // Show comparison grid immediately with loading states
-          document.getElementById('comparisonResultSection').style.display = 'block';
+        if (isMatrix) {
+          // Matrix mode: show matrix result section
+          status.textContent = 'Running ' + total + ' generations in parallel...';
+          matrixResults = combos.map(function() { return null; });
+          document.getElementById('matrixResultSection').style.display = 'block';
           document.getElementById('singlePreviewEmpty').style.display = 'block';
           document.getElementById('singlePreviewContent').style.display = 'none';
-          renderComparisonSkeleton();
-          document.getElementById('comparisonResultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-          // Fire each model individually in parallel
+          // Render skeleton
+          renderMatrixSkeleton(combos);
+          document.getElementById('matrixResultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
           var completedCount = 0;
-          var promises = COMP_MODELS.map(function(m, i) {
-            var startTime = Date.now();
-            updateCompCardStatus(i, 'generating', m.isHybrid ? 'Drafting with Haiku...' : 'Generating...');
-
-            // Build request body — hybrid uses different params
-            var reqBody;
-            if (m.isHybrid) {
-              reqBody = { hybrid: { draftModel: m.draftModel, refineModel: m.refineModel }, eventDetails: eventDetails, styleLibraryIds: styleIds, promptVersionId: promptVersionId };
-            } else {
-              reqBody = { model: m.id, eventDetails: eventDetails, styleLibraryIds: styleIds, promptVersionId: promptVersionId };
-            }
-
+          var promises = combos.map(function(combo, i) {
+            updateMatrixCardStatus(i, 'generating', 'Generating...');
             return fetch('/api/v2/prompt-test', {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-              body: JSON.stringify(reqBody)
-            }).then(function(r) {
-              if (!r.ok && r.status >= 500) console.error(m.label + ' returned HTTP ' + r.status);
-              return r.json();
-            }).then(function(data) {
+              body: JSON.stringify({ model: combo.model, eventDetails: eventDetails, styleLibraryIds: styleIds, promptVersionId: combo.promptVersionId })
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
               completedCount++;
-              status.textContent = completedCount + '/' + totalModels + ' models complete...';
+              status.textContent = completedCount + '/' + total + ' complete...';
               if (data.success) {
-                var result = { success: true, theme: data.theme, metadata: data.metadata };
-                lastComparisonResults[i] = result;
-                renderCompCardResult(i, result);
+                var result = { success: true, theme: data.theme, metadata: data.metadata, promptVersionId: combo.promptVersionId, promptLabel: combo.promptLabel, model: combo.model, modelLabel: combo.modelLabel, score: 0, testRunId: null };
+                matrixResults[i] = result;
+                renderMatrixCardResult(i, result, combo);
+                // Auto-save test run
+                saveMatrixTestRun(i, combo, data);
               } else {
-                var errMsg = data.message || data.error || 'Failed';
-                lastComparisonResults[i] = { success: false, model: m.id, error: errMsg };
-                updateCompCardStatus(i, 'error', errMsg);
+                matrixResults[i] = { success: false, error: data.message || data.error || 'Failed' };
+                updateMatrixCardStatus(i, 'error', data.message || data.error || 'Failed');
               }
             }).catch(function(err) {
               completedCount++;
-              status.textContent = completedCount + '/' + totalModels + ' models complete...';
-              lastComparisonResults[i] = { success: false, model: m.id, error: err.message };
-              updateCompCardStatus(i, 'error', err.message);
+              status.textContent = completedCount + '/' + total + ' complete...';
+              matrixResults[i] = { success: false, error: err.message };
+              updateMatrixCardStatus(i, 'error', err.message);
             });
           });
 
           await Promise.all(promises);
-          renderComparisonSummary(lastComparisonResults);
-          status.textContent = 'Done! All ' + totalModels + ' models complete.';
+          renderMatrixSummary();
+          status.textContent = 'Done! All ' + total + ' generations complete.';
           setTimeout(function() { status.textContent = ''; }, 3000);
+
         } else {
-          status.textContent = 'This may take 15-60s...';
-          // Single model
+          // Single generation mode
+          var combo = combos[0];
+          status.textContent = 'Generating with ' + combo.modelLabel + '... (15-60s)';
+          document.getElementById('matrixResultSection').style.display = 'none';
+
           var r = await fetch('/api/v2/prompt-test', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: document.getElementById('testModelSelect').value, eventDetails: eventDetails, styleLibraryIds: styleIds, promptVersionId: promptVersionId })
+            body: JSON.stringify({ model: combo.model, eventDetails: eventDetails, styleLibraryIds: styleIds, promptVersionId: combo.promptVersionId })
           });
           var data = await r.json();
           if (!data.success) throw new Error(data.message || data.error || 'Generation failed');
 
           lastTestResult = data;
-          lastComparisonResults = null;
-          document.getElementById('comparisonResultSection').style.display = 'none';
+          matrixResults = [{ success: true, theme: data.theme, metadata: data.metadata, promptVersionId: combo.promptVersionId, promptLabel: combo.promptLabel, model: combo.model, modelLabel: combo.modelLabel, score: 0, testRunId: null }];
           renderSingleResult(data);
+
+          // Auto-save test run
+          saveMatrixTestRun(0, combo, data);
+
           status.textContent = 'Done!';
           setTimeout(function() { status.textContent = ''; }, 3000);
         }
@@ -1924,123 +2092,204 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       btn.textContent = 'Generate Test Invite';
     }
 
-    // ── Comparison: render skeleton with loading spinners ──
-    function renderComparisonSkeleton() {
-      var grid = document.getElementById('comparisonGrid');
-      grid.className = 'comparison-grid cols-' + COMP_MODELS.length;
-      grid.innerHTML = COMP_MODELS.map(function(m, i) {
-        return '<div class="comparison-card" id="compCard' + i + '">'
-          + '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span></div>'
-          + '<div class="comparison-card-body" id="compCardBody' + i + '">'
-          + '<div class="generating-overlay" id="compCardLoading' + i + '">'
-          + '<div class="generating-spinner"></div>'
-          + '<div style="font-size:13px;color:#888;" id="compCardStatusText' + i + '">Waiting to start...</div>'
-          + '<div style="margin-top:8px;width:100%;max-width:200px;height:4px;background:#eee;border-radius:2px;overflow:hidden;">'
-          + '<div id="compCardProgress' + i + '" style="height:100%;background:var(--party-coral);border-radius:2px;width:0%;transition:width 0.3s;"></div>'
-          + '</div>'
-          + '</div>'
-          + '</div></div>';
-      }).join('');
-
-      // Start progress bar animations
-      COMP_MODELS.forEach(function(m, i) {
-        animateProgress(i);
-      });
-
-      document.getElementById('comparisonSummary').innerHTML = '';
+    // ── Auto-save a test run to DB (fire and forget) ──
+    function saveMatrixTestRun(idx, combo, data) {
+      var meta = data.metadata;
+      var eventDetails = getTestEventDetails();
+      adminFetch('saveTestRun', {
+        method: 'POST',
+        body: {
+          promptVersionId: combo.promptVersionId,
+          model: combo.model,
+          eventType: eventDetails.eventType || 'other',
+          eventDetails: eventDetails,
+          resultHtml: data.theme.html,
+          resultCss: data.theme.css,
+          resultConfig: data.theme.config,
+          inputTokens: meta.tokens ? meta.tokens.input : 0,
+          outputTokens: meta.tokens ? meta.tokens.output : 0,
+          latencyMs: meta.latencyMs || 0
+        }
+      }).then(function(res) {
+        if (res.success && res.testRunId && matrixResults[idx]) {
+          matrixResults[idx].testRunId = res.testRunId;
+        }
+      }).catch(function() {});
     }
 
-    var progressTimers = {};
-    function animateProgress(idx) {
-      var bar = document.getElementById('compCardProgress' + idx);
+    // ── Matrix skeleton ──
+    var matrixProgressTimers = {};
+
+    function renderMatrixSkeleton(combos) {
+      var grid = document.getElementById('matrixResultGrid');
+      // Group combos by prompt version
+      var grouped = {};
+      combos.forEach(function(c, i) {
+        var key = c.promptVersionId || '__default__';
+        if (!grouped[key]) grouped[key] = { label: c.promptLabel, items: [] };
+        grouped[key].items.push({ combo: c, idx: i });
+      });
+
+      var html = '';
+      Object.keys(grouped).forEach(function(key) {
+        var group = grouped[key];
+        html += '<div class="matrix-row">';
+        html += '<div class="matrix-row-header"><span>' + escapeHtml(group.label) + '</span><span class="avg-score" id="matrixRowAvg_' + key + '"></span></div>';
+        html += '<div class="matrix-cards">';
+        group.items.forEach(function(item) {
+          var i = item.idx;
+          var c = item.combo;
+          html += '<div class="matrix-card" id="matrixCard' + i + '">'
+            + '<div class="matrix-card-header"><h4>' + escapeHtml(c.modelLabel) + '</h4><span class="model-badge ' + c.modelBadge + '">' + c.modelBadge + '</span></div>'
+            + '<div class="matrix-card-preview" id="matrixCardPreview' + i + '">'
+            + '<div class="generating-overlay" id="matrixCardLoading' + i + '">'
+            + '<div class="generating-spinner"></div>'
+            + '<div style="font-size:13px;color:#888;" id="matrixCardStatusText' + i + '">Waiting...</div>'
+            + '<div style="margin-top:8px;width:100%;max-width:200px;height:4px;background:#eee;border-radius:2px;overflow:hidden;">'
+            + '<div id="matrixCardProgress' + i + '" style="height:100%;background:var(--party-coral);border-radius:2px;width:0%;transition:width 0.3s;"></div>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+        });
+        html += '</div></div>';
+      });
+
+      grid.innerHTML = html;
+
+      // Animate progress bars
+      combos.forEach(function(c, i) {
+        animateMatrixProgress(i);
+      });
+
+      document.getElementById('matrixResultTitle').textContent = combos.length + ' Generations';
+    }
+
+    function animateMatrixProgress(idx) {
+      var bar = document.getElementById('matrixCardProgress' + idx);
       if (!bar) return;
       var pct = 0;
-      if (progressTimers[idx]) clearInterval(progressTimers[idx]);
-      progressTimers[idx] = setInterval(function() {
-        if (pct >= 90) { clearInterval(progressTimers[idx]); return; }
+      if (matrixProgressTimers[idx]) clearInterval(matrixProgressTimers[idx]);
+      matrixProgressTimers[idx] = setInterval(function() {
+        if (pct >= 90) { clearInterval(matrixProgressTimers[idx]); return; }
         pct += Math.random() * 3 + 0.5;
         if (pct > 90) pct = 90;
         bar.style.width = pct + '%';
       }, 500);
     }
 
-    function updateCompCardStatus(idx, state, text) {
-      var statusEl = document.getElementById('compCardStatusText' + idx);
-      var progressBar = document.getElementById('compCardProgress' + idx);
+    function updateMatrixCardStatus(idx, state, text) {
+      var statusEl = document.getElementById('matrixCardStatusText' + idx);
+      var progressBar = document.getElementById('matrixCardProgress' + idx);
       if (statusEl) statusEl.textContent = text;
       if (state === 'generating') {
         if (progressBar) progressBar.style.width = '5%';
       } else if (state === 'error') {
-        if (progressTimers[idx]) clearInterval(progressTimers[idx]);
+        if (matrixProgressTimers[idx]) clearInterval(matrixProgressTimers[idx]);
         if (progressBar) { progressBar.style.width = '100%'; progressBar.style.background = 'var(--party-coral)'; }
+        var card = document.getElementById('matrixCard' + idx);
+        if (card) card.style.borderColor = 'var(--party-coral)';
       }
     }
 
-    // ── Cost calculation helper ──
-    var COST_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-    var COST_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
-
-    function calcEstCost(meta) {
-      // Hybrid mode: calculate cost from individual steps
-      if (meta.hybrid) {
-        var d = meta.hybrid.draft, r = meta.hybrid.refine;
-        var draftCost = (d.tokens.input * (COST_IN[d.model] || 0.80) + d.tokens.output * (COST_OUT[d.model] || 4)) / 1000000;
-        var refineCost = (r.tokens.input * (COST_IN[r.model] || 3) + r.tokens.output * (COST_OUT[r.model] || 15)) / 1000000;
-        return draftCost + refineCost;
-      }
-      return (meta.tokens.input * (COST_IN[meta.model] || 3) + meta.tokens.output * (COST_OUT[meta.model] || 15)) / 1000000;
-    }
-
-    // ── Comparison: fill in a single card with its result ──
-    function renderCompCardResult(idx, result) {
-      if (progressTimers[idx]) clearInterval(progressTimers[idx]);
-      var m = COMP_MODELS[idx];
+    // ── Render a completed matrix card ──
+    function renderMatrixCardResult(idx, result, combo) {
+      if (matrixProgressTimers[idx]) clearInterval(matrixProgressTimers[idx]);
       var meta = result.metadata;
       var estCost = calcEstCost(meta);
 
-      var card = document.getElementById('compCard' + idx);
-      var hybridNote = m.isHybrid
-        ? (meta.warning ? '<div style="font-size:10px;color:#e65100;margin-top:2px;">⚠ ' + escapeHtml(meta.warning) + '</div>'
-          : '<div style="font-size:10px;color:#888;margin-top:2px;">Haiku draft → Sonnet polish</div>')
-        : '';
-      var headerExtra = hybridNote;
-      card.innerHTML = '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span>' + headerExtra + '</div>'
-        + '<div class="comparison-card-body">'
+      var card = document.getElementById('matrixCard' + idx);
+      card.innerHTML = '<div class="matrix-card-header"><h4>' + escapeHtml(combo.modelLabel) + '</h4><span class="model-badge ' + combo.modelBadge + '">' + combo.modelBadge + '</span></div>'
+        + '<div class="matrix-card-preview">'
         + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
         + '</div>'
-        + '<div class="code-tabs">'
-        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'html\')">HTML</button>'
-        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'css\')">CSS</button>'
-        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'config\')">Config</button>'
+        + '<div class="matrix-card-rating">'
+        + '<div class="star-rating" data-idx="' + idx + '">'
+        + buildStarHtml(0)
         + '</div>'
-        + '<div id="compCode' + idx + '" style="display:none;padding:0 16px 12px;"><div class="prompt-viewer" style="max-height:300px;" id="compCodeContent' + idx + '"></div></div>'
-        + '<div class="comparison-card-stats">'
+        + '<span class="star-label" id="starLabel' + idx + '">Rate this</span>'
+        + '</div>'
+        + '<div class="matrix-card-stats">'
         + '<div class="stat"><div class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</div><div class="lbl">Latency</div></div>'
-        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.input) + '</div><div class="lbl">In Tokens</div></div>'
-        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.output) + '</div><div class="lbl">Out Tokens</div></div>'
-        + '<div class="stat"><div class="val">' + fmtCost(estCost) + '</div><div class="lbl">Est. Cost</div></div>'
+        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.input) + '/' + formatNumber(meta.tokens.output) + '</div><div class="lbl">Tokens</div></div>'
+        + '<div class="stat"><div class="val">' + fmtCost(estCost) + '</div><div class="lbl">Cost</div></div>'
         + '</div>';
 
-      // Render preview
+      // Render phone preview
       setTimeout(function() {
         var iframe = card.querySelector('iframe');
         if (iframe) renderPhonePreview(iframe, result.theme, testPreviewMode);
       }, 50);
     }
 
-    // ── Comparison summary (after all complete) ──
-    function renderComparisonSummary(results) {
+    // ── Star rating helpers ──
+    function buildStarHtml(score) {
+      var html = '';
+      for (var s = 1; s <= 5; s++) {
+        html += '<span class="star' + (s <= score ? ' filled' : '') + '" data-score="' + s + '">&#9733;</span>';
+      }
+      return html;
+    }
+
+    var STAR_LABELS = ['', 'Poor', 'Below Avg', 'Average', 'Good', 'Excellent'];
+
+    // Star click handler (delegated)
+    document.addEventListener('click', function(e) {
+      var star = e.target.closest('.star-rating .star');
+      if (!star) return;
+      var ratingEl = star.closest('.star-rating');
+      var idx = parseInt(ratingEl.dataset.idx);
+      var score = parseInt(star.dataset.score);
+      if (isNaN(idx) || isNaN(score)) return;
+
+      // Update visual
+      ratingEl.querySelectorAll('.star').forEach(function(s) {
+        s.classList.toggle('filled', parseInt(s.dataset.score) <= score);
+      });
+
+      // Update label
+      var label = document.getElementById('starLabel' + idx);
+      if (label) label.textContent = STAR_LABELS[score] || '';
+
+      // Save score
+      if (matrixResults[idx]) {
+        matrixResults[idx].score = score;
+        var testRunId = matrixResults[idx].testRunId;
+        if (testRunId) {
+          adminFetch('updateTestRunScore', { method: 'POST', body: { testRunId: testRunId, score: score } }).catch(function() {});
+        }
+      }
+    });
+
+    // Star hover effect (delegated)
+    document.addEventListener('mouseover', function(e) {
+      var star = e.target.closest('.star-rating .star');
+      if (!star) return;
+      var ratingEl = star.closest('.star-rating');
+      var hoverScore = parseInt(star.dataset.score);
+      ratingEl.querySelectorAll('.star').forEach(function(s) {
+        s.classList.toggle('hover', parseInt(s.dataset.score) <= hoverScore);
+      });
+    });
+    document.addEventListener('mouseout', function(e) {
+      var star = e.target.closest('.star-rating .star');
+      if (!star) return;
+      var ratingEl = star.closest('.star-rating');
+      ratingEl.querySelectorAll('.star').forEach(function(s) { s.classList.remove('hover'); });
+    });
+
+    // ── Matrix summary after all complete ──
+    function renderMatrixSummary() {
       var totalCost = 0;
       var successCount = 0;
-      results.forEach(function(r) {
+      matrixResults.forEach(function(r) {
         if (r && r.success) {
           totalCost += calcEstCost(r.metadata);
           successCount++;
         }
       });
-      document.getElementById('comparisonSummary').innerHTML =
-        '<div class="test-meta"><span>' + successCount + '/' + results.length + ' models succeeded</span>'
-        + '<span>Total cost: <span class="val">' + fmtCost(totalCost) + '</span></span></div>';
+      document.getElementById('matrixResultTitle').textContent =
+        successCount + '/' + matrixResults.length + ' succeeded — Total cost: ' + fmtCost(totalCost);
     }
 
     // ── Render single model result into phone sidebar ──
@@ -2072,50 +2321,6 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         btn.classList.toggle('active', i === 0);
       });
       showTestView('preview');
-    }
-
-    function showCompCode(idx, type) {
-      var codeDiv = document.getElementById('compCode' + idx);
-      var contentDiv = document.getElementById('compCodeContent' + idx);
-      var tabs = document.querySelectorAll('#compCard' + idx + ' .code-tab');
-
-      // Toggle off if same tab clicked
-      var currentType = codeDiv.dataset.activeType;
-      if (currentType === type && codeDiv.style.display !== 'none') {
-        codeDiv.style.display = 'none';
-        tabs.forEach(function(t) { t.classList.remove('active'); });
-        return;
-      }
-
-      codeDiv.dataset.activeType = type;
-      codeDiv.style.display = 'block';
-      tabs.forEach(function(t) { t.classList.remove('active'); });
-      tabs.forEach(function(t) { if (t.textContent.toLowerCase() === type) t.classList.add('active'); });
-
-      var r = lastComparisonResults[idx];
-      if (!r || !r.success) return;
-      if (type === 'html') contentDiv.textContent = r.theme.html;
-      else if (type === 'css') contentDiv.textContent = r.theme.css;
-      else contentDiv.textContent = JSON.stringify(r.theme.config, null, 2);
-    }
-
-    function shortModelName(model) {
-      if (model && model.indexOf('→') !== -1) return 'Hybrid';
-      var names = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-opus-4-6': 'Opus 4.6' };
-      return names[model] || model;
-    }
-
-    function showTestView(view) {
-      var isPreview = view === 'preview';
-      ['preview', 'html', 'css', 'config'].forEach(function(v) {
-        var el = document.getElementById('testView' + v.charAt(0).toUpperCase() + v.slice(1));
-        if (el) el.style.display = v === view && !isPreview ? 'block' : 'none';
-        var btn = document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1));
-        if (btn) {
-          btn.style.background = v === view ? 'var(--midnight)' : '';
-          btn.style.color = v === view ? 'white' : '';
-        }
-      });
     }
 
     // ---- Style Library ----
@@ -2867,20 +3072,21 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     }
 
     function populatePromptVersionDropdown() {
-      var select = document.getElementById('testPromptVersion');
-      if (!select) return;
-      var currentVal = select.value;
-      select.innerHTML = '<option value="">Hardcoded Default (in code)</option>';
+      var container = document.getElementById('promptVersionCheckboxes');
+      if (!container) return;
+      // Keep the hardcoded default checkbox
+      var html = '<label class="style-checkbox selected" style="margin-bottom:0;">'
+        + '<input type="checkbox" name="pvCheck" value="" checked> <span style="font-size:13px;">Hardcoded Default (in code)</span>'
+        + '</label>';
       (promptVersionsData || []).forEach(function(v) {
-        var label = 'v' + v.version + ' – ' + v.name;
-        if (v.is_active) label += ' (Active)';
-        var opt = document.createElement('option');
-        opt.value = v.id;
-        opt.textContent = label;
-        select.appendChild(opt);
+        var label = 'v' + v.version + ' – ' + escapeHtml(v.name);
+        if (v.is_active) label += ' <span class="badge badge-green" style="font-size:9px;vertical-align:middle;">Active</span>';
+        html += '<label class="style-checkbox" style="margin-bottom:0;">'
+          + '<input type="checkbox" name="pvCheck" value="' + v.id + '"> <span style="font-size:13px;">' + label + '</span>'
+          + '</label>';
       });
-      // Restore previous selection if still valid
-      if (currentVal) select.value = currentVal;
+      container.innerHTML = html;
+      updateMatrixSummary();
     }
 
     function openPromptVersionModal(editData) {
@@ -2995,8 +3201,91 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
     }
 
+    // ═══════════════════════════════════════════════
+    // REPORTING DASHBOARD
+    // ═══════════════════════════════════════════════
+
+    async function loadReportingDashboard() {
+      try {
+        var res = await adminFetch('testRunStats');
+        if (!res.success || !res.stats) return;
+        var stats = res.stats;
+
+        if (stats.totalTests === 0) {
+          document.getElementById('reportingEmpty').style.display = 'block';
+          document.getElementById('reportingContent').style.display = 'none';
+          return;
+        }
+
+        document.getElementById('reportingEmpty').style.display = 'none';
+        document.getElementById('reportingContent').style.display = 'block';
+
+        // Summary cards
+        document.getElementById('reportSummaryCards').innerHTML =
+          renderSummaryCard('Total Rated', stats.totalTests, '#4f46e5')
+          + renderSummaryCard('Avg Score', stats.overallAvg.toFixed(1) + ' / 5', '#f59e0b')
+          + renderSummaryCard('Top Prompt', stats.byPrompt.length > 0 ? stats.byPrompt[0].promptLabel : '—', '#10b981')
+          + renderSummaryCard('Top Model', stats.byModel.length > 0 ? shortModelName(stats.byModel[0].model) : '—', '#e93961');
+
+        // Combo leaderboard
+        var comboTbody = document.querySelector('#comboLeaderboard tbody');
+        comboTbody.innerHTML = stats.byCombo.map(function(c, i) {
+          var barWidth = Math.round((c.avgScore / 5) * 100);
+          return '<tr><td style="font-weight:700;color:#4f46e5;">#' + (i + 1) + '</td>'
+            + '<td>' + escapeHtml(c.promptLabel) + '</td>'
+            + '<td>' + shortModelName(c.model) + '</td>'
+            + '<td>' + c.avgScore.toFixed(1) + '<span class="score-bar" style="width:' + barWidth + 'px;"></span></td>'
+            + '<td>' + c.count + '</td>'
+            + '<td>' + (c.avgLatency / 1000).toFixed(1) + 's</td></tr>';
+        }).join('');
+
+        // By prompt
+        var promptTbody = document.querySelector('#promptLeaderboard tbody');
+        promptTbody.innerHTML = stats.byPrompt.map(function(p) {
+          return '<tr><td>' + escapeHtml(p.promptLabel) + '</td><td><strong>' + p.avgScore.toFixed(1) + '</strong></td><td>' + p.count + '</td></tr>';
+        }).join('');
+
+        // By model
+        var modelTbody = document.querySelector('#modelLeaderboard tbody');
+        modelTbody.innerHTML = stats.byModel.map(function(m) {
+          return '<tr><td>' + shortModelName(m.model) + '</td><td><strong>' + m.avgScore.toFixed(1) + '</strong></td><td>' + m.count + '</td></tr>';
+        }).join('');
+
+        // Score distribution
+        var maxDist = Math.max.apply(null, stats.distribution) || 1;
+        document.getElementById('scoreDistribution').innerHTML = stats.distribution.map(function(count, i) {
+          var pct = Math.round((count / maxDist) * 100);
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+            + '<span style="font-size:16px;width:24px;text-align:center;color:#f59e0b;">&#9733;</span>'
+            + '<span style="width:16px;font-size:13px;font-weight:600;">' + (i + 1) + '</span>'
+            + '<div style="flex:1;height:20px;background:#f0f0f0;border-radius:4px;overflow:hidden;">'
+            + '<div style="height:100%;width:' + pct + '%;background:' + (i >= 3 ? '#10b981' : i >= 2 ? '#f59e0b' : '#ef4444') + ';border-radius:4px;transition:width 0.5s;"></div>'
+            + '</div>'
+            + '<span style="font-size:12px;font-weight:600;width:28px;text-align:right;">' + count + '</span>'
+            + '</div>';
+        }).join('');
+
+        // By event type
+        var etTbody = document.querySelector('#eventTypeLeaderboard tbody');
+        etTbody.innerHTML = stats.byEventType.map(function(et) {
+          return '<tr><td>' + escapeHtml(et.eventType) + '</td><td><strong>' + et.avgScore.toFixed(1) + '</strong></td><td>' + et.count + '</td></tr>';
+        }).join('');
+
+      } catch (err) {
+        console.error('Failed to load reporting:', err);
+      }
+    }
+
+    function renderSummaryCard(label, value, color) {
+      return '<div style="background:white;border:1px solid #eee;border-radius:10px;padding:16px 20px;border-left:4px solid ' + color + ';">'
+        + '<div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">' + escapeHtml(label) + '</div>'
+        + '<div style="font-size:22px;font-weight:700;color:var(--midnight);">' + value + '</div>'
+        + '</div>';
+    }
+
     // Load prompt versions on init
     loadPromptVersions();
+    loadReportingDashboard();
   </script>
   <div class="bulk-progress" id="bulkProgress" style="display:none;"></div>
 </body>
