@@ -211,8 +211,8 @@ export default async function handler(req, res) {
       const dbUpdates = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.eventDate !== undefined) dbUpdates.event_date = updates.eventDate;
-      if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate;
+      if (updates.eventDate !== undefined) dbUpdates.event_date = updates.eventDate || null;
+      if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate || null;
       if (updates.locationName !== undefined) dbUpdates.location_name = updates.locationName;
       if (updates.locationAddress !== undefined) dbUpdates.location_address = updates.locationAddress;
       if (updates.locationUrl !== undefined) dbUpdates.location_url = updates.locationUrl;
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
       if (updates.eventType !== undefined) dbUpdates.event_type = updates.eventType;
       if (updates.timezone !== undefined) dbUpdates.timezone = updates.timezone;
       if (updates.maxGuests !== undefined) dbUpdates.max_guests = updates.maxGuests;
-      if (updates.rsvpDeadline !== undefined) dbUpdates.rsvp_deadline = updates.rsvpDeadline;
+      if (updates.rsvpDeadline !== undefined) dbUpdates.rsvp_deadline = updates.rsvpDeadline || null;
       if (updates.zapierWebhook !== undefined) dbUpdates.zapier_webhook = updates.zapierWebhook;
       // Settings: merge with existing instead of overwrite
       if (updates.settings !== undefined) {

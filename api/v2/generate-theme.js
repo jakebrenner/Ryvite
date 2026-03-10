@@ -24,6 +24,7 @@ async function fetchImagesAsBase64(urls) {
     }
   }
   return results;
+}
 
 // Load the active prompt version from DB, falling back to hardcoded defaults
 async function getActivePrompt() {
