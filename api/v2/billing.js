@@ -937,16 +937,15 @@ async function validateCoupon(code, planName, userId, userEmail) {
 
 // ---- PLAN LIMIT CHECKING ----
 export async function checkUserLimits(userId) {
-  const { data: activeSub } = await supabaseAdmin
+  // Sum limits across ALL active subscriptions (each purchase adds another event slot)
+  const { data: activeSubs } = await supabaseAdmin
     .from('subscriptions')
     .select('*, plans:plan_id (max_events, max_generations)')
     .eq('user_id', userId)
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+    .order('created_at', { ascending: false });
 
-  if (!activeSub) {
+  if (!activeSubs || activeSubs.length === 0) {
     return {
       hasActivePlan: false,
       canCreateEvent: false,
@@ -955,8 +954,13 @@ export async function checkUserLimits(userId) {
     };
   }
 
-  const maxEvents = activeSub.plans?.max_events || 0;
-  const maxGenerations = activeSub.plans?.max_generations || 0;
+  // Aggregate limits from all active subscriptions
+  let maxEvents = 0;
+  let maxGenerations = 0;
+  for (const sub of activeSubs) {
+    maxEvents += sub.plans?.max_events || 0;
+    maxGenerations += sub.plans?.max_generations || 0;
+  }
 
   const { count: eventCount } = await supabaseAdmin
     .from('events')
@@ -982,7 +986,7 @@ export async function checkUserLimits(userId) {
     generationsUsed: genCount || 0,
     generationsMax: maxGenerations,
     reason: !canCreateEvent
-      ? `You've used all ${maxEvents} event(s) in your plan.`
+      ? `You've used all ${maxEvents} event(s) you've purchased.`
       : !canGenerate
       ? `You've used all ${maxGenerations} AI generations in your plan.`
       : null

@@ -711,7 +711,12 @@
             } catch (e) { console.error('Session verify failed:', e); }
           }
 
-          if (!(await saveEventToDB())) {
+          var saveResult = await saveEventToDB();
+          if (saveResult && saveResult.limitReached) {
+            showAdditionalEventPurchase();
+            return;
+          }
+          if (saveResult !== true) {
             stopGeneratingPuns();
             showGeneratingError('Error creating event. Please try again.');
             return;
@@ -1115,12 +1120,123 @@
           autoSaveDraft();
           return true;
         }
+        // Return structured error so caller can handle limitReached specially
+        if (result.limitReached) return { limitReached: true, error: result.error };
+        if (result.needsPlan) return { needsPlan: true, error: result.error };
         showMessage(result.error || 'Error creating event', 'error');
         return false;
       } catch (err) {
         showMessage('Error saving event. Please try again.', 'error');
         return false;
       }
+    }
+
+    // Show inline purchase prompt when user hits event limit
+    async function showAdditionalEventPurchase() {
+      stopGeneratingPuns();
+      var plans = await fetchPlans();
+      var plan = plans && plans[0];
+      if (!plan) {
+        showGeneratingError('Unable to load pricing. Please try again.');
+        return;
+      }
+      var priceDisplay = '$' + (plan.priceCents / 100).toFixed(2);
+      window._paywallPlan = plan;
+
+      // Check for saved payment method
+      var savedCard = null;
+      try {
+        var pmRes = await authFetch('/api/v2/billing?action=payment-method');
+        var pmData = await pmRes.json();
+        if (pmData.success && pmData.hasPaymentMethod) savedCard = pmData.card;
+      } catch (e) {}
+
+      var loadingState = document.getElementById('generatingLoadingState');
+      var cardHtml = '';
+      if (savedCard) {
+        var brandName = (savedCard.brand || 'card').charAt(0).toUpperCase() + (savedCard.brand || 'card').slice(1);
+        cardHtml = '<div style="background:#f8f8f8;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:inline-flex;align-items:center;gap:10px;">'
+          + '<span style="font-size:20px;">💳</span>'
+          + '<div style="text-align:left;"><div style="font-size:13px;font-weight:600;color:var(--midnight);">' + escapeHtml(brandName) + ' ending in ' + escapeHtml(savedCard.last4) + '</div>'
+          + '<div style="font-size:11px;color:#999;">Expires ' + savedCard.expMonth + '/' + savedCard.expYear + '</div></div></div>';
+      }
+
+      loadingState.innerHTML = '<div class="gen-container">'
+        + '<div style="font-size:48px;margin-bottom:12px;">🎉</div>'
+        + '<h3 class="gen-title" style="color:var(--midnight);">Create Another Event?</h3>'
+        + '<p style="margin-bottom:16px;font-size:14px;color:#888;">You\'ve used all the events in your current plan. Purchase another event to keep going!</p>'
+        + cardHtml
+        + '<div style="margin-bottom:8px;">'
+        + (savedCard
+          ? '<button id="additionalEventBtn" class="btn btn-primary" onclick="purchaseAdditionalEvent()" style="font-size:14px;padding:12px 28px;">Purchase for ' + priceDisplay + '</button>'
+          : '<button id="additionalEventBtn" class="btn btn-primary" onclick="purchaseAdditionalEventCheckout()" style="font-size:14px;padding:12px 28px;">Purchase for ' + priceDisplay + '</button>')
+        + '</div>'
+        + (savedCard ? '<div style="margin-bottom:8px;"><a href="#" onclick="purchaseAdditionalEventCheckout();return false;" style="font-size:12px;color:#aaa;">Use a different card</a></div>' : '')
+        + '<div><button class="btn btn-secondary" onclick="goToStep(1)" style="font-size:13px;padding:10px 20px;">Back</button></div>'
+        + '</div>';
+    }
+
+    // Quick charge for additional event using saved card
+    async function purchaseAdditionalEvent() {
+      var btn = document.getElementById('additionalEventBtn');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      try {
+        var plan = window._paywallPlan;
+        var res = await authFetch('/api/v2/billing?action=quick-charge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planId: plan.id })
+        });
+        var data = await res.json();
+        if (data.success) {
+          // Payment succeeded — now create event and generate
+          var loadingState = document.getElementById('generatingLoadingState');
+          loadingState.innerHTML = '<div class="gen-container">'
+            + '<div class="gen-emoji-float" id="genEmoji">🎨</div>'
+            + '<h3 class="gen-title">Creating Your Invite</h3>'
+            + '<p class="gen-subtitle" id="generatingPun">Starting up...</p>'
+            + '<div class="gen-progress-track"><div class="gen-progress-bar" id="genProgressBar"></div></div>'
+            + '<div class="gen-stages" id="genStages">'
+            + '<div class="gen-stage active" data-stage="analyze"><div class="gen-stage-icon"><div class="gen-spinner"></div></div><div class="gen-stage-text">Analyzing your event details</div></div>'
+            + '<div class="gen-stage" data-stage="design"><div class="gen-stage-icon">🎨</div><div class="gen-stage-text">Designing layout & color palette</div></div>'
+            + '<div class="gen-stage" data-stage="polish"><div class="gen-stage-icon">✨</div><div class="gen-stage-text">Adding finishing touches</div></div>'
+            + '</div></div>';
+          startGeneratingPuns();
+          var saved = await saveEventToDB();
+          if (saved !== true) {
+            stopGeneratingPuns();
+            showGeneratingError('Payment succeeded but event creation failed. Please try again.');
+            return;
+          }
+          generateTheme();
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Purchase for $' + (plan.priceCents / 100).toFixed(2);
+          showMessage(data.error || 'Payment failed. Please try a different card.', 'error');
+        }
+      } catch (e) {
+        var plan2 = window._paywallPlan;
+        btn.disabled = false;
+        btn.textContent = 'Purchase for $' + (plan2.priceCents / 100).toFixed(2);
+        showMessage('Payment error. Please try again.', 'error');
+      }
+    }
+
+    // Redirect to full checkout for additional event (new card)
+    function purchaseAdditionalEventCheckout() {
+      // Use the existing paywall checkout flow
+      showPaywall(function() {
+        // After successful payment, save event and generate
+        (async function() {
+          var saved = await saveEventToDB();
+          if (saved !== true) {
+            showGeneratingError('Event creation failed. Please try again.');
+            return;
+          }
+          generateTheme();
+        })();
+      });
     }
 
     function confirmDetailsAndAskStyle() {
@@ -1628,7 +1744,8 @@
 
         if (data.success) {
           // Payment succeeded — save event and generate
-          if (!(await saveEventToDB())) {
+          var saved = await saveEventToDB();
+          if (saved !== true) {
             showMessage('Payment succeeded but event creation failed. Please try again.', 'error');
             btn.disabled = false;
             btn.textContent = 'Pay $' + (plan.priceCents / 100).toFixed(2) + ' & Start Designing';
@@ -1705,7 +1822,13 @@
 
       await proceedAfterPlanCheck(async function() {
         addChatBubble('Great choice! Let me generate your invite...', 'assistant');
-        if (!(await saveEventToDB())) return;
+        var saveResult = await saveEventToDB();
+        if (saveResult && saveResult.limitReached) {
+          goToStep(2);
+          showAdditionalEventPurchase();
+          return;
+        }
+        if (saveResult !== true) return;
         goToStep(2);
       });
     }
@@ -2069,7 +2192,13 @@
 
       await proceedAfterPlanCheck(async function() {
         addChatBubble('Creating your invite now...', 'assistant');
-        if (!(await saveEventToDB())) return;
+        var saveResult = await saveEventToDB();
+        if (saveResult && saveResult.limitReached) {
+          goToStep(2);
+          showAdditionalEventPurchase();
+          return;
+        }
+        if (saveResult !== true) return;
         goToStep(2);
       });
     }
@@ -2328,6 +2457,10 @@
           renderPreview(ver);
           renderVersionGallery();
           initDesignChatIfNeeded();
+        } else if (result2.needsPlan || result2.limitReached) {
+          // Plan or limit issue — show purchase option instead of generic error
+          stopGeneratingPuns();
+          showAdditionalEventPurchase();
         } else {
           stopGeneratingPuns();
           var errMsg = result2.message || result2.error || 'Failed to generate theme';
