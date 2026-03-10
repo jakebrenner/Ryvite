@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+  <script src="https://js.stripe.com/v3/"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -326,28 +327,49 @@
           <div class="progress-bar"><div class="progress-bar-fill"></div></div>
         </div>
         <div id="generatingPaywall" style="display:none;">
-          <div style="max-width:440px;margin:40px auto;padding:0 16px;">
-            <div style="background:white;border:1px solid #eee;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-              <p style="font-size:15px;line-height:1.6;color:var(--midnight);margin:0 0 18px 0;" id="paywallFunMsg">Your invite is about to look incredible. Let's make it official!</p>
-              <div style="background:linear-gradient(135deg,#faf0f3,#fff5f0);border:1px solid #f0dde2;border-radius:12px;padding:20px;margin-bottom:20px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-                  <div style="font-size:16px;font-weight:700;color:var(--midnight);" id="paywallPlanName">Single Event</div>
-                  <div id="paywallPriceTag" style="font-size:22px;font-weight:700;color:var(--party-coral);">$6.99</div>
-                </div>
-                <div id="paywallFeatures" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
-                <div id="paywallCouponArea">
-                  <a href="#" onclick="toggleCouponInput(event)" id="couponToggleLink" style="font-size:12px;color:#999;text-decoration:underline;">Have a coupon code?</a>
-                  <div id="couponInputRow" style="display:none;margin-top:8px;">
-                    <div style="display:flex;gap:6px;">
-                      <input type="text" id="paywallCouponInput" placeholder="Enter code" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Inter,sans-serif;">
-                      <button onclick="applyPaywallCoupon()" style="padding:8px 12px;border:none;border-radius:6px;background:var(--midnight);color:white;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;">Apply</button>
+          <!-- Phase 1: Pricing card -->
+          <div id="paywallPricingPhase">
+            <div style="max-width:440px;margin:40px auto;padding:0 16px;">
+              <div style="background:white;border:1px solid #eee;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                <p style="font-size:15px;line-height:1.6;color:var(--midnight);margin:0 0 18px 0;" id="paywallFunMsg">Your invite is about to look incredible. Let's make it official!</p>
+                <div style="background:linear-gradient(135deg,#faf0f3,#fff5f0);border:1px solid #f0dde2;border-radius:12px;padding:20px;margin-bottom:20px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <div style="font-size:16px;font-weight:700;color:var(--midnight);" id="paywallPlanName">Single Event</div>
+                    <div id="paywallPriceTag" style="font-size:22px;font-weight:700;color:var(--party-coral);">$6.99</div>
+                  </div>
+                  <div id="paywallFeatures" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+                  <div id="paywallCouponArea">
+                    <a href="#" onclick="toggleCouponInput(event)" id="couponToggleLink" style="font-size:12px;color:#999;text-decoration:underline;">Have a coupon code?</a>
+                    <div id="couponInputRow" style="display:none;margin-top:8px;">
+                      <div style="display:flex;gap:6px;">
+                        <input type="text" id="paywallCouponInput" placeholder="Enter code" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Inter,sans-serif;">
+                        <button onclick="applyPaywallCoupon()" style="padding:8px 12px;border:none;border-radius:6px;background:var(--midnight);color:white;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;">Apply</button>
+                      </div>
+                      <div id="couponMessage" style="margin-top:4px;font-size:11px;"></div>
                     </div>
-                    <div id="couponMessage" style="margin-top:4px;font-size:11px;"></div>
                   </div>
                 </div>
+                <button class="btn btn-primary" id="paywallCheckoutBtn" onclick="startPaywallCheckout()" style="width:100%;padding:14px;font-size:15px;font-weight:600;border-radius:10px;">Continue for $6.99</button>
+                <div style="text-align:center;margin-top:10px;font-size:11px;color:#bbb;">Secure checkout powered by Stripe</div>
               </div>
-              <button class="btn btn-primary" id="paywallCheckoutBtn" onclick="startPaywallCheckout()" style="width:100%;padding:14px;font-size:15px;font-weight:600;border-radius:10px;">Continue for $6.99</button>
-              <div style="text-align:center;margin-top:10px;font-size:11px;color:#bbb;">Secure checkout powered by Stripe</div>
+            </div>
+          </div>
+          <!-- Phase 2: Embedded Stripe checkout -->
+          <div id="paywallCheckoutPhase" style="display:none;">
+            <div style="max-width:500px;margin:24px auto;padding:0 16px;">
+              <button onclick="backToPricing()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--midnight);font-size:13px;font-weight:500;cursor:pointer;padding:8px 0;margin-bottom:12px;font-family:Inter,sans-serif;">
+                <span style="font-size:16px;">&#8592;</span> Back
+              </button>
+              <div style="background:white;border:1px solid #eee;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f0f0f0;">
+                  <div>
+                    <div style="font-size:14px;font-weight:600;color:var(--midnight);" id="checkoutPlanName">Single Event</div>
+                    <div style="font-size:12px;color:#999;margin-top:2px;">One-time payment</div>
+                  </div>
+                  <div id="checkoutPriceTag" style="font-size:20px;font-weight:700;color:var(--party-coral);">$6.99</div>
+                </div>
+                <div id="stripe-checkout-mount" style="min-height:300px;"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1009,6 +1031,8 @@
     var cachedPlans = null;
     var paywallCoupon = null;
     var paywallDiscount = null;
+    var stripeInstance = null;
+    var embeddedCheckout = null;
 
     async function checkHasActivePlan() {
       try {
@@ -1111,8 +1135,15 @@
         document.getElementById('paywallCouponInput').disabled = false;
         document.getElementById('paywallCouponInput').value = '';
         document.getElementById('couponMessage').innerHTML = '';
+        document.getElementById('paywallCheckoutBtn').disabled = false;
         paywallCoupon = null;
         paywallDiscount = null;
+
+        // Reset to pricing phase, destroy any lingering embedded checkout
+        if (embeddedCheckout) { embeddedCheckout.destroy(); embeddedCheckout = null; }
+        document.getElementById('stripe-checkout-mount').innerHTML = '';
+        document.getElementById('paywallPricingPhase').style.display = 'block';
+        document.getElementById('paywallCheckoutPhase').style.display = 'none';
 
         // Show paywall, hide loading spinner
         document.getElementById('generatingLoadingState').style.display = 'none';
@@ -1188,10 +1219,24 @@
       }
     }
 
+    async function initStripe() {
+      if (stripeInstance) return stripeInstance;
+      try {
+        var res = await fetch('/api/v2/billing?action=config');
+        var data = await res.json();
+        if (data.publishableKey) {
+          stripeInstance = Stripe(data.publishableKey);
+        }
+      } catch (e) {
+        console.error('Failed to init Stripe:', e);
+      }
+      return stripeInstance;
+    }
+
     async function startPaywallCheckout() {
       var btn = document.getElementById('paywallCheckoutBtn');
       btn.disabled = true;
-      btn.textContent = 'Redirecting to checkout...';
+      btn.textContent = 'Loading checkout...';
 
       // Save state so we can resume after payment
       saveCreateState();
@@ -1201,10 +1246,29 @@
         var body = {
           planId: plan.id,
           origin: window.location.origin,
-          returnUrl: '/v2/create/?purchased=true'
+          returnUrl: '/v2/create/?purchased=true',
+          embedded: true
         };
         if (paywallCoupon) {
           body.couponCode = paywallCoupon.code;
+        }
+
+        var stripe = await initStripe();
+        if (!stripe) {
+          // Fallback to redirect checkout if Stripe.js fails
+          body.embedded = false;
+          var res = await authFetch('/api/v2/billing?action=checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          var data = await res.json();
+          if (data.success && data.url) {
+            window.location.href = data.url;
+          } else {
+            throw new Error(data.error || 'Checkout failed');
+          }
+          return;
         }
 
         var res = await authFetch('/api/v2/billing?action=checkout', {
@@ -1214,16 +1278,52 @@
         });
         var data = await res.json();
 
-        if (data.success && data.url) {
-          window.location.href = data.url;
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Continue for ' + ('$' + (plan.priceCents / 100).toFixed(2));
-          showMessage(data.error || 'Checkout failed. Please try again.', 'error');
+        if (!data.success || !data.clientSecret) {
+          throw new Error(data.error || 'Failed to create checkout session');
         }
+
+        // Populate checkout phase summary
+        var priceDisplay = document.getElementById('paywallPriceTag').innerHTML;
+        document.getElementById('checkoutPlanName').textContent = plan.displayName;
+        document.getElementById('checkoutPriceTag').innerHTML = priceDisplay;
+
+        // Destroy previous embedded checkout if any
+        if (embeddedCheckout) {
+          embeddedCheckout.destroy();
+          embeddedCheckout = null;
+        }
+
+        // Mount embedded checkout
+        embeddedCheckout = await stripe.initEmbeddedCheckout({
+          clientSecret: data.clientSecret
+        });
+
+        // Switch to checkout phase
+        document.getElementById('paywallPricingPhase').style.display = 'none';
+        document.getElementById('paywallCheckoutPhase').style.display = 'block';
+        embeddedCheckout.mount('#stripe-checkout-mount');
+
       } catch (e) {
         btn.disabled = false;
-        showMessage('Error starting checkout. Please try again.', 'error');
+        btn.textContent = 'Continue for $' + (plan.priceCents / 100).toFixed(2);
+        showMessage(e.message || 'Error starting checkout. Please try again.', 'error');
+      }
+    }
+
+    function backToPricing() {
+      // Destroy embedded checkout and go back to pricing card
+      if (embeddedCheckout) {
+        embeddedCheckout.destroy();
+        embeddedCheckout = null;
+      }
+      document.getElementById('stripe-checkout-mount').innerHTML = '';
+      document.getElementById('paywallCheckoutPhase').style.display = 'none';
+      document.getElementById('paywallPricingPhase').style.display = 'block';
+      var btn = document.getElementById('paywallCheckoutBtn');
+      btn.disabled = false;
+      var plan = window._paywallPlan;
+      if (plan) {
+        btn.textContent = 'Continue for $' + (plan.priceCents / 100).toFixed(2);
       }
     }
 

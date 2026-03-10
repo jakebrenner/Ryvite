@@ -145,6 +145,14 @@ export default async function handler(req, res) {
       });
     }
 
+    // ---- STRIPE CONFIG (public) ----
+    if (action === 'config') {
+      return res.status(200).json({
+        success: true,
+        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+      });
+    }
+
     // ---- AUTHENTICATED ENDPOINTS ----
     const user = await getUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -153,7 +161,7 @@ export default async function handler(req, res) {
     if (action === 'checkout') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-      const { planId, couponCode, returnUrl } = req.body || {};
+      const { planId, couponCode, returnUrl, embedded } = req.body || {};
       if (!planId) return res.status(400).json({ error: 'planId required' });
 
       const { data: plan } = await supabaseAdmin
@@ -205,8 +213,6 @@ export default async function handler(req, res) {
           quantity: 1
         }],
         mode: 'payment',
-        success_url: returnUrl ? `${baseUrl}${returnUrl}` : `${baseUrl}/v2/dashboard/?purchased=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: returnUrl ? `${baseUrl}${returnUrl.split('?')[0]}` : `${baseUrl}/v2/pricing/`,
         metadata: {
           supabase_user_id: user.id,
           plan_id: plan.id,
@@ -218,12 +224,22 @@ export default async function handler(req, res) {
         }
       };
 
+      // Embedded mode: render Stripe form on our page instead of redirecting
+      if (embedded) {
+        sessionParams.ui_mode = 'embedded';
+        sessionParams.return_url = `${baseUrl}${returnUrl || '/v2/create/?purchased=true'}&session_id={CHECKOUT_SESSION_ID}`;
+      } else {
+        sessionParams.success_url = returnUrl ? `${baseUrl}${returnUrl}` : `${baseUrl}/v2/dashboard/?purchased=true&session_id={CHECKOUT_SESSION_ID}`;
+        sessionParams.cancel_url = returnUrl ? `${baseUrl}${returnUrl.split('?')[0]}` : `${baseUrl}/v2/pricing/`;
+      }
+
       const session = await stripe.checkout.sessions.create(sessionParams);
 
       return res.status(200).json({
         success: true,
         sessionId: session.id,
-        url: session.url
+        url: embedded ? null : session.url,
+        clientSecret: embedded ? session.client_secret : null
       });
     }
 
