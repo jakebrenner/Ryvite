@@ -294,30 +294,69 @@ export default async function handler(req, res) {
       let stripePayment = null;
       if (profile.stripe_customer_id) {
         try {
-          const Stripe = (await import('stripe')).default;
-          const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY);
-          const paymentMethods = await stripeClient.paymentMethods.list({
-            customer: profile.stripe_customer_id,
-            type: 'card',
-            limit: 5
+          const stripeClient = getStripe();
+
+          // Fetch all payment method types: card, link, us_bank_account
+          const [cardMethods, linkMethods] = await Promise.all([
+            stripeClient.paymentMethods.list({ customer: profile.stripe_customer_id, type: 'card', limit: 5 }),
+            stripeClient.paymentMethods.list({ customer: profile.stripe_customer_id, type: 'link', limit: 5 })
+          ]);
+
+          const allMethods = [];
+
+          // Card payment methods
+          cardMethods.data.forEach(pm => {
+            allMethods.push({
+              id: pm.id,
+              type: 'card',
+              brand: pm.card.brand,
+              last4: pm.card.last4,
+              expMonth: pm.card.exp_month,
+              expYear: pm.card.exp_year
+            });
           });
-          if (paymentMethods.data.length > 0) {
-            stripePayment = {
-              customerId: profile.stripe_customer_id,
-              cards: paymentMethods.data.map(pm => ({
-                id: pm.id,
-                brand: pm.card.brand,
-                last4: pm.card.last4,
-                expMonth: pm.card.exp_month,
-                expYear: pm.card.exp_year,
-                isDefault: pm.id === paymentMethods.data[0].id
-              }))
-            };
-          } else {
-            stripePayment = { customerId: profile.stripe_customer_id, cards: [] };
-          }
+
+          // Link payment methods
+          linkMethods.data.forEach(pm => {
+            allMethods.push({
+              id: pm.id,
+              type: 'link',
+              email: pm.link?.email || null
+            });
+          });
+
+          // Fetch recent charges to show last payment info regardless of saved methods
+          let lastCharge = null;
+          try {
+            const charges = await stripeClient.charges.list({
+              customer: profile.stripe_customer_id,
+              limit: 3
+            });
+            if (charges.data.length > 0) {
+              const c = charges.data[0];
+              lastCharge = {
+                id: c.id,
+                amount: c.amount,
+                currency: c.currency,
+                status: c.status,
+                created: c.created,
+                paymentMethodType: c.payment_method_details?.type || null,
+                cardBrand: c.payment_method_details?.card?.brand || null,
+                cardLast4: c.payment_method_details?.card?.last4 || null,
+                linkEmail: c.payment_method_details?.link?.email || null,
+                receiptUrl: c.receipt_url
+              };
+            }
+          } catch (e) { /* non-fatal */ }
+
+          stripePayment = {
+            customerId: profile.stripe_customer_id,
+            cards: allMethods.filter(m => m.type === 'card'),
+            paymentMethods: allMethods,
+            lastCharge
+          };
         } catch (e) {
-          stripePayment = { customerId: profile.stripe_customer_id, cards: [], error: 'Could not fetch from Stripe' };
+          stripePayment = { customerId: profile.stripe_customer_id, cards: [], paymentMethods: [], lastCharge: null, error: 'Could not fetch from Stripe' };
         }
       }
 

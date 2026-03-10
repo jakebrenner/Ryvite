@@ -1686,7 +1686,7 @@
       document.getElementById('udName').textContent = u.displayName || u.email;
       document.getElementById('udMeta').innerHTML =
         '<span>' + escapeHtml(u.email) + '</span><span class="sep">|</span>'
-        + '<span class="badge ' + (u.tier === 'pro' ? 'badge-blue' : u.tier === 'business' ? 'badge-green' : 'badge-gray') + '">' + escapeHtml(u.tier) + '</span>'
+        + '<span class="badge ' + (u.tier === 'free' ? 'badge-gray' : 'badge-blue') + '">' + escapeHtml(u.tier) + '</span>'
         + '<span class="sep">|</span><span>Joined ' + formatDate(u.createdAt) + '</span>';
 
       // Reset to overview section
@@ -1842,19 +1842,88 @@
       // ---- Billing & Payments ----
       // Payment method
       var pmEl = document.getElementById('udPaymentMethod');
-      if (data.stripePayment && data.stripePayment.cards && data.stripePayment.cards.length > 0) {
-        pmEl.innerHTML = data.stripePayment.cards.map(function(c) {
-          return '<div class="ud-stripe-card">'
-            + '<div class="card-icon">' + cardBrandIcon(c.brand) + '</div>'
-            + '<div class="card-info">'
-            + '<div class="card-num">' + escapeHtml(c.brand.toUpperCase()) + ' ending in ' + c.last4 + '</div>'
-            + '<div class="card-exp">Expires ' + String(c.expMonth).padStart(2, '0') + '/' + c.expYear + '</div>'
+      if (data.stripePayment) {
+        var pmHtml = '';
+        var sp = data.stripePayment;
+        var methods = sp.paymentMethods || sp.cards || [];
+
+        // Render saved payment methods (cards + link)
+        if (methods.length > 0) {
+          pmHtml += methods.map(function(m, i) {
+            if (m.type === 'card') {
+              return '<div class="ud-stripe-card">'
+                + '<div class="card-icon">' + cardBrandIcon(m.brand) + '</div>'
+                + '<div class="card-info">'
+                + '<div class="card-num">' + escapeHtml(m.brand.toUpperCase()) + ' ending in ' + m.last4 + '</div>'
+                + '<div class="card-exp">Expires ' + String(m.expMonth).padStart(2, '0') + '/' + m.expYear + '</div>'
+                + '</div>'
+                + (i === 0 ? '<div class="card-default">Default</div>' : '')
+                + '</div>';
+            } else if (m.type === 'link') {
+              return '<div class="ud-stripe-card">'
+                + '<div class="card-icon" style="font-size:14px;font-weight:700;color:#00D66F;background:#e6faf0;padding:4px 8px;border-radius:6px;">Link</div>'
+                + '<div class="card-info">'
+                + '<div class="card-num">Stripe Link</div>'
+                + '<div class="card-exp">' + escapeHtml(m.email || 'Connected') + '</div>'
+                + '</div></div>';
+            }
+            return '';
+          }).join('');
+        }
+
+        // If no saved methods but there's a last charge, show what they paid with
+        if (methods.length === 0 && sp.lastCharge) {
+          var lc = sp.lastCharge;
+          var pmType = lc.paymentMethodType || 'unknown';
+          if (pmType === 'link') {
+            pmHtml += '<div class="ud-stripe-card">'
+              + '<div class="card-icon" style="font-size:14px;font-weight:700;color:#00D66F;background:#e6faf0;padding:4px 8px;border-radius:6px;">Link</div>'
+              + '<div class="card-info">'
+              + '<div class="card-num">Paid via Stripe Link</div>'
+              + '<div class="card-exp">' + escapeHtml(lc.linkEmail || '') + '</div>'
+              + '</div></div>';
+          } else if (pmType === 'card' && lc.cardLast4) {
+            pmHtml += '<div class="ud-stripe-card">'
+              + '<div class="card-icon">' + cardBrandIcon(lc.cardBrand || '') + '</div>'
+              + '<div class="card-info">'
+              + '<div class="card-num">' + escapeHtml((lc.cardBrand || 'Card').toUpperCase()) + ' ending in ' + lc.cardLast4 + '</div>'
+              + '<div class="card-exp">Used for last payment</div>'
+              + '</div></div>';
+          } else {
+            pmHtml += '<div class="ud-stripe-card">'
+              + '<div class="card-icon">\u2705</div>'
+              + '<div class="card-info">'
+              + '<div class="card-num">Paid via ' + escapeHtml(pmType) + '</div>'
+              + '<div class="card-exp">Last payment on file</div>'
+              + '</div></div>';
+          }
+        }
+
+        // Show last charge summary if available
+        if (sp.lastCharge) {
+          var lc = sp.lastCharge;
+          var chargeDate = new Date(lc.created * 1000);
+          var statusBadge = lc.status === 'succeeded' ? 'badge-green' : lc.status === 'pending' ? 'badge-yellow' : 'badge-gray';
+          pmHtml += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">'
+            + '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Last Payment</div>'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+            + '<div><span style="font-size:16px;font-weight:700;">$' + (lc.amount / 100).toFixed(2) + '</span>'
+            + ' <span class="badge ' + statusBadge + '">' + lc.status + '</span></div>'
+            + '<div style="font-size:12px;color:#888;">' + chargeDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</div>'
             + '</div>'
-            + (c.isDefault ? '<div class="card-default">Default</div>' : '')
+            + (lc.receiptUrl ? '<a href="' + lc.receiptUrl + '" target="_blank" style="font-size:12px;color:var(--party-coral);margin-top:4px;display:inline-block;">View receipt &rarr;</a>' : '')
             + '</div>';
-        }).join('');
-      } else if (data.stripePayment && data.stripePayment.customerId) {
-        pmEl.innerHTML = '<div class="ud-empty">No card on file<br><span style="font-size:11px;color:#aaa;">Stripe ID: ' + escapeHtml(data.stripePayment.customerId) + '</span></div>';
+        }
+
+        // No methods and no charges
+        if (!pmHtml) {
+          pmHtml = '<div class="ud-empty">No payment methods on file<br><span style="font-size:11px;color:#aaa;">Stripe ID: ' + escapeHtml(sp.customerId) + '</span></div>';
+        } else {
+          // Add Stripe ID footer
+          pmHtml += '<div style="margin-top:12px;font-size:11px;color:#aaa;font-family:monospace;">' + escapeHtml(sp.customerId) + '</div>';
+        }
+
+        pmEl.innerHTML = pmHtml;
       } else {
         pmEl.innerHTML = '<div class="ud-empty">No Stripe account linked</div>';
       }
