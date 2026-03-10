@@ -313,6 +313,16 @@
     .ud-detail-item { }
     .ud-detail-item .lbl { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
     .ud-detail-item .val { font-size: 14px; font-weight: 500; color: var(--midnight); word-break: break-all; }
+    .ud-detail-item.editable .val { cursor: pointer; border-bottom: 1px dashed #ccc; display: inline-block; padding-bottom: 1px; }
+    .ud-detail-item.editable .val:hover { border-bottom-color: var(--primary); color: var(--primary); }
+    .ud-detail-item .edit-wrap { display: flex; align-items: center; gap: 6px; }
+    .ud-detail-item .edit-wrap input,
+    .ud-detail-item .edit-wrap select { font-size: 13px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
+    .ud-detail-item .edit-wrap input:focus,
+    .ud-detail-item .edit-wrap select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(210,157,135,0.2); }
+    .ud-detail-item .edit-wrap button { font-size: 12px; padding: 3px 10px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; background: #fff; }
+    .ud-detail-item .edit-wrap button.save-btn { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .ud-detail-item .edit-wrap button.save-btn:hover { opacity: 0.9; }
 
     .ud-cost-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #f0f0f0; margin: 8px 0; }
     .ud-cost-bar .bar-segment { height: 100%; transition: width 0.3s; }
@@ -1918,11 +1928,11 @@
 
       // ---- Profile ----
       document.getElementById('udProfileInfo').innerHTML =
-        detailItem('Display Name', escapeHtml(u.displayName || '—'))
+        editableItem('Display Name', u.displayName || '', 'display_name', 'text')
         + detailItem('Email', escapeHtml(u.email))
-        + detailItem('Phone', escapeHtml(u.phone || '—'))
-        + detailItem('Tier', '<span class="badge ' + tierClass + '">' + escapeHtml(u.tier) + '</span>')
-        + detailItem('Referral Source', escapeHtml(u.referralSource || '—'));
+        + editableItem('Phone', u.phone || '', 'phone', 'text')
+        + editableItem('Tier', u.tier || 'free', 'tier', 'select')
+        + editableItem('Referral Source', u.referralSource || '', 'referral_source', 'text');
 
       document.getElementById('udAccountInfo').innerHTML =
         detailItem('User ID', '<span style="font-family:monospace;font-size:11px;">' + escapeHtml(u.id) + '</span>')
@@ -1964,6 +1974,86 @@
 
     function detailItem(label, value) {
       return '<div class="ud-detail-item"><div class="lbl">' + label + '</div><div class="val">' + value + '</div></div>';
+    }
+
+    function editableItem(label, value, fieldKey, fieldType) {
+      var display = escapeHtml(value || '—');
+      if (fieldKey === 'tier') {
+        var tc = value === 'pro' ? 'badge-blue' : value === 'business' ? 'badge-green' : 'badge-gray';
+        display = '<span class="badge ' + tc + '">' + escapeHtml(value) + '</span>';
+      }
+      return '<div class="ud-detail-item editable" data-field="' + fieldKey + '" data-type="' + fieldType + '" data-value="' + escapeHtml(value) + '">'
+        + '<div class="lbl">' + label + ' <span style="font-size:9px;color:#bbb;cursor:pointer;" title="Click value to edit">&#9998;</span></div>'
+        + '<div class="val" onclick="startEditField(this)">' + display + '</div></div>';
+    }
+
+    function startEditField(valEl) {
+      var item = valEl.closest('.ud-detail-item');
+      if (item.querySelector('.edit-wrap')) return; // already editing
+      var field = item.getAttribute('data-field');
+      var type = item.getAttribute('data-type');
+      var cur = item.getAttribute('data-value');
+
+      var html = '<div class="edit-wrap">';
+      if (type === 'select' && field === 'tier') {
+        html += '<select id="editField_' + field + '">';
+        ['free', 'pro', 'business'].forEach(function(t) {
+          html += '<option value="' + t + '"' + (t === cur ? ' selected' : '') + '>' + t + '</option>';
+        });
+        html += '</select>';
+      } else {
+        html += '<input type="text" id="editField_' + field + '" value="' + escapeHtml(cur) + '" />';
+      }
+      html += '<button class="save-btn" onclick="saveField(\'' + field + '\')">Save</button>';
+      html += '<button onclick="cancelEditField(this)">Cancel</button>';
+      html += '</div>';
+      valEl.innerHTML = html;
+
+      var inp = document.getElementById('editField_' + field);
+      if (inp.tagName === 'INPUT') { inp.focus(); inp.select(); }
+      // Allow Enter to save
+      inp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') saveField(field);
+        if (e.key === 'Escape') cancelEditField(inp);
+      });
+    }
+
+    function cancelEditField(el) {
+      // Re-render the user detail to reset
+      if (currentUserDetail) renderUserDetail(currentUserDetail);
+    }
+
+    async function saveField(fieldKey) {
+      if (!currentUserDetail) return;
+      var inp = document.getElementById('editField_' + fieldKey);
+      if (!inp) return;
+      var newVal = inp.value.trim();
+      var btn = inp.parentElement.querySelector('.save-btn');
+      btn.textContent = 'Saving...';
+      btn.disabled = true;
+
+      try {
+        var fields = {};
+        fields[fieldKey] = newVal;
+        var res = await adminFetch('updateUser', {
+          method: 'POST',
+          body: { userId: currentUserDetail.user.id, fields: fields }
+        });
+        if (res.success) {
+          // Update local data and re-render
+          var camelKey = fieldKey.replace(/_([a-z])/g, function(m, c) { return c.toUpperCase(); });
+          currentUserDetail.user[camelKey] = newVal;
+          renderUserDetail(currentUserDetail);
+        } else {
+          alert('Failed to save: ' + (res.error || 'Unknown error'));
+          btn.textContent = 'Save';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+        btn.textContent = 'Save';
+        btn.disabled = false;
+      }
     }
 
     function backToUsers() {
