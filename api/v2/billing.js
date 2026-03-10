@@ -37,8 +37,16 @@ async function getOrCreateStripeCustomer(user) {
     .eq('id', user.id)
     .single();
 
+  // If we have a stored customer ID, verify it still exists in Stripe
+  // (it may reference a different/old Stripe account)
   if (profile?.stripe_customer_id) {
-    return profile.stripe_customer_id;
+    try {
+      await stripe.customers.retrieve(profile.stripe_customer_id);
+      return profile.stripe_customer_id;
+    } catch (e) {
+      // Customer doesn't exist in current Stripe account — create a new one
+      console.warn('Stale stripe_customer_id for user', user.id, '— creating new customer');
+    }
   }
 
   const customer = await stripe.customers.create({

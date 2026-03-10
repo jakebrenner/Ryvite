@@ -560,6 +560,7 @@
     let activeVersionIndex = 0;
     let chatHistory = [];
     let chatBubbles = []; // [{text, role}] for UI rebuild on restore
+    var chatPhase = 'chatting'; // 'chatting' | 'confirmed' | 'styling'
     var currentPreviewMode = 'invite';
 
     var ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
@@ -763,6 +764,22 @@
               goToStep(2);
             } else {
               // Has details but no theme — go back to chat
+              // Restore chat bubbles and show confirmation card
+              if (restoreDraft(false) && chatBubbles.length > 0) {
+                rebuildChatFromBubbles();
+                if (chatPhase === 'confirmed' || chatPhase === 'styling') {
+                  showConfirmationCard();
+                }
+                if (chatPhase === 'styling') {
+                  var proceedBtn = document.querySelector('#confirmationCard .chat-proceed');
+                  if (proceedBtn) proceedBtn.remove();
+                  document.querySelector('.chat-input-area').style.display = 'none';
+                  showStyleChoiceCard();
+                }
+              } else {
+                // No saved chat — show confirmation from extractedData
+                showConfirmationCard();
+              }
               goToStep(1);
             }
             return;
@@ -779,15 +796,20 @@
       // Auto-restore draft on plain page load (no special URL params)
       if (!urlParams.get('purchased') && !urlParams.get('eventId')) {
         if (restoreDraft(false)) {
-          // If we have an eventId already, redirect to the proper resume flow
-          if (currentEvent && currentEvent.id) {
-            window.history.replaceState({}, '', '/v2/create/?eventId=' + currentEvent.id);
-            window.location.reload();
-            return;
-          }
-          // Otherwise rebuild the step 1 chat from saved bubbles
+          // Rebuild the step 1 chat from saved bubbles
           if (chatBubbles.length > 0) {
             rebuildChatFromBubbles();
+          }
+          // Restore interactive UI based on chatPhase
+          if (chatPhase === 'confirmed') {
+            showConfirmationCard();
+          } else if (chatPhase === 'styling') {
+            // Show confirmation card without the button, then style choice
+            showConfirmationCard();
+            var proceedBtn = document.querySelector('#confirmationCard .chat-proceed');
+            if (proceedBtn) proceedBtn.remove();
+            document.querySelector('.chat-input-area').style.display = 'none';
+            showStyleChoiceCard();
           }
         }
       }
@@ -847,6 +869,7 @@
 
           // If confirmed, show final confirmation card with all details + RSVP fields
           if (result.ready && result.confirmed) {
+            chatPhase = 'confirmed';
             showConfirmationCard();
           }
         } else {
@@ -1066,11 +1089,16 @@
       if (btn) btn.remove();
 
       addChatBubble('Looks good!', 'user');
+      chatPhase = 'styling';
 
       // Hide the chat input area — the user is done describing their event
       document.querySelector('.chat-input-area').style.display = 'none';
 
       // Ask about style preference
+      showStyleChoiceCard();
+    }
+
+    function showStyleChoiceCard() {
       var card = document.createElement('div');
       card.className = 'chat-bubble assistant';
       card.innerHTML = '<div style="margin-bottom:12px;">Now let\'s design your invite! Do you already have a style in mind, or would you like to explore some options?</div>'
@@ -1214,6 +1242,7 @@
             rsvpFields: rsvpFields,
             chatHistory: chatHistory,
             chatBubbles: chatBubbles,
+            chatPhase: chatPhase,
             personPhotoUrls: personPhotoUrls.filter(function(u) { return !!u; }),
             inspirationImageUrls: inspirationImageUrls.filter(function(u) { return !!u; }),
             currentEventId: currentEvent ? currentEvent.id : null,
@@ -1240,6 +1269,7 @@
         rsvpFields = state.rsvpFields || [];
         chatHistory = state.chatHistory || [];
         chatBubbles = state.chatBubbles || [];
+        chatPhase = state.chatPhase || 'chatting';
         personPhotoUrls = state.personPhotoUrls || [];
         inspirationImageUrls = state.inspirationImageUrls || [];
         if (state.currentEventId) {
