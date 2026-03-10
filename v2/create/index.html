@@ -398,6 +398,42 @@
               </div>
             </div>
           </div>
+          <!-- Phase 3: Quick charge (returning customer with saved card) -->
+          <div id="paywallQuickChargePhase" style="display:none;">
+            <div style="max-width:460px;margin:32px auto;padding:0 16px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <div style="font-size:40px;margin-bottom:8px;">👋</div>
+                <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:var(--midnight);margin-bottom:6px;">Welcome back!</h2>
+                <p style="font-size:14px;color:#888;line-height:1.5;">We have your payment method on file. One tap and we'll start designing.</p>
+              </div>
+              <div style="background:white;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(233,69,96,0.1),0 2px 8px rgba(0,0,0,0.04);">
+                <div style="padding:24px;">
+                  <!-- Plan + price -->
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <div>
+                      <div style="font-size:12px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.5px;">New event</div>
+                      <div style="font-size:17px;font-weight:700;color:var(--midnight);margin-top:2px;" id="quickChargePlanName">Single Event</div>
+                    </div>
+                    <div id="quickChargePriceTag" style="font-size:28px;font-weight:700;color:var(--party-coral);">$6.99</div>
+                  </div>
+                  <!-- Saved card display -->
+                  <div style="background:#f8f8fa;border:1px solid #eee;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+                    <div style="width:40px;height:28px;background:linear-gradient(135deg,#1a1f71,#2557d6);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+                      <svg width="20" height="14" viewBox="0 0 24 16" fill="white"><rect x="0" y="0" width="24" height="16" rx="2" fill="none"/><rect x="1" y="4" width="22" height="2" fill="white" opacity="0.5"/><rect x="3" y="9" width="6" height="2" rx="1" fill="white" opacity="0.7"/><rect x="3" y="12" width="4" height="1" rx="0.5" fill="white" opacity="0.5"/></svg>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:14px;font-weight:600;color:var(--midnight);" id="quickChargeCardDisplay">Visa ending in 4242</div>
+                      <div style="font-size:11px;color:#999;margin-top:1px;" id="quickChargeCardExpiry">Expires 12/26</div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--mint-fizz)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <!-- CTA -->
+                  <button class="btn btn-primary" id="quickChargeBtn" onclick="executeQuickCharge()" style="width:100%;padding:16px;font-size:15px;font-weight:600;border-radius:12px;box-shadow:0 4px 16px rgba(233,69,96,0.3);">Pay $6.99 & Start Designing</button>
+                  <button onclick="useNewPaymentMethod()" style="display:block;width:100%;margin-top:12px;background:none;border:none;color:#999;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;padding:4px;">Use a different card</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div id="generatedView" style="display: none;">
@@ -1240,50 +1276,79 @@
     ];
 
     function showPaywall(onSuccess) {
-      fetchPlans().then(function(plans) {
+      fetchPlans().then(async function(plans) {
         if (!plans || plans.length === 0) {
           showMessage('Unable to load plans. Please try again.', 'error');
           return;
         }
         var plan = plans[0]; // Primary plan
-        var funMsg = paywallFunMessages[Math.floor(Math.random() * paywallFunMessages.length)];
         var priceDisplay = '$' + (plan.priceCents / 100).toFixed(2);
 
-        // Build features list with SMS cost line
-        var features = (plan.features || []).slice();
-        features.push('+$0.10 per SMS sent');
-        var featuresHtml = features.map(function(f) {
-          var isSms = f.indexOf('$0.10') !== -1;
-          var iconBg = isSms ? '#f0f0f0' : 'rgba(78,205,196,0.12)';
-          var iconColor = isSms ? '#888' : 'var(--mint-fizz)';
-          var icon = isSms ? '💬' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
-          return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);">'
-            + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
-            + '<span>' + escapeHtml(f) + '</span></div>';
-        }).join('');
+        // Stash the plan and callback
+        window._paywallPlan = plan;
+        window._paywallOnSuccess = onSuccess;
 
-        // Populate the paywall inside the generating view
-        document.getElementById('paywallFunMsg').textContent = funMsg;
-        document.getElementById('paywallPlanName').textContent = plan.displayName;
-        document.getElementById('paywallPriceTag').innerHTML = priceDisplay;
-        document.getElementById('paywallFeatures').innerHTML = featuresHtml;
-        document.getElementById('paywallCheckoutBtn').textContent = 'Continue for ' + priceDisplay;
+        // Check for saved payment method (returning customer)
+        var savedCard = null;
+        try {
+          var pmRes = await authFetch('/api/v2/billing?action=payment-method');
+          var pmData = await pmRes.json();
+          if (pmData.success && pmData.hasPaymentMethod) {
+            savedCard = pmData.card;
+          }
+        } catch (e) {}
 
-        // Reset coupon state
-        document.getElementById('couponToggleLink').style.display = 'inline';
-        document.getElementById('couponInputRow').style.display = 'none';
-        document.getElementById('paywallCouponInput').disabled = false;
-        document.getElementById('paywallCouponInput').value = '';
-        document.getElementById('couponMessage').innerHTML = '';
-        document.getElementById('paywallCheckoutBtn').disabled = false;
-        paywallCoupon = null;
-        paywallDiscount = null;
-
-        // Reset to pricing phase, destroy any lingering embedded checkout
+        // Reset all phases
         if (embeddedCheckout) { embeddedCheckout.destroy(); embeddedCheckout = null; }
         document.getElementById('stripe-checkout-mount').innerHTML = '';
-        document.getElementById('paywallPricingPhase').style.display = 'block';
+        document.getElementById('paywallPricingPhase').style.display = 'none';
         document.getElementById('paywallCheckoutPhase').style.display = 'none';
+        document.getElementById('paywallQuickChargePhase').style.display = 'none';
+
+        if (savedCard) {
+          // Returning customer — show quick charge
+          var brandName = (savedCard.brand || 'card').charAt(0).toUpperCase() + (savedCard.brand || 'card').slice(1);
+          document.getElementById('quickChargePlanName').textContent = plan.displayName;
+          document.getElementById('quickChargePriceTag').innerHTML = priceDisplay;
+          document.getElementById('quickChargeCardDisplay').textContent = brandName + ' ending in ' + savedCard.last4;
+          document.getElementById('quickChargeCardExpiry').textContent = 'Expires ' + savedCard.expMonth + '/' + savedCard.expYear;
+          document.getElementById('quickChargeBtn').textContent = 'Pay ' + priceDisplay + ' & Start Designing';
+          document.getElementById('quickChargeBtn').disabled = false;
+          document.getElementById('paywallQuickChargePhase').style.display = 'block';
+        } else {
+          // New customer — show full pricing card
+          var funMsg = paywallFunMessages[Math.floor(Math.random() * paywallFunMessages.length)];
+
+          // Build features list with SMS cost line
+          var features = (plan.features || []).slice();
+          features.push('+$0.10 per SMS sent');
+          var featuresHtml = features.map(function(f) {
+            var isSms = f.indexOf('$0.10') !== -1;
+            var iconBg = isSms ? '#f0f0f0' : 'rgba(78,205,196,0.12)';
+            var iconColor = isSms ? '#888' : 'var(--mint-fizz)';
+            var icon = isSms ? '💬' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+            return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);">'
+              + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
+              + '<span>' + escapeHtml(f) + '</span></div>';
+          }).join('');
+
+          document.getElementById('paywallFunMsg').textContent = funMsg;
+          document.getElementById('paywallPlanName').textContent = plan.displayName;
+          document.getElementById('paywallPriceTag').innerHTML = priceDisplay;
+          document.getElementById('paywallFeatures').innerHTML = featuresHtml;
+          document.getElementById('paywallCheckoutBtn').textContent = 'Continue for ' + priceDisplay;
+
+          // Reset coupon state
+          document.getElementById('couponToggleLink').style.display = 'inline';
+          document.getElementById('couponInputRow').style.display = 'none';
+          document.getElementById('paywallCouponInput').disabled = false;
+          document.getElementById('paywallCouponInput').value = '';
+          document.getElementById('couponMessage').innerHTML = '';
+          document.getElementById('paywallCheckoutBtn').disabled = false;
+          paywallCoupon = null;
+          paywallDiscount = null;
+          document.getElementById('paywallPricingPhase').style.display = 'block';
+        }
 
         // Show paywall, hide loading spinner
         document.getElementById('generatingLoadingState').style.display = 'none';
@@ -1291,10 +1356,6 @@
 
         // Navigate to step 2 (generating view)
         goToStep(2);
-
-        // Stash the plan and callback for checkout
-        window._paywallPlan = plan;
-        window._paywallOnSuccess = onSuccess;
       });
     }
 
@@ -1464,6 +1525,75 @@
       var plan = window._paywallPlan;
       if (plan) {
         btn.textContent = 'Continue for $' + (plan.priceCents / 100).toFixed(2);
+      }
+    }
+
+    async function executeQuickCharge() {
+      var btn = document.getElementById('quickChargeBtn');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      saveCreateState();
+
+      try {
+        var plan = window._paywallPlan;
+        var body = { planId: plan.id };
+        if (paywallCoupon) body.couponCode = paywallCoupon.code;
+
+        var res = await authFetch('/api/v2/billing?action=quick-charge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        var data = await res.json();
+
+        if (data.success) {
+          // Payment succeeded — save event and generate
+          if (!(await saveEventToDB())) {
+            showMessage('Payment succeeded but event creation failed. Please try again.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Pay $' + (plan.priceCents / 100).toFixed(2) + ' & Start Designing';
+            return;
+          }
+          generateTheme();
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Pay $' + (plan.priceCents / 100).toFixed(2) + ' & Start Designing';
+          showMessage(data.error || 'Payment failed. Please try a different card.', 'error');
+        }
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Pay $' + (window._paywallPlan.priceCents / 100).toFixed(2) + ' & Start Designing';
+        showMessage('Payment error. Please try again.', 'error');
+      }
+    }
+
+    function useNewPaymentMethod() {
+      // Switch from quick charge to full pricing/checkout flow
+      document.getElementById('paywallQuickChargePhase').style.display = 'none';
+      document.getElementById('paywallPricingPhase').style.display = 'block';
+
+      var plan = window._paywallPlan;
+      if (plan) {
+        var priceDisplay = '$' + (plan.priceCents / 100).toFixed(2);
+        var funMsg = paywallFunMessages[Math.floor(Math.random() * paywallFunMessages.length)];
+        var features = (plan.features || []).slice();
+        features.push('+$0.10 per SMS sent');
+        var featuresHtml = features.map(function(f) {
+          var isSms = f.indexOf('$0.10') !== -1;
+          var iconBg = isSms ? '#f0f0f0' : 'rgba(78,205,196,0.12)';
+          var iconColor = isSms ? '#888' : 'var(--mint-fizz)';
+          var icon = isSms ? '💬' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+          return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);">'
+            + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
+            + '<span>' + escapeHtml(f) + '</span></div>';
+        }).join('');
+        document.getElementById('paywallFunMsg').textContent = funMsg;
+        document.getElementById('paywallPlanName').textContent = plan.displayName;
+        document.getElementById('paywallPriceTag').innerHTML = priceDisplay;
+        document.getElementById('paywallFeatures').innerHTML = featuresHtml;
+        document.getElementById('paywallCheckoutBtn').textContent = 'Continue for ' + priceDisplay;
+        document.getElementById('paywallCheckoutBtn').disabled = false;
       }
     }
 

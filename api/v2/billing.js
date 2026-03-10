@@ -213,6 +213,7 @@ export default async function handler(req, res) {
           quantity: 1
         }],
         mode: 'payment',
+        payment_intent_data: { setup_future_usage: 'off_session' },
         metadata: {
           supabase_user_id: user.id,
           plan_id: plan.id,
@@ -240,6 +241,187 @@ export default async function handler(req, res) {
         sessionId: session.id,
         url: embedded ? null : session.url,
         clientSecret: embedded ? session.client_secret : null
+      });
+    }
+
+    // ---- GET SAVED PAYMENT METHOD ----
+    if (action === 'payment-method') {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.stripe_customer_id) {
+        return res.status(200).json({ success: true, hasPaymentMethod: false });
+      }
+
+      try {
+        const paymentMethods = await stripe.paymentMethods.list({
+          customer: profile.stripe_customer_id,
+          type: 'card',
+          limit: 1
+        });
+
+        if (paymentMethods.data.length === 0) {
+          return res.status(200).json({ success: true, hasPaymentMethod: false });
+        }
+
+        const card = paymentMethods.data[0].card;
+        return res.status(200).json({
+          success: true,
+          hasPaymentMethod: true,
+          card: {
+            brand: card.brand,
+            last4: card.last4,
+            expMonth: card.exp_month,
+            expYear: card.exp_year
+          },
+          paymentMethodId: paymentMethods.data[0].id
+        });
+      } catch (e) {
+        return res.status(200).json({ success: true, hasPaymentMethod: false });
+      }
+    }
+
+    // ---- QUICK CHARGE (saved card) ----
+    if (action === 'quick-charge') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { planId, couponCode } = req.body || {};
+      if (!planId) return res.status(400).json({ error: 'planId required' });
+
+      const { data: plan } = await supabaseAdmin
+        .from('plans')
+        .select('*')
+        .eq('id', planId)
+        .eq('is_active', true)
+        .single();
+
+      if (!plan) return res.status(404).json({ error: 'Plan not found' });
+
+      // Get saved payment method
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.stripe_customer_id) {
+        return res.status(400).json({ error: 'No payment method on file' });
+      }
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: profile.stripe_customer_id,
+        type: 'card',
+        limit: 1
+      });
+
+      if (paymentMethods.data.length === 0) {
+        return res.status(400).json({ error: 'No payment method on file' });
+      }
+
+      // Calculate amount with optional coupon
+      let discount = null;
+      let coupon = null;
+      let discountCents = 0;
+      if (couponCode) {
+        const couponResult = await validateCoupon(couponCode, plan.name, user.id, user.email);
+        if (!couponResult.valid) {
+          return res.status(400).json({ error: couponResult.error });
+        }
+        coupon = couponResult.coupon;
+        discount = couponResult.discount;
+      }
+
+      let finalAmountCents = plan.price_cents;
+      if (discount) {
+        if (discount.type === 'percent') {
+          discountCents = Math.round(plan.price_cents * discount.percent / 100);
+        } else {
+          discountCents = discount.amountCents;
+        }
+        finalAmountCents = Math.max(0, plan.price_cents - discountCents);
+      }
+
+      // Charge saved card
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: finalAmountCents,
+        currency: plan.currency || 'usd',
+        customer: profile.stripe_customer_id,
+        payment_method: paymentMethods.data[0].id,
+        off_session: true,
+        confirm: true,
+        description: `Plan purchase: ${plan.display_name}`,
+        metadata: {
+          supabase_user_id: user.id,
+          plan_id: plan.id,
+          plan_name: plan.name,
+          coupon_id: coupon?.id || '',
+          coupon_code: couponCode || '',
+          original_amount_cents: String(plan.price_cents),
+          discount_cents: String(discountCents),
+          charge_type: 'quick_charge'
+        }
+      });
+
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({ error: 'Payment failed. Please try with a new card.' });
+      }
+
+      // Create subscription (same as webhook handler)
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          plan_id: plan.id,
+          status: 'active',
+          stripe_customer_id: profile.stripe_customer_id,
+          stripe_checkout_session_id: null,
+          coupon_id: coupon?.id || null,
+          amount_paid_cents: finalAmountCents,
+          discount_cents: discountCents,
+          events_used: 0,
+          generations_used: 0,
+          current_period_start: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      // Billing history
+      let receiptUrl = null;
+      if (paymentIntent.latest_charge) {
+        try {
+          const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
+          receiptUrl = charge.receipt_url || null;
+        } catch (e) {}
+      }
+
+      await supabaseAdmin.from('billing_history').insert({
+        user_id: user.id,
+        subscription_id: subscription?.id,
+        stripe_payment_intent_id: paymentIntent.id,
+        amount_cents: finalAmountCents,
+        currency: plan.currency || 'usd',
+        status: 'succeeded',
+        description: `Plan purchase: ${plan.display_name}`,
+        receipt_url: receiptUrl
+      });
+
+      // Handle coupon redemption
+      if (coupon?.id && subscription?.id) {
+        await supabaseAdmin.from('coupon_redemptions').insert({
+          coupon_id: coupon.id,
+          user_id: user.id,
+          subscription_id: subscription.id
+        });
+        await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: coupon.id }).catch(() => {});
+      }
+
+      return res.status(200).json({
+        success: true,
+        subscriptionId: subscription?.id,
+        receiptUrl
       });
     }
 
@@ -654,4 +836,104 @@ export async function checkUserLimits(userId) {
       ? `You've used all ${maxGenerations} AI generations in your plan.`
       : null
   };
+}
+
+// ---- SMS THRESHOLD BILLING ----
+// Charges accumulated SMS costs when they reach the threshold.
+// Called after each SMS is sent. Batches charges to avoid micro-transactions.
+const SMS_BILLING_THRESHOLD_CENTS = 500; // $5.00
+
+export async function checkAndChargeSmsUsage(userId) {
+  try {
+    // Get unbilled SMS costs (messages not yet included in an SMS billing charge)
+    const { data: unbilledMessages } = await supabaseAdmin
+      .from('sms_messages')
+      .select('id, cost_cents')
+      .eq('user_id', userId)
+      .eq('billed', false);
+
+    if (!unbilledMessages || unbilledMessages.length === 0) return { charged: false };
+
+    const totalCents = unbilledMessages.reduce((sum, m) => sum + (m.cost_cents || 0), 0);
+
+    if (totalCents < SMS_BILLING_THRESHOLD_CENTS) {
+      return { charged: false, pendingCents: totalCents, threshold: SMS_BILLING_THRESHOLD_CENTS };
+    }
+
+    // Get saved payment method
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single();
+
+    if (!profile?.stripe_customer_id) {
+      console.warn('SMS billing: no Stripe customer for user', userId);
+      return { charged: false, error: 'No payment method on file' };
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: profile.stripe_customer_id,
+      type: 'card',
+      limit: 1
+    });
+
+    if (paymentMethods.data.length === 0) {
+      console.warn('SMS billing: no payment method for user', userId);
+      return { charged: false, error: 'No payment method on file' };
+    }
+
+    // Charge the accumulated SMS costs
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalCents,
+      currency: 'usd',
+      customer: profile.stripe_customer_id,
+      payment_method: paymentMethods.data[0].id,
+      off_session: true,
+      confirm: true,
+      description: `SMS usage: ${unbilledMessages.length} messages`,
+      metadata: {
+        supabase_user_id: userId,
+        charge_type: 'sms_usage',
+        message_count: String(unbilledMessages.length),
+        total_cents: String(totalCents)
+      }
+    });
+
+    if (paymentIntent.status !== 'succeeded') {
+      console.error('SMS billing: payment failed for user', userId);
+      return { charged: false, error: 'Payment failed' };
+    }
+
+    // Mark messages as billed
+    const messageIds = unbilledMessages.map(m => m.id);
+    await supabaseAdmin
+      .from('sms_messages')
+      .update({ billed: true })
+      .in('id', messageIds);
+
+    // Record in billing history
+    let receiptUrl = null;
+    try {
+      if (paymentIntent.latest_charge) {
+        const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
+        receiptUrl = charge.receipt_url || null;
+      }
+    } catch (e) {}
+
+    await supabaseAdmin.from('billing_history').insert({
+      user_id: userId,
+      stripe_payment_intent_id: paymentIntent.id,
+      amount_cents: totalCents,
+      currency: 'usd',
+      status: 'succeeded',
+      description: `SMS usage: ${unbilledMessages.length} messages`,
+      receipt_url: receiptUrl
+    });
+
+    return { charged: true, amountCents: totalCents, messageCount: unbilledMessages.length };
+  } catch (e) {
+    console.error('SMS billing error:', e.message);
+    return { charged: false, error: e.message };
+  }
 }
