@@ -135,6 +135,7 @@
     .comparison-grid { display: grid; gap: 24px; }
     .comparison-grid.cols-2 { grid-template-columns: 1fr 1fr; }
     .comparison-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .comparison-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
     .comparison-card { background: white; border: 1px solid #eee; border-radius: 12px; overflow: hidden; }
     .comparison-card-header { padding: 12px 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     .comparison-card-header h4 { font-size: 13px; font-weight: 700; }
@@ -142,6 +143,7 @@
     .comparison-card-header .model-badge.haiku { background: #d1ecf1; color: #0c5460; }
     .comparison-card-header .model-badge.sonnet { background: #fff3cd; color: #856404; }
     .comparison-card-header .model-badge.opus { background: #f3e5f5; color: #6a1b9a; }
+    .comparison-card-header .model-badge.hybrid { background: #e8f5e9; color: #2e7d32; }
     .comparison-card-body { padding: 16px; }
     .comparison-card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 16px; background: #f9f9f9; border-top: 1px solid #eee; }
     .comparison-card-stats .stat { text-align: center; }
@@ -567,7 +569,7 @@
               <input type="checkbox" id="compareCheckbox" onclick="event.stopPropagation(); syncCompareMode();">
               <div>
                 <div class="compare-label">Compare All Models</div>
-                <div class="compare-hint">Runs Haiku, Sonnet &amp; Opus in parallel. Shows side-by-side results with cost breakdown.</div>
+                <div class="compare-hint">Runs Haiku, Sonnet, Opus &amp; Hybrid (Haiku→Sonnet polish) in parallel. Side-by-side with cost breakdown.</div>
               </div>
             </div>
 
@@ -1561,7 +1563,8 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     var COMP_MODELS = [
       { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', badge: 'haiku' },
       { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', badge: 'sonnet' },
-      { id: 'claude-opus-4-6', label: 'Opus 4.6', badge: 'opus' }
+      { id: 'claude-opus-4-6', label: 'Opus 4.6', badge: 'opus' },
+      { id: 'hybrid', label: 'Hybrid', badge: 'hybrid', isHybrid: true, draftModel: 'claude-haiku-4-5-20251001', refineModel: 'claude-sonnet-4-6' }
     ];
 
     function getTestEventDetails() {
@@ -1596,9 +1599,10 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
       try {
         if (isCompareMode) {
-          status.textContent = 'Running 3 models in parallel...';
+          var totalModels = COMP_MODELS.length;
+          status.textContent = 'Running ' + totalModels + ' models in parallel...';
           lastTestResult = null;
-          lastComparisonResults = [null, null, null];
+          lastComparisonResults = COMP_MODELS.map(function() { return null; });
 
           // Show comparison grid immediately with loading states
           document.getElementById('comparisonResultSection').style.display = 'block';
@@ -1611,14 +1615,23 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           var completedCount = 0;
           var promises = COMP_MODELS.map(function(m, i) {
             var startTime = Date.now();
-            updateCompCardStatus(i, 'generating', 'Generating...');
+            updateCompCardStatus(i, 'generating', m.isHybrid ? 'Drafting with Haiku...' : 'Generating...');
+
+            // Build request body — hybrid uses different params
+            var reqBody;
+            if (m.isHybrid) {
+              reqBody = { hybrid: { draftModel: m.draftModel, refineModel: m.refineModel }, eventDetails: eventDetails, styleLibraryIds: styleIds };
+            } else {
+              reqBody = { model: m.id, eventDetails: eventDetails, styleLibraryIds: styleIds };
+            }
+
             return fetch('/api/v2/prompt-test', {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ model: m.id, eventDetails: eventDetails, styleLibraryIds: styleIds })
+              body: JSON.stringify(reqBody)
             }).then(function(r) { return r.json(); }).then(function(data) {
               completedCount++;
-              status.textContent = completedCount + '/3 models complete...';
+              status.textContent = completedCount + '/' + totalModels + ' models complete...';
               if (data.success) {
                 var result = { success: true, theme: data.theme, metadata: data.metadata };
                 lastComparisonResults[i] = result;
@@ -1630,7 +1643,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
               }
             }).catch(function(err) {
               completedCount++;
-              status.textContent = completedCount + '/3 models complete...';
+              status.textContent = completedCount + '/' + totalModels + ' models complete...';
               lastComparisonResults[i] = { success: false, model: m.id, error: err.message };
               updateCompCardStatus(i, 'error', err.message);
             });
@@ -1638,7 +1651,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
           await Promise.all(promises);
           renderComparisonSummary(lastComparisonResults);
-          status.textContent = 'Done! All 3 models complete.';
+          status.textContent = 'Done! All ' + totalModels + ' models complete.';
           setTimeout(function() { status.textContent = ''; }, 3000);
         } else {
           status.textContent = 'This may take 15-60s...';
@@ -1671,7 +1684,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     // ── Comparison: render skeleton with loading spinners ──
     function renderComparisonSkeleton() {
       var grid = document.getElementById('comparisonGrid');
-      grid.className = 'comparison-grid cols-3';
+      grid.className = 'comparison-grid cols-' + COMP_MODELS.length;
       grid.innerHTML = COMP_MODELS.map(function(m, i) {
         return '<div class="comparison-card" id="compCard' + i + '">'
           + '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span></div>'
@@ -1720,17 +1733,31 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
     }
 
+    // ── Cost calculation helper ──
+    var COST_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
+    var COST_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
+
+    function calcEstCost(meta) {
+      // Hybrid mode: calculate cost from individual steps
+      if (meta.hybrid) {
+        var d = meta.hybrid.draft, r = meta.hybrid.refine;
+        var draftCost = (d.tokens.input * (COST_IN[d.model] || 0.80) + d.tokens.output * (COST_OUT[d.model] || 4)) / 1000000;
+        var refineCost = (r.tokens.input * (COST_IN[r.model] || 3) + r.tokens.output * (COST_OUT[r.model] || 15)) / 1000000;
+        return draftCost + refineCost;
+      }
+      return (meta.tokens.input * (COST_IN[meta.model] || 3) + meta.tokens.output * (COST_OUT[meta.model] || 15)) / 1000000;
+    }
+
     // ── Comparison: fill in a single card with its result ──
     function renderCompCardResult(idx, result) {
       if (progressTimers[idx]) clearInterval(progressTimers[idx]);
       var m = COMP_MODELS[idx];
       var meta = result.metadata;
-      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
-      var estCost = (meta.tokens.input * (costPerMIn[meta.model] || 3) + meta.tokens.output * (costPerMOut[meta.model] || 15)) / 1000000;
+      var estCost = calcEstCost(meta);
 
       var card = document.getElementById('compCard' + idx);
-      card.innerHTML = '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span></div>'
+      var headerExtra = m.isHybrid ? '<div style="font-size:10px;color:#888;margin-top:2px;">Haiku draft → Sonnet polish</div>' : '';
+      card.innerHTML = '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span>' + headerExtra + '</div>'
         + '<div class="comparison-card-body">'
         + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
         + '</div>'
@@ -1756,14 +1783,11 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
     // ── Comparison summary (after all complete) ──
     function renderComparisonSummary(results) {
-      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
       var totalCost = 0;
       var successCount = 0;
       results.forEach(function(r) {
         if (r && r.success) {
-          var m = r.metadata;
-          totalCost += (m.tokens.input * (costPerMIn[m.model] || 3) + m.tokens.output * (costPerMOut[m.model] || 15)) / 1000000;
+          totalCost += calcEstCost(r.metadata);
           successCount++;
         }
       });
@@ -1779,9 +1803,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       testPreviewMode = 'invite';
 
       var meta = data.metadata;
-      var costPerMIn = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-      var costPerMOut = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
-      var estCost = (meta.tokens.input * (costPerMIn[meta.model] || 3) + meta.tokens.output * (costPerMOut[meta.model] || 15)) / 1000000;
+      var estCost = calcEstCost(meta);
 
       document.getElementById('testMeta').innerHTML =
         '<span>Model: <span class="val">' + shortModelName(meta.model) + '</span></span>' +
@@ -1831,6 +1853,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     }
 
     function shortModelName(model) {
+      if (model && model.indexOf('→') !== -1) return 'Hybrid';
       var names = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-opus-4-6': 'Opus 4.6' };
       return names[model] || model;
     }

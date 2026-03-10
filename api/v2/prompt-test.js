@@ -197,6 +197,19 @@ Build the page with these sections (creative freedom on visual execution):
 3. **EVENT DETAILS** — Icon + text layout for date, time, location.
 4. **RSVP SECTION** — \`.rsvp-slot\` with ONLY a styled \`<button class="rsvp-button">\`.
 
+## RSVP BUTTON — CRITICAL STYLING RULES
+The RSVP button is the most important interactive element on the page. It MUST look polished and intentional:
+- Full-width within its container (width: 100% or at least 280px) — NEVER let it shrink to fit text
+- Min-height: 56px with generous padding (16px 32px minimum)
+- Border-radius that matches the overall design language (8-16px for modern, 28px+ for pill shape)
+- Clear, high-contrast text that is perfectly centered — use flexbox (display:flex; align-items:center; justify-content:center)
+- Font-size: 16-18px, bold/semibold, with optional letter-spacing for elegance
+- NEVER use default browser button styling — always set appearance:none, explicit background, color, border
+- Smooth hover transition (transform scale 1.02-1.05, subtle shadow lift, or color shift)
+- The button must feel like the CLIMAX of the page — the visual payoff of scrolling through the invite
+- Text should be fun and on-theme (e.g., "Count Me In!", "Let's Celebrate!", "I'll Be There!")
+- NEVER overflow, clip, or break layout — test mentally that the button works at 393px viewport width
+
 ## REQUIRED DATA ATTRIBUTES
 - \`data-field="title"\` — on the element containing the event title text
 - \`data-field="datetime"\` — on the container with date/time information
@@ -496,16 +509,161 @@ Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}`;
     };
   }
 
-  // ── TEST GENERATION (single or multi-model) ──
-  const { model, models, eventDetails, styleLibraryIds } = req.body;
+  // ── HYBRID REFINEMENT: take a draft and polish it with a better model ──
+  const REFINE_PROMPT = `You are a senior UI designer reviewing and polishing an AI-generated HTML event invitation. You will receive the complete draft (HTML, CSS, config, thank-you page) and must return an IMPROVED version.
+
+## YOUR TASK
+Fix visual issues and polish the design. Focus on:
+
+1. **RSVP BUTTON** (highest priority):
+   - Must be full-width (width:100% or min 280px), min-height 56px, generous padding (16px 32px)
+   - Perfectly centered text using display:flex; align-items:center; justify-content:center
+   - High contrast, explicit background/color/border (no default browser styling)
+   - Font-size 16-18px, bold, with hover transition
+   - Must NOT overflow, clip, or break layout at 393px viewport
+
+2. **Layout & spacing**: Fix any elements that overlap, clip, or overflow the 393px container. Ensure generous padding (20-24px sides).
+
+3. **Typography**: Ensure all text is readable (min 14px body, WCAG AA contrast). Fix any text that blends into the background.
+
+4. **Overall polish**: Smooth any rough edges — inconsistent border-radius, misaligned elements, awkward spacing.
+
+## RULES
+- Keep the original creative direction, color palette, fonts, and overall aesthetic — you are POLISHING, not redesigning
+- Return the same JSON format with theme_html, theme_css, theme_thankyou_html, theme_config
+- Do NOT add JavaScript
+- Do NOT add form inputs inside .rsvp-slot — it should contain ONLY the button
+- Preserve all data-field attributes and class names
+- Keep animations and decorative elements intact
+
+## OUTPUT FORMAT
+Return a JSON object with exactly these keys:
+{
+  "theme_html": "...",
+  "theme_css": "...",
+  "theme_thankyou_html": "...",
+  "theme_config": { ... }
+}`;
+
+  async function refineWithModel(refineModelId, draftResult) {
+    const startTime = Date.now();
+    const draftJson = JSON.stringify({
+      theme_html: draftResult.theme.html,
+      theme_css: draftResult.theme.css,
+      theme_thankyou_html: draftResult.theme.thankyouHtml,
+      theme_config: draftResult.theme.config
+    });
+
+    const response = await client.messages.create({
+      model: refineModelId,
+      max_tokens: 16384,
+      system: REFINE_PROMPT,
+      messages: [{ role: 'user', content: `Here is the draft invite to polish:\n\n\`\`\`json\n${draftJson}\n\`\`\`` }]
+    });
+
+    const latency = Date.now() - startTime;
+    const contentBlock = response.content[0];
+    let themeText = contentBlock.type === 'text' ? contentBlock.text : '';
+
+    themeText = themeText.trim();
+    const jsonBlockMatch = themeText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (jsonBlockMatch) themeText = jsonBlockMatch[1].trim();
+    if (!themeText.startsWith('{')) {
+      const firstBrace = themeText.indexOf('{');
+      const lastBrace = themeText.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) themeText = themeText.substring(firstBrace, lastBrace + 1);
+    }
+
+    let theme;
+    try {
+      theme = JSON.parse(themeText);
+    } catch (parseErr) {
+      let repaired = themeText;
+      const quoteCount = (repaired.match(/(?<!\\)"/g) || []).length;
+      if (quoteCount % 2 !== 0) repaired += '"';
+      let braceDepth = 0, bracketDepth = 0, inString = false;
+      for (let i = 0; i < repaired.length; i++) {
+        const ch = repaired[i];
+        if (ch === '"' && (i === 0 || repaired[i-1] !== '\\')) inString = !inString;
+        if (!inString) {
+          if (ch === '{') braceDepth++;
+          else if (ch === '}') braceDepth--;
+          else if (ch === '[') bracketDepth++;
+          else if (ch === ']') bracketDepth--;
+        }
+      }
+      for (let i = 0; i < bracketDepth; i++) repaired += ']';
+      for (let i = 0; i < braceDepth; i++) repaired += '}';
+      try {
+        theme = JSON.parse(repaired);
+      } catch (e2) {
+        throw new Error('Failed to parse refined theme JSON: ' + parseErr.message);
+      }
+    }
+
+    if (!theme.theme_html || !theme.theme_css) {
+      throw new Error('Invalid refined theme — missing theme_html or theme_css');
+    }
+
+    return {
+      theme: {
+        html: theme.theme_html,
+        css: theme.theme_css,
+        config: theme.theme_config || draftResult.theme.config,
+        thankyouHtml: theme.theme_thankyou_html || draftResult.theme.thankyouHtml
+      },
+      metadata: {
+        model: refineModelId,
+        latencyMs: latency,
+        tokens: {
+          input: response.usage?.input_tokens || 0,
+          output: response.usage?.output_tokens || 0
+        }
+      }
+    };
+  }
+
+  // ── TEST GENERATION (single, multi-model, or hybrid) ──
+  const { model, models, eventDetails, styleLibraryIds, hybrid } = req.body;
   const isMultiModel = Array.isArray(models) && models.length > 1;
 
-  if (!eventDetails || (!model && !isMultiModel)) {
-    return res.status(400).json({ error: 'eventDetails and model (or models array) are required' });
+  if (!eventDetails || (!model && !isMultiModel && !hybrid)) {
+    return res.status(400).json({ error: 'eventDetails and model (or models array, or hybrid) are required' });
   }
 
   try {
     const userMessage = await buildPromptContext(eventDetails, styleLibraryIds);
+
+    // ── HYBRID MODE: draft with cheap model, refine with better model ──
+    if (hybrid) {
+      const draftModel = hybrid.draftModel || 'claude-haiku-4-5-20251001';
+      const refineModel = hybrid.refineModel || 'claude-sonnet-4-6';
+
+      // Step 1: Generate draft
+      const draftResult = await generateWithModel(draftModel, userMessage);
+
+      // Step 2: Refine with better model
+      const refinedResult = await refineWithModel(refineModel, draftResult);
+
+      // Combine metadata
+      const totalLatency = draftResult.metadata.latencyMs + refinedResult.metadata.latencyMs;
+      const totalInputTokens = draftResult.metadata.tokens.input + refinedResult.metadata.tokens.input;
+      const totalOutputTokens = draftResult.metadata.tokens.output + refinedResult.metadata.tokens.output;
+
+      return res.status(200).json({
+        success: true,
+        theme: refinedResult.theme,
+        metadata: {
+          model: `${draftModel} → ${refineModel}`,
+          latencyMs: totalLatency,
+          tokens: { input: totalInputTokens, output: totalOutputTokens },
+          hybrid: {
+            draft: { model: draftModel, latencyMs: draftResult.metadata.latencyMs, tokens: draftResult.metadata.tokens },
+            refine: { model: refineModel, latencyMs: refinedResult.metadata.latencyMs, tokens: refinedResult.metadata.tokens }
+          }
+        }
+      });
+    }
 
     if (isMultiModel) {
       // Run all models in parallel

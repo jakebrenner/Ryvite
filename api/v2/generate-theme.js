@@ -267,6 +267,19 @@ Build the page with these sections (creative freedom on visual execution):
 3. **EVENT DETAILS** — Icon + text layout for date, time, location. Clear hierarchy, memorable presentation. Can be a high-contrast band, floating card, or creative strip.
 4. **RSVP SECTION** — \`<div class="rsvp-slot"><button class="rsvp-button">...</button></div>\`. The rsvp-slot MUST contain ONLY the button — the platform injects the real form at runtime. Make the button text fun and on-theme.
 
+## RSVP BUTTON — CRITICAL STYLING RULES
+The RSVP button is the most important interactive element on the page. It MUST look polished and intentional:
+- Full-width within its container (width: 100% or at least 280px) — NEVER let it shrink to fit text
+- Min-height: 56px with generous padding (16px 32px minimum)
+- Border-radius that matches the overall design language (8-16px for modern, 28px+ for pill shape)
+- Clear, high-contrast text that is perfectly centered — use flexbox (display:flex; align-items:center; justify-content:center)
+- Font-size: 16-18px, bold/semibold, with optional letter-spacing for elegance
+- NEVER use default browser button styling — always set appearance:none, explicit background, color, border
+- Smooth hover transition (transform scale 1.02-1.05, subtle shadow lift, or color shift)
+- The button must feel like the CLIMAX of the page — the visual payoff of scrolling through the invite
+- Text should be fun and on-theme (e.g., "Count Me In!", "Let's Celebrate!", "I'll Be There!")
+- NEVER overflow, clip, or break layout — test mentally that the button works at 393px viewport width
+
 ## REQUIRED DATA ATTRIBUTES (for platform dynamic content updates)
 - \`data-field="title"\` — on the element containing the event title text
 - \`data-field="datetime"\` — on the container with date/time information
