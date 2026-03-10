@@ -2105,6 +2105,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     function saveMatrixTestRun(idx, combo, data) {
       var meta = data.metadata;
       var eventDetails = getTestEventDetails();
+      var styleIds = getTestStyleIds();
       adminFetch('saveTestRun', {
         method: 'POST',
         body: {
@@ -2112,9 +2113,11 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           model: combo.model,
           eventType: eventDetails.eventType || 'other',
           eventDetails: eventDetails,
+          styleLibraryIds: styleIds,
           resultHtml: data.theme.html,
           resultCss: data.theme.css,
           resultConfig: data.theme.config,
+          resultThankyouHtml: data.theme.thankyouHtml || '',
           inputTokens: meta.tokens ? meta.tokens.input : 0,
           outputTokens: meta.tokens ? meta.tokens.output : 0,
           latencyMs: meta.latencyMs || 0

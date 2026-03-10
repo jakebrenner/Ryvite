@@ -57,7 +57,7 @@ The backend lives in Google Apps Script and is **not auto-deployed** from this r
 | Table | Purpose |
 |-------|---------|
 | `prompt_versions` | Versioned creative prompts for invite generation. One active version drives production. |
-| `prompt_test_runs` | Admin lab test results — stores full generated output (HTML/CSS/config), model, tokens, latency, 1-5 score, notes |
+| `prompt_test_runs` | Admin lab test results — stores full generated output (HTML/CSS/config/thankyou), model, tokens, latency, style_library_ids, 1-5 score, notes |
 
 ### Admin Ratings (`supabase/migrate_admin_ratings.sql`)
 Adds `admin_rating`, `admin_notes`, `rated_by`, `rated_at` columns to both `style_library` and `event_themes`.
@@ -66,6 +66,14 @@ Also adds `times_used` to `style_library` and `prompt_version_id` to `event_them
 | View | Purpose |
 |------|---------|
 | `admin_theme_quality` | Aggregated admin quality ratings across all generated themes, grouped by prompt version and model |
+
+### Test Run Metadata (`supabase/migrate_test_run_metadata.sql`)
+Adds `style_library_ids` (text[]) and `result_thankyou_html` to `prompt_test_runs` for full generation metadata tracking.
+
+| View | Purpose |
+|------|---------|
+| `test_run_analytics` | Comprehensive test run performance by prompt version, model, and event type |
+| `style_effectiveness` | How effective each style library item is as a generation reference — correlates style usage with output quality ratings |
 
 ### User-Facing Ratings (`supabase/migrate_invite_ratings.sql`)
 | Table | Purpose |
@@ -125,7 +133,7 @@ All endpoints require `Authorization: Bearer <token>` and use `?action=<name>`.
 - `saveTestRun` (POST) — save a lab test result, returns `{testRunId}` for later score updates
 - `listTestRuns` (GET, `?promptVersionId=&limit=`) — list test runs
 - `updateTestRunScore` (POST, `{testRunId, score, notes}`) — update rating on a test run
-- `testRunStats` (GET) — aggregated reporting: by prompt, by model, by combo, by event type, score distribution
+- `testRunStats` (GET) — aggregated reporting: by prompt, by model, by combo, by event type, by style reference, score distribution
 
 ### Admin Ratings (Styles + Themes)
 - `rateStyle` (POST, `{styleId, rating, notes}`) — rate a style library item 1-5 (affects weighted selection)

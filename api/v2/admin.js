@@ -882,27 +882,48 @@ export default async function handler(req, res) {
     if (action === 'saveTestRun') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-      const { promptVersionId, model, eventType, eventDetails: testEventDetails, resultHtml, resultCss, resultConfig, inputTokens, outputTokens, latencyMs, score, notes } = req.body;
+      const { promptVersionId, model, eventType, eventDetails: testEventDetails, resultHtml, resultCss, resultConfig, resultThankyouHtml, styleLibraryIds, inputTokens, outputTokens, latencyMs, score, notes } = req.body;
 
-      const { data: insertedRun, error } = await supabaseAdmin
+      const insertData = {
+        prompt_version_id: promptVersionId || null,
+        model: model || 'unknown',
+        event_type: eventType || 'other',
+        event_details: testEventDetails || {},
+        result_html: resultHtml || '',
+        result_css: resultCss || '',
+        result_config: resultConfig || {},
+        input_tokens: inputTokens || 0,
+        output_tokens: outputTokens || 0,
+        latency_ms: latencyMs || 0,
+        score: score || null,
+        notes: notes || '',
+        created_by: admin.email
+      };
+
+      // Add metadata fields (gracefully skip if columns don't exist yet)
+      if (Array.isArray(styleLibraryIds) && styleLibraryIds.length > 0) {
+        insertData.style_library_ids = styleLibraryIds;
+      }
+      if (resultThankyouHtml) {
+        insertData.result_thankyou_html = resultThankyouHtml;
+      }
+
+      let { data: insertedRun, error } = await supabaseAdmin
         .from('prompt_test_runs')
-        .insert({
-          prompt_version_id: promptVersionId || null,
-          model: model || 'unknown',
-          event_type: eventType || 'other',
-          event_details: testEventDetails || {},
-          result_html: resultHtml || '',
-          result_css: resultCss || '',
-          result_config: resultConfig || {},
-          input_tokens: inputTokens || 0,
-          output_tokens: outputTokens || 0,
-          latency_ms: latencyMs || 0,
-          score: score || null,
-          notes: notes || '',
-          created_by: admin.email
-        })
+        .insert(insertData)
         .select('id')
         .single();
+
+      // Retry without new columns if migration hasn't been run
+      if (error && (error.message?.includes('style_library_ids') || error.message?.includes('result_thankyou_html'))) {
+        delete insertData.style_library_ids;
+        delete insertData.result_thankyou_html;
+        ({ data: insertedRun, error } = await supabaseAdmin
+          .from('prompt_test_runs')
+          .insert(insertData)
+          .select('id')
+          .single());
+      }
 
       if (error) return res.status(500).json({ error: 'Failed to save test run: ' + error.message });
 
@@ -955,7 +976,7 @@ export default async function handler(req, res) {
       // Get all scored test runs with prompt version info
       const { data: runs, error } = await supabaseAdmin
         .from('prompt_test_runs')
-        .select('id, prompt_version_id, model, event_type, score, input_tokens, output_tokens, latency_ms, created_at')
+        .select('id, prompt_version_id, model, event_type, score, input_tokens, output_tokens, latency_ms, style_library_ids, created_at')
         .not('score', 'is', null)
         .order('created_at', { ascending: false });
 
@@ -1054,6 +1075,41 @@ export default async function handler(req, res) {
       const distribution = [0, 0, 0, 0, 0]; // index 0=1star, 4=5star
       scoredRuns.forEach(r => { if (r.score >= 1 && r.score <= 5) distribution[r.score - 1]++; });
 
+      // By style library item — which reference styles correlate with higher scores
+      const byStyle = {};
+      scoredRuns.forEach(r => {
+        const ids = r.style_library_ids;
+        if (!Array.isArray(ids)) return;
+        ids.forEach(styleId => {
+          if (!byStyle[styleId]) byStyle[styleId] = { scores: [], count: 0 };
+          byStyle[styleId].scores.push(r.score);
+          byStyle[styleId].count++;
+        });
+      });
+
+      // Fetch style names for mapping
+      const styleIds = Object.keys(byStyle);
+      let styleNameMap = {};
+      if (styleIds.length > 0) {
+        const { data: styles } = await supabaseAdmin
+          .from('style_library')
+          .select('id, name')
+          .in('id', styleIds);
+        (styles || []).forEach(s => { styleNameMap[s.id] = s.name; });
+      }
+
+      const styleStats = Object.entries(byStyle).map(([id, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        return {
+          styleId: id,
+          styleName: styleNameMap[id] || id,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          highQuality: data.scores.filter(s => s >= 4).length,
+          lowQuality: data.scores.filter(s => s <= 2).length
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
       return res.status(200).json({
         success: true,
         stats: {
@@ -1063,7 +1119,8 @@ export default async function handler(req, res) {
           byPrompt: promptStats,
           byModel: modelStats,
           byCombo: comboStats,
-          byEventType: eventTypeStats
+          byEventType: eventTypeStats,
+          byStyle: styleStats
         }
       });
     }
