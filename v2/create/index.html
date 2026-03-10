@@ -1419,6 +1419,13 @@
           + '</div>';
       }
 
+      // Build a suggested style prompt from conversation context
+      var styleParts = [];
+      if (extractedData.prompt) styleParts.push(extractedData.prompt);
+      if (extractedData.tagline) styleParts.push('Tagline: "' + extractedData.tagline + '"');
+      if (extractedData.description && !extractedData.prompt) styleParts.push(extractedData.description);
+      var prefillStyle = styleParts.join('\n');
+
       var card = document.createElement('div');
       card.className = 'chat-bubble assistant';
       card.id = 'customStyleCard';
@@ -1427,6 +1434,9 @@
         : 'Describe the mood, colors, and style you\'re going for.';
       card.innerHTML = '<div style="margin-bottom:12px;">' + stylePromptLabel + '</div>'
         + '<textarea id="customStyleText" placeholder="e.g., Modern minimalist with gold accents and a warm, elegant feel..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:Inter,sans-serif;min-height:80px;resize:none;margin-bottom:10px;box-sizing:border-box;"></textarea>'
+
+      card.innerHTML = '<div style="margin-bottom:12px;">' + (prefillStyle ? 'Here\'s what I picked up from our chat — feel free to edit, add more detail, or upload inspiration images!' : 'Describe the mood, colors, and style you\'re going for. You can also upload photos and inspiration images!') + '</div>'
+        + '<textarea id="customStyleText" placeholder="e.g., Modern minimalist with gold accents and a warm, elegant feel..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:Inter,sans-serif;min-height:80px;resize:none;margin-bottom:10px;box-sizing:border-box;">' + escapeHtml(prefillStyle) + '</textarea>'
         + '<div style="margin-bottom:12px;">'
         + '<div class="example-chips" style="margin-top:0;">'
         + '<button class="chip" onclick="addToCustomStyle(\'Elegant and luxurious with gold accents\')">Elegant + Gold</button>'

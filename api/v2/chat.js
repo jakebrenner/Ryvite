@@ -37,7 +37,7 @@ Extract event information from casual conversation. Ask follow-up questions for 
 
 ## OPTIONAL FIELDS (gather naturally, don't block)
 - description, endDate, locationAddress, dressCode, hostName
-- prompt: Creative direction / vibe for the AI designer
+- prompt: Creative direction / vibe for the AI invite designer. Capture ALL theme-relevant details the user mentions: favorite teams, colors, hobbies, interests, specific references (e.g. "Aston Martin F1 theme", "tropical vibes", "rustic barn feel"). This field is used to prefill the style input, so be detailed and specific.
 - tagline: A catchy phrase for the invite (e.g. "Two Wild!" for a 2nd birthday, "She Said Yes!" for engagement)
 
 ## EVENT TYPE INFERENCE
