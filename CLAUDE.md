@@ -44,13 +44,13 @@ The backend lives in Google Apps Script and is **not auto-deployed** from this r
 |-------|---------|
 | `profiles` | User profiles extending Supabase auth.users (id, email, tier) |
 | `events` | Core event data — one row per event (title, date, location, slug, status) |
-| `event_themes` | AI-generated invite designs, versioned per event (html, css, config, model) |
+| `event_themes` | AI-generated invite designs, versioned per event (html, css, config, model, admin_rating, prompt_version_id) |
 | `event_custom_fields` | Custom RSVP form field definitions per event |
 | `guests` | Invitees and RSVP responses (name, email, phone, status, response_data) |
 | `event_collaborators` | Multi-admin access per event |
 | `generation_log` | AI generation audit trail and rate-limit source |
 | `notification_log` | SMS/email notification tracking |
-| `style_library` | HTML invite samples used as AI design references |
+| `style_library` | HTML invite samples used as AI design references (admin_rating drives weighted selection) |
 | `app_config` | Global application settings |
 
 ### Prompt Version Control (`supabase/migrate_prompt_versions.sql`)
@@ -58,6 +58,14 @@ The backend lives in Google Apps Script and is **not auto-deployed** from this r
 |-------|---------|
 | `prompt_versions` | Versioned creative prompts for invite generation. One active version drives production. |
 | `prompt_test_runs` | Admin lab test results — stores full generated output (HTML/CSS/config), model, tokens, latency, 1-5 score, notes |
+
+### Admin Ratings (`supabase/migrate_admin_ratings.sql`)
+Adds `admin_rating`, `admin_notes`, `rated_by`, `rated_at` columns to both `style_library` and `event_themes`.
+Also adds `times_used` to `style_library` and `prompt_version_id` to `event_themes`.
+
+| View | Purpose |
+|------|---------|
+| `admin_theme_quality` | Aggregated admin quality ratings across all generated themes, grouped by prompt version and model |
 
 ### User-Facing Ratings (`supabase/migrate_invite_ratings.sql`)
 | Table | Purpose |
@@ -113,29 +121,48 @@ All endpoints require `Authorization: Bearer <token>` and use `?action=<name>`.
 - `activatePromptVersion` (POST, `{versionId}`) — set as active (deactivates others)
 - `deletePromptVersion` (POST, `{versionId}`) — cannot delete active version
 
-### Test Runs & Ratings
+### Test Runs & Lab Ratings
 - `saveTestRun` (POST) — save a lab test result, returns `{testRunId}` for later score updates
 - `listTestRuns` (GET, `?promptVersionId=&limit=`) — list test runs
 - `updateTestRunScore` (POST, `{testRunId, score, notes}`) — update rating on a test run
 - `testRunStats` (GET) — aggregated reporting: by prompt, by model, by combo, by event type, score distribution
+
+### Admin Ratings (Styles + Themes)
+- `rateStyle` (POST, `{styleId, rating, notes}`) — rate a style library item 1-5 (affects weighted selection)
+- `listThemes` (GET) — browse all generated themes with pagination + filters:
+  - `?page=&limit=` — pagination (default 20, max 100)
+  - `?ratingFilter=unrated|rated|1|2|3|4|5` — filter by admin rating
+  - `?model=` — filter by Claude model
+  - `?eventType=` — filter by event type
+  - `?promptVersionId=` — filter by prompt version
+  - `?sortBy=created_at|admin_rating|latency_ms&sortDir=asc|desc` — sorting
+  - Returns: themes with event info, prompt version label, admin rating data
+- `rateTheme` (POST, `{themeId, rating, notes}`) — rate a generated theme 1-5
+- `themeQualityStats` (GET) — aggregated admin quality stats across all rated themes (by model, by prompt version, score distribution)
 
 ### Prompt Test API (`api/v2/prompt-test.js`)
 - POST with `{model, eventDetails, styleLibraryIds, promptVersionId?}` — generates a test invite
 - If `promptVersionId` is provided, loads that version's creative_direction from DB
 - If omitted, uses the hardcoded default prompt
 
-## Ratings: Admin vs User-Facing
+## Rating Systems (3 levels)
 
-There are **two separate rating systems**:
+| | Lab Ratings | Admin Theme Ratings | User-Facing Ratings |
+|---|---|---|---|
+| **Table** | `prompt_test_runs.score` | `event_themes.admin_rating` | `invite_ratings` |
+| **Who rates** | Admin in Prompt Lab | Admin reviewing all generations | Hosts and guests (end users) |
+| **What's rated** | Test generations (may never go live) | All real user-generated themes | Live invite designs |
+| **Purpose** | Compare prompt×model combos | Track real-world generation quality | End-user satisfaction |
+| **Feeds into** | Prompt version decisions | `admin_theme_quality` view, quality trends | `theme_rating_summary` view |
+| **Auth required** | Admin token | Admin token | None (dedup by fingerprint) |
+| **Status** | Implemented | API ready, admin UI not yet built | Schema ready, UI not yet built |
 
-| | Admin Lab Ratings | User-Facing Ratings |
-|---|---|---|
-| **Table** | `prompt_test_runs.score` | `invite_ratings` |
-| **Who rates** | Admin team in Prompt Lab | Hosts and guests (end users) |
-| **What's rated** | Test generations (may never go live) | Live invite designs (`event_themes`) |
-| **Purpose** | Compare prompt×model combos | Measure real-world design quality |
-| **Auth required** | Admin token | None (anonymous OK, dedup by fingerprint) |
-| **Status** | Implemented | Schema ready, UI not yet built |
+### Style Library Weighted Selection
+- `style_library.admin_rating` (1-5) drives weighted random selection during generation
+- Weight formula: rating value = weight multiplier (5-star = 5x, 1-star = 1x, unrated = 2x neutral)
+- Higher-rated styles are more likely to be picked as references, but selection is probabilistic (not deterministic)
+- `style_library.times_used` tracks how often each style is selected (for identifying over/under-used styles)
+- `event_themes.prompt_version_id` tracks which prompt version produced each theme (set at generation time)
 
 ## Development Notes
 

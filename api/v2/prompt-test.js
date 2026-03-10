@@ -134,6 +134,30 @@ function extractStyleEssence(html) {
   return summary;
 }
 
+// Weighted random selection: admin_rating acts as a weight multiplier
+// Rating 5 = 5x weight, Rating 1 = 1x, Unrated = 2x (neutral)
+function weightedStylePick(items, count) {
+  if (items.length <= count) return items;
+  const weighted = items.map(item => ({
+    item,
+    weight: item.admin_rating || 2
+  }));
+  const selected = [];
+  const remaining = [...weighted];
+  for (let i = 0; i < count && remaining.length > 0; i++) {
+    const totalWeight = remaining.reduce((sum, w) => sum + w.weight, 0);
+    let rand = Math.random() * totalWeight;
+    let pick = remaining[0];
+    for (const w of remaining) {
+      rand -= w.weight;
+      if (rand <= 0) { pick = w; break; }
+    }
+    selected.push(pick.item);
+    remaining.splice(remaining.indexOf(pick), 1);
+  }
+  return selected;
+}
+
 // Build style context for prompt injection
 function buildStyleContext(selected, promptSpecificity) {
   const isHighSpecificity = (promptSpecificity || 0) >= 0.5;
@@ -379,14 +403,18 @@ Use realistic names, venues, and addresses. Make the design prompt vivid and spe
         }
       }
 
+      // Fetch more candidates than needed for weighted selection by admin_rating
+      const fetchLimit = Math.max((autoRefLimit + seenIds.size) * 3, 6);
       const { data: autoData } = await supabaseAdmin
         .from('style_library')
         .select('*')
         .contains('event_types', [eventType])
-        .limit(autoRefLimit + seenIds.size);
-      for (const row of (autoData || [])) {
-        if (selected.length >= (styleLibraryIds?.length || 0) + autoRefLimit) break;
-        if (seenIds.has(row.id)) continue;
+        .order('admin_rating', { ascending: false, nullsFirst: false })
+        .limit(fetchLimit);
+      // Filter out already-selected, then weighted pick
+      const candidates = (autoData || []).filter(row => !seenIds.has(row.id));
+      const autoPicks = weightedStylePick(candidates, autoRefLimit);
+      for (const row of autoPicks) {
         selected.push({ name: row.name, description: row.description, html: row.html, eventTypes: row.event_types || [], designNotes: row.design_notes });
         seenIds.add(row.id);
       }

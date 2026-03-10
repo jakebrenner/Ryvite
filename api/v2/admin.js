@@ -1068,6 +1068,149 @@ export default async function handler(req, res) {
       });
     }
 
+    // ════════════════════════════════════════════════
+    // ADMIN RATINGS — Style Library + Event Themes
+    // ════════════════════════════════════════════════
+
+    // ---- RATE A STYLE LIBRARY ITEM ----
+    if (action === 'rateStyle') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { styleId, rating, notes } = req.body;
+      if (!styleId) return res.status(400).json({ error: 'styleId required' });
+      if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating must be 1-5' });
+
+      const { error } = await supabaseAdmin
+        .from('style_library')
+        .update({ admin_rating: rating, admin_notes: notes || '', rated_by: admin.email, rated_at: new Date().toISOString() })
+        .eq('id', styleId);
+
+      if (error) return res.status(500).json({ error: 'Failed to rate: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- BROWSE ALL EVENT THEMES (with pagination + filters) ----
+    if (action === 'listThemes') {
+      const page = parseInt(req.query.page) || 1;
+      const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+      const offset = (page - 1) * limit;
+      const ratingFilter = req.query.ratingFilter; // 'unrated', 'rated', '1', '2', '3', '4', '5'
+      const modelFilter = req.query.model;
+      const eventTypeFilter = req.query.eventType;
+      const promptVersionFilter = req.query.promptVersionId;
+      const sortBy = req.query.sortBy || 'created_at'; // 'created_at', 'admin_rating', 'latency_ms'
+      const sortDir = req.query.sortDir === 'asc' ? true : false;
+
+      let query = supabaseAdmin
+        .from('event_themes')
+        .select('id, event_id, version, is_active, html, css, config, model, input_tokens, output_tokens, latency_ms, admin_rating, admin_notes, rated_by, rated_at, prompt_version_id, created_at, events!inner(title, event_type, slug)', { count: 'exact' });
+
+      if (ratingFilter === 'unrated') query = query.is('admin_rating', null);
+      else if (ratingFilter === 'rated') query = query.not('admin_rating', 'is', null);
+      else if (['1','2','3','4','5'].includes(ratingFilter)) query = query.eq('admin_rating', parseInt(ratingFilter));
+
+      if (modelFilter) query = query.eq('model', modelFilter);
+      if (promptVersionFilter) query = query.eq('prompt_version_id', promptVersionFilter);
+      if (eventTypeFilter) query = query.eq('events.event_type', eventTypeFilter);
+
+      query = query.order(sortBy, { ascending: sortDir }).range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+      if (error) return res.status(400).json({ error: error.message });
+
+      // Get prompt version names for display
+      const pvIds = [...new Set((data || []).map(t => t.prompt_version_id).filter(Boolean))];
+      let pvMap = {};
+      if (pvIds.length > 0) {
+        const { data: pvs } = await supabaseAdmin.from('prompt_versions').select('id, version, name').in('id', pvIds);
+        (pvs || []).forEach(v => { pvMap[v.id] = `v${v.version} – ${v.name}`; });
+      }
+
+      const themes = (data || []).map(t => ({
+        ...t,
+        eventTitle: t.events?.title || '',
+        eventType: t.events?.event_type || '',
+        eventSlug: t.events?.slug || '',
+        promptVersionLabel: t.prompt_version_id ? (pvMap[t.prompt_version_id] || 'Unknown') : 'Default',
+        events: undefined
+      }));
+
+      return res.status(200).json({ success: true, themes, total: count || 0, page, limit });
+    }
+
+    // ---- RATE AN EVENT THEME ----
+    if (action === 'rateTheme') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { themeId, rating, notes } = req.body;
+      if (!themeId) return res.status(400).json({ error: 'themeId required' });
+      if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating must be 1-5' });
+
+      const { error } = await supabaseAdmin
+        .from('event_themes')
+        .update({ admin_rating: rating, admin_notes: notes || '', rated_by: admin.email, rated_at: new Date().toISOString() })
+        .eq('id', themeId);
+
+      if (error) return res.status(500).json({ error: 'Failed to rate: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- THEME QUALITY STATS (across all real generations) ----
+    if (action === 'themeQualityStats') {
+      const { data: themes, error } = await supabaseAdmin
+        .from('event_themes')
+        .select('id, model, admin_rating, prompt_version_id, latency_ms, input_tokens, output_tokens, created_at')
+        .not('admin_rating', 'is', null);
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      const rated = themes || [];
+      const totalRated = rated.length;
+
+      // Get prompt version names
+      const { data: versions } = await supabaseAdmin.from('prompt_versions').select('id, version, name');
+      const vMap = {};
+      (versions || []).forEach(v => { vMap[v.id] = `v${v.version} – ${v.name}`; });
+
+      // By model
+      const byModel = {};
+      rated.forEach(t => {
+        const m = t.model || 'unknown';
+        if (!byModel[m]) byModel[m] = { scores: [], count: 0 };
+        byModel[m].scores.push(t.admin_rating);
+        byModel[m].count++;
+      });
+      const modelStats = Object.entries(byModel).map(([model, d]) => ({
+        model, avgScore: Math.round(d.scores.reduce((a,b) => a+b, 0) / d.scores.length * 100) / 100, count: d.count
+      })).sort((a,b) => b.avgScore - a.avgScore);
+
+      // By prompt version
+      const byPv = {};
+      rated.forEach(t => {
+        const k = t.prompt_version_id || 'default';
+        if (!byPv[k]) byPv[k] = { scores: [], count: 0 };
+        byPv[k].scores.push(t.admin_rating);
+        byPv[k].count++;
+      });
+      const pvStats = Object.entries(byPv).map(([id, d]) => ({
+        promptLabel: id === 'default' ? 'Hardcoded Default' : (vMap[id] || 'Unknown'),
+        avgScore: Math.round(d.scores.reduce((a,b) => a+b, 0) / d.scores.length * 100) / 100, count: d.count
+      })).sort((a,b) => b.avgScore - a.avgScore);
+
+      // Distribution
+      const distribution = [0, 0, 0, 0, 0];
+      rated.forEach(t => { if (t.admin_rating >= 1 && t.admin_rating <= 5) distribution[t.admin_rating - 1]++; });
+
+      return res.status(200).json({
+        success: true,
+        stats: {
+          totalRated,
+          overallAvg: totalRated > 0 ? Math.round(rated.reduce((a,t) => a + t.admin_rating, 0) / totalRated * 100) / 100 : 0,
+          distribution,
+          byModel: modelStats,
+          byPrompt: pvStats
+        }
+      });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
   } catch (err) {
     console.error('Admin API error:', err);

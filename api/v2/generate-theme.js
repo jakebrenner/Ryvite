@@ -30,12 +30,13 @@ async function getActivePrompt() {
   try {
     const { data, error } = await supabase
       .from('prompt_versions')
-      .select('creative_direction, design_dna')
+      .select('id, creative_direction, design_dna')
       .eq('is_active', true)
       .single();
 
     if (!error && data?.creative_direction) {
       return {
+        promptVersionId: data.id,
         systemPrompt: STRUCTURAL_RULES + '\n\n' + data.creative_direction,
         designDna: (typeof data.design_dna === 'object' && Object.keys(data.design_dna).length > 0)
           ? data.design_dna
@@ -44,7 +45,7 @@ async function getActivePrompt() {
     }
   } catch {}
   // Fallback to hardcoded
-  return { systemPrompt: SYSTEM_PROMPT, designDna: DESIGN_DNA };
+  return { promptVersionId: null, systemPrompt: SYSTEM_PROMPT, designDna: DESIGN_DNA };
 }
 
 async function getThemeModel() {
@@ -473,20 +474,53 @@ function buildStyleContext(selected, promptSpecificity) {
 async function loadStyleReferences(eventType, promptSpecificity = 0) {
   try {
     const limit = promptSpecificity >= 0.5 ? 1 : 2;
+    // Fetch more candidates than needed so we can weight by admin_rating
+    const fetchLimit = Math.max(limit * 3, 6);
     const { data } = await supabase
       .from('style_library')
       .select('*')
       .contains('event_types', [eventType])
-      .limit(limit);
+      .order('admin_rating', { ascending: false, nullsFirst: false })
+      .limit(fetchLimit);
     if (!data || data.length === 0) return '';
-    const matched = data.map(row => ({
+    // Weighted selection: higher-rated styles get picked more often
+    const selected = weightedStylePick(data, limit);
+    const matched = selected.map(row => ({
       name: row.name, description: row.description, html: row.html,
       eventTypes: row.event_types || [], designNotes: row.design_notes
     }));
+    // Track usage (fire and forget)
+    selected.forEach(row => {
+      supabase.from('style_library').update({ times_used: (row.times_used || 0) + 1 }).eq('id', row.id).then(() => {});
+    });
     return buildStyleContext(matched, promptSpecificity);
   } catch {
     return '';
   }
+}
+
+// Weighted random selection: admin_rating acts as a weight multiplier
+// Rating 5 = 5x weight, Rating 1 = 1x, Unrated = 2x (neutral)
+function weightedStylePick(items, count) {
+  if (items.length <= count) return items;
+  const weighted = items.map(item => ({
+    item,
+    weight: item.admin_rating || 2
+  }));
+  const selected = [];
+  const remaining = [...weighted];
+  for (let i = 0; i < count && remaining.length > 0; i++) {
+    const totalWeight = remaining.reduce((sum, w) => sum + w.weight, 0);
+    let rand = Math.random() * totalWeight;
+    let pick = remaining[0];
+    for (const w of remaining) {
+      rand -= w.weight;
+      if (rand <= 0) { pick = w; break; }
+    }
+    selected.push(pick.item);
+    remaining.splice(remaining.indexOf(pick), 1);
+  }
+  return selected;
 }
 
 // Assess how specific the user's creative prompt is (0-1 score)
@@ -819,7 +853,8 @@ Return ONLY a valid JSON object with these keys:
           model: themeModel,
           input_tokens: finalMessage.usage?.input_tokens || 0,
           output_tokens: finalMessage.usage?.output_tokens || 0,
-          latency_ms: latency
+          latency_ms: latency,
+          prompt_version_id: activePrompt.promptVersionId || null
         })
         .select()
         .single();
@@ -1028,7 +1063,8 @@ ${rsvpFieldsDesc}`;
         model: themeModel,
         input_tokens: response.usage?.input_tokens || 0,
         output_tokens: response.usage?.output_tokens || 0,
-        latency_ms: latency
+        latency_ms: latency,
+        prompt_version_id: activePrompt.promptVersionId || null
       })
       .select()
       .single();
