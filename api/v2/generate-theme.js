@@ -360,15 +360,13 @@ Rules:
 - EVERY piece of text must have sufficient contrast against its background (WCAG AA minimum)
 - NEVER put light text on light backgrounds or dark text on dark backgrounds
 - When using background images or gradients, add a semi-transparent overlay or text-shadow
-- Button text MUST contrast against the button background color`;
+- Button text MUST contrast against the button background color
 
 ### CONCRETE CONTRAST RULES FOR EACH SECTION:
 - **Event details band** (date, time, location): If the band background is dark (green, navy, black, charcoal, etc.), the text color MUST be white or very light. If the band is light, text MUST be dark. NEVER use a warm/muted color like coral, salmon, or rose on a dark background — it will be unreadable.
 - **Hero section**: If the background is dark or uses a dark gradient, title and subtitle text MUST be white/cream/very light.
 - **RSVP section**: Button text must be white on dark buttons or dark on light buttons. No exceptions.
-- **SIMPLE RULE**: For ANY section with a colored/dark background, set the text color to #FFFFFF or #FAFAFA. For any section with a light/white background, set text to #1A1A1A or darker. Do NOT try to match text color to theme accent colors on dark backgrounds — it almost always fails contrast.
-
-## WHAT KILLS A GOOD INVITE
+- **SIMPLE RULE**: For ANY section with a colored/dark background, set the text color to #FFFFFF or #FAFAFA. For any section with a light/white background, set text to #1A1A1A or darker. Do NOT try to match text color to theme accent colors on dark backgrounds — it almost always fails contrast.`;
 
 // ═══════════════════════════════════════════════════════════════════
 // DEFAULT CREATIVE DIRECTION — The editable creative layer.
