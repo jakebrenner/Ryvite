@@ -381,6 +381,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
       <button class="tab" data-tab="users" onclick="switchTab('users')">Users</button>
+      <button class="tab" data-tab="pricing" onclick="switchTab('pricing');loadPricingTiers();">Pricing</button>
       <button class="tab" data-tab="subscriptions" onclick="switchTab('subscriptions');loadSubscriptions();">Billing</button>
       <button class="tab" data-tab="coupons" onclick="switchTab('coupons');loadCoupons();">Coupons</button>
       <button class="tab" data-tab="settings" onclick="switchTab('settings')">AI Models</button>
@@ -665,6 +666,93 @@
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Pricing Tiers Tab -->
+    <div class="tab-content" id="tab-pricing">
+      <div class="config-section">
+        <h3 style="display:flex;justify-content:space-between;align-items:center;">
+          Pricing Tiers
+          <button class="btn btn-primary btn-sm" onclick="showCreatePlanModal()">+ New Tier</button>
+        </h3>
+        <p style="font-size:13px;color:#888;margin-bottom:16px;">Manage pricing plans and their limits. Changes sync to Stripe automatically.</p>
+        <div id="pricingTiersList"></div>
+      </div>
+    </div>
+
+    <!-- Plan Modal (create/edit) -->
+    <div id="planModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:12px;padding:32px;max-width:560px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 id="planModalTitle" style="margin-bottom:20px;">Create New Tier</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="config-field">
+            <label>Plan Slug (unique ID)</label>
+            <input type="text" id="planSlug" placeholder="e.g. per_event" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+            <div class="hint">Lowercase, underscores only. Cannot change later.</div>
+          </div>
+          <div class="config-field">
+            <label>Display Name</label>
+            <input type="text" id="planDisplayName" placeholder="e.g. Per Event" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+          </div>
+          <div class="config-field" style="grid-column:1/-1;">
+            <label>Description</label>
+            <input type="text" id="planDescription" placeholder="Short description" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+          </div>
+          <div class="config-field">
+            <label>Price (cents)</label>
+            <input type="number" id="planPriceCents" placeholder="699" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+            <div class="hint">699 = $6.99</div>
+          </div>
+          <div class="config-field">
+            <label>Sort Order</label>
+            <input type="number" id="planSortOrder" value="0" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+          </div>
+          <div class="config-field">
+            <label>Max Events</label>
+            <input type="number" id="planMaxEvents" placeholder="1" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+            <div class="hint">Events included in this tier</div>
+          </div>
+          <div class="config-field">
+            <label>Max Generations / Event</label>
+            <input type="number" id="planMaxGenerations" placeholder="20" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+          </div>
+          <div class="config-field">
+            <label>Max SMS / Event</label>
+            <input type="number" id="planMaxSms" placeholder="Unlimited" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+            <div class="hint">Leave empty for unlimited</div>
+          </div>
+          <div class="config-field">
+            <label>SMS Price (cents/msg)</label>
+            <input type="number" id="planSmsPriceCents" placeholder="10" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+            <div class="hint">10 = $0.10 per SMS</div>
+          </div>
+          <div class="config-field" style="grid-column:1/-1;">
+            <label>Features (one per line)</label>
+            <textarea id="planFeatures" rows="4" placeholder="AI-designed invite&#10;Unlimited RSVPs&#10;Guest tracking" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;resize:vertical;"></textarea>
+          </div>
+          <div class="config-field" style="grid-column:1/-1;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="planCreateStripe" checked style="width:16px;height:16px;" />
+              Create Stripe Product &amp; Price automatically
+            </label>
+            <div class="hint">Creates a linked product in your Stripe account</div>
+          </div>
+          <div class="config-field">
+            <label>Stripe Product ID (optional)</label>
+            <input type="text" id="planStripeProductId" placeholder="prod_..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+            <div class="hint">Leave empty to auto-create</div>
+          </div>
+          <div class="config-field">
+            <label>Stripe Price ID (optional)</label>
+            <input type="text" id="planStripePriceId" placeholder="price_..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;" />
+            <div class="hint">Leave empty to auto-create</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;padding-top:16px;border-top:1px solid #eee;">
+          <button class="btn btn-secondary" onclick="closePlanModal()">Cancel</button>
+          <button class="btn btn-primary" id="planSaveBtn" onclick="savePlan()">Create Tier</button>
+        </div>
       </div>
     </div>
 
@@ -1414,6 +1502,8 @@
         loadConfig();
         loadAdmins();
         loadStyleLibrary();
+        // Preload plans for tier dropdowns
+        adminFetch('listPlans').then(function(r) { allPlans = (r && r.plans) || []; }).catch(function() {});
       } catch (err) {
         var denied = document.getElementById('accessDenied');
         if (err.message && err.message.indexOf('Server error') !== -1) {
@@ -1972,22 +2062,42 @@
       profileEditMode = false;
       document.getElementById('udProfileEditBtn').textContent = 'Edit';
       document.getElementById('udProfileEditBtn').className = 'btn btn-secondary btn-sm';
-      var tierClass = u.tier === 'pro' ? 'badge-blue' : u.tier === 'business' ? 'badge-green' : 'badge-gray';
+      var tierClass = u.tier === 'free' ? 'badge-gray' : 'badge-blue';
+      var tierDisplay = u.tier;
+      // Show the display name from plans if available
+      var matchedPlan = allPlans.find(function(p) { return p.name === u.tier; });
+      if (matchedPlan) tierDisplay = matchedPlan.displayName;
+      else if (u.tier === 'free') tierDisplay = 'Free';
+
       document.getElementById('udProfileInfo').innerHTML =
         detailItem('Display Name', escapeHtml(u.displayName || '—'))
         + detailItem('Email', escapeHtml(u.email))
         + detailItem('Phone', escapeHtml(u.phone || '—'))
-        + detailItem('Tier', '<span class="badge ' + tierClass + '">' + escapeHtml(u.tier) + '</span>')
+        + detailItem('Tier', '<span class="badge ' + tierClass + '">' + escapeHtml(tierDisplay) + '</span>')
         + detailItem('Referral Source', escapeHtml(u.referralSource || '—'));
     }
 
-    function renderProfileEditForm(u) {
+    async function renderProfileEditForm(u) {
       profileEditMode = true;
       document.getElementById('udProfileEditBtn').textContent = 'Cancel';
       document.getElementById('udProfileEditBtn').className = 'btn btn-secondary btn-sm';
-      var tierOpts = ['free', 'pro', 'business'].map(function(t) {
-        return '<option value="' + t + '"' + (t === u.tier ? ' selected' : '') + '>' + t + '</option>';
-      }).join('');
+
+      // Load tiers from DB if not already loaded
+      if (!allPlans.length) {
+        try {
+          var plansRes = await adminFetch('listPlans');
+          allPlans = plansRes.plans || [];
+        } catch (e) { /* fallback below */ }
+      }
+
+      // Build tier options: always include "free", then all active plans
+      var tierOpts = '<option value="free"' + (u.tier === 'free' ? ' selected' : '') + '>Free</option>';
+      allPlans.forEach(function(p) {
+        if (!p.isActive) return;
+        var label = escapeHtml(p.displayName) + ' ($' + (p.priceCents / 100).toFixed(2) + ')';
+        tierOpts += '<option value="' + escapeHtml(p.name) + '"' + (p.name === u.tier ? ' selected' : '') + '>' + label + '</option>';
+      });
+
       document.getElementById('udProfileInfo').innerHTML =
         '<div class="ud-detail-item ud-edit-field"><div class="lbl">Display Name</div><input type="text" id="editDisplayName" value="' + escapeHtml(u.displayName || '') + '" placeholder="Enter display name" /></div>'
         + '<div class="ud-detail-item"><div class="lbl">Email</div><div class="val" style="padding:8px 0;">' + escapeHtml(u.email) + '</div></div>'
@@ -3923,8 +4033,197 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
     }
 
-    // ---- Subscriptions ----
+    // ---- Pricing Tiers ----
     var allPlans = [];
+    var editingPlanId = null;
+
+    async function loadPricingTiers() {
+      var container = document.getElementById('pricingTiersList');
+      container.innerHTML = '<p style="color:#888;font-size:13px;">Loading tiers...</p>';
+      try {
+        var res = await adminFetch('listPlans');
+        allPlans = res.plans || [];
+        renderPricingTiers(allPlans);
+      } catch (e) {
+        container.innerHTML = '<p style="color:red;">Failed to load: ' + escapeHtml(e.message) + '</p>';
+      }
+    }
+
+    function renderPricingTiers(plans) {
+      var container = document.getElementById('pricingTiersList');
+      if (!plans.length) {
+        container.innerHTML = '<p style="color:#888;font-size:13px;">No pricing tiers configured yet. Click "+ New Tier" to create one.</p>';
+        return;
+      }
+      var html = '<div style="display:grid;gap:16px;">';
+      plans.forEach(function(p) {
+        var priceStr = '$' + (p.priceCents / 100).toFixed(2);
+        var statusBadge = p.isActive
+          ? '<span class="badge badge-green">Active</span>'
+          : '<span class="badge badge-gray">Inactive</span>';
+        var stripeStatus = p.stripePriceId
+          ? '<span class="badge badge-blue" title="' + escapeHtml(p.stripePriceId) + '">Stripe linked</span>'
+          : '<span class="badge badge-yellow">No Stripe</span>';
+        var featList = (p.features || []).map(function(f) { return '<li style="font-size:12px;color:#666;">' + escapeHtml(f) + '</li>'; }).join('');
+
+        html += '<div style="background:#fafafa;border:1px solid #eee;border-radius:8px;padding:20px;">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
+          + '<div>'
+          + '<div style="font-size:16px;font-weight:700;color:var(--midnight);">' + escapeHtml(p.displayName) + ' <span style="font-size:12px;font-weight:400;color:#888;font-family:monospace;">' + escapeHtml(p.name) + '</span></div>'
+          + '<div style="font-size:13px;color:#888;margin-top:2px;">' + escapeHtml(p.description || '') + '</div>'
+          + '</div>'
+          + '<div style="display:flex;gap:6px;align-items:center;">'
+          + statusBadge + ' ' + stripeStatus
+          + '<button class="btn btn-secondary btn-sm" onclick="showEditPlanModal(\'' + p.id + '\')">Edit</button>'
+          + (p.isActive ? '<button class="btn btn-sm" style="background:#fee;color:#c00;border:1px solid #fcc;" onclick="deactivatePlan(\'' + p.id + '\',\'' + escapeHtml(p.displayName) + '\')">Deactivate</button>' : '<button class="btn btn-sm" style="background:#efe;color:#060;border:1px solid #cec;" onclick="reactivatePlan(\'' + p.id + '\')">Activate</button>')
+          + '</div></div>'
+          + '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;">'
+          + '<div><div style="font-size:11px;color:#888;text-transform:uppercase;">Price</div><div style="font-size:18px;font-weight:700;">' + priceStr + '</div></div>'
+          + '<div><div style="font-size:11px;color:#888;text-transform:uppercase;">Max Events</div><div style="font-size:18px;font-weight:700;">' + p.maxEvents + '</div></div>'
+          + '<div><div style="font-size:11px;color:#888;text-transform:uppercase;">Generations</div><div style="font-size:18px;font-weight:700;">' + p.maxGenerations + '</div></div>'
+          + '<div><div style="font-size:11px;color:#888;text-transform:uppercase;">SMS / Event</div><div style="font-size:18px;font-weight:700;">' + (p.maxSmsPerEvent || '&infin;') + '</div></div>'
+          + '<div><div style="font-size:11px;color:#888;text-transform:uppercase;">SMS Cost</div><div style="font-size:18px;font-weight:700;">$' + ((p.smsPriceCents || 0) / 100).toFixed(2) + '</div></div>'
+          + '</div>'
+          + (featList ? '<div style="margin-top:8px;"><div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;">Features</div><ul style="margin:0;padding-left:18px;">' + featList + '</ul></div>' : '')
+          + '</div>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function showCreatePlanModal() {
+      editingPlanId = null;
+      document.getElementById('planModalTitle').textContent = 'Create New Tier';
+      document.getElementById('planSaveBtn').textContent = 'Create Tier';
+      document.getElementById('planSlug').value = '';
+      document.getElementById('planSlug').disabled = false;
+      document.getElementById('planDisplayName').value = '';
+      document.getElementById('planDescription').value = '';
+      document.getElementById('planPriceCents').value = '';
+      document.getElementById('planSortOrder').value = '0';
+      document.getElementById('planMaxEvents').value = '';
+      document.getElementById('planMaxGenerations').value = '';
+      document.getElementById('planMaxSms').value = '';
+      document.getElementById('planSmsPriceCents').value = '';
+      document.getElementById('planFeatures').value = '';
+      document.getElementById('planCreateStripe').checked = true;
+      document.getElementById('planStripeProductId').value = '';
+      document.getElementById('planStripePriceId').value = '';
+      var modal = document.getElementById('planModal');
+      modal.style.display = 'flex';
+    }
+
+    function showEditPlanModal(planId) {
+      var plan = allPlans.find(function(p) { return p.id === planId; });
+      if (!plan) return;
+      editingPlanId = planId;
+      document.getElementById('planModalTitle').textContent = 'Edit Tier: ' + plan.displayName;
+      document.getElementById('planSaveBtn').textContent = 'Save Changes';
+      document.getElementById('planSlug').value = plan.name;
+      document.getElementById('planSlug').disabled = true;
+      document.getElementById('planDisplayName').value = plan.displayName;
+      document.getElementById('planDescription').value = plan.description || '';
+      document.getElementById('planPriceCents').value = plan.priceCents;
+      document.getElementById('planSortOrder').value = plan.sortOrder || 0;
+      document.getElementById('planMaxEvents').value = plan.maxEvents;
+      document.getElementById('planMaxGenerations').value = plan.maxGenerations;
+      document.getElementById('planMaxSms').value = plan.maxSmsPerEvent || '';
+      document.getElementById('planSmsPriceCents').value = plan.smsPriceCents || '';
+      document.getElementById('planFeatures').value = (plan.features || []).join('\n');
+      document.getElementById('planCreateStripe').checked = false;
+      document.getElementById('planStripeProductId').value = plan.stripeProductId || '';
+      document.getElementById('planStripePriceId').value = plan.stripePriceId || '';
+      var modal = document.getElementById('planModal');
+      modal.style.display = 'flex';
+    }
+
+    function closePlanModal() {
+      document.getElementById('planModal').style.display = 'none';
+    }
+
+    async function savePlan() {
+      var btn = document.getElementById('planSaveBtn');
+      btn.textContent = 'Saving...';
+      btn.disabled = true;
+
+      try {
+        var features = document.getElementById('planFeatures').value.trim().split('\n').filter(function(f) { return f.trim(); });
+        var maxSms = document.getElementById('planMaxSms').value.trim();
+
+        if (editingPlanId) {
+          // Update existing plan
+          var body = {
+            planId: editingPlanId,
+            displayName: document.getElementById('planDisplayName').value.trim(),
+            description: document.getElementById('planDescription').value.trim(),
+            priceCents: parseInt(document.getElementById('planPriceCents').value) || 0,
+            maxEvents: parseInt(document.getElementById('planMaxEvents').value) || 1,
+            maxGenerations: parseInt(document.getElementById('planMaxGenerations').value) || 20,
+            maxSmsPerEvent: maxSms ? parseInt(maxSms) : null,
+            smsPriceCents: parseInt(document.getElementById('planSmsPriceCents').value) || 10,
+            features: features,
+            sortOrder: parseInt(document.getElementById('planSortOrder').value) || 0,
+            stripeProductId: document.getElementById('planStripeProductId').value.trim() || null,
+            stripePriceId: document.getElementById('planStripePriceId').value.trim() || null,
+            syncStripe: document.getElementById('planCreateStripe').checked
+          };
+          var res = await adminFetch('updatePlan', { method: 'POST', body: body });
+          if (!res.success) throw new Error(res.error || 'Failed to update');
+        } else {
+          // Create new plan
+          var body = {
+            name: document.getElementById('planSlug').value.trim(),
+            displayName: document.getElementById('planDisplayName').value.trim(),
+            description: document.getElementById('planDescription').value.trim(),
+            priceCents: parseInt(document.getElementById('planPriceCents').value) || 0,
+            maxEvents: parseInt(document.getElementById('planMaxEvents').value) || 1,
+            maxGenerations: parseInt(document.getElementById('planMaxGenerations').value) || 20,
+            maxSmsPerEvent: maxSms ? parseInt(maxSms) : null,
+            smsPriceCents: parseInt(document.getElementById('planSmsPriceCents').value) || 10,
+            features: features,
+            sortOrder: parseInt(document.getElementById('planSortOrder').value) || 0,
+            createStripeProduct: document.getElementById('planCreateStripe').checked
+          };
+          if (!body.name) { alert('Plan slug is required'); btn.textContent = 'Create Tier'; btn.disabled = false; return; }
+          if (!body.displayName) { alert('Display name is required'); btn.textContent = 'Create Tier'; btn.disabled = false; return; }
+
+          // If manual Stripe IDs provided, pass them
+          var spid = document.getElementById('planStripeProductId').value.trim();
+          var srid = document.getElementById('planStripePriceId').value.trim();
+          if (spid) body.stripeProductId = spid;
+          if (srid) body.stripePriceId = srid;
+
+          var res = await adminFetch('createPlan', { method: 'POST', body: body });
+          if (!res.success) throw new Error(res.error || 'Failed to create');
+        }
+
+        closePlanModal();
+        await loadPricingTiers();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+      btn.textContent = editingPlanId ? 'Save Changes' : 'Create Tier';
+      btn.disabled = false;
+    }
+
+    async function deactivatePlan(planId, name) {
+      if (!confirm('Deactivate "' + name + '"? Users on this tier will keep their current subscription but new users won\'t be able to select it.')) return;
+      try {
+        var res = await adminFetch('deletePlan', { method: 'POST', body: { planId: planId } });
+        if (!res.success) throw new Error(res.error || 'Failed');
+        await loadPricingTiers();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    async function reactivatePlan(planId) {
+      try {
+        var res = await adminFetch('updatePlan', { method: 'POST', body: { planId: planId, isActive: true } });
+        if (!res.success) throw new Error(res.error || 'Failed');
+        await loadPricingTiers();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // ---- Subscriptions ----
 
     async function loadSubscriptions() {
       try {

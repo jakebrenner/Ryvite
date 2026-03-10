@@ -1,9 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+}
 
 // Founder — always has admin access, cannot be removed
 const FOUNDER_EMAIL = 'jake@getmrkt.com';
@@ -1718,6 +1723,181 @@ export default async function handler(req, res) {
       });
     }
 
+    // ---- LIST PLANS (admin) ----
+    if (action === 'listPlans') {
+      const { data: plans, error } = await supabaseAdmin
+        .from('plans')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({
+        success: true,
+        plans: (plans || []).map(p => ({
+          id: p.id,
+          name: p.name,
+          displayName: p.display_name,
+          description: p.description,
+          priceCents: p.price_cents,
+          currency: p.currency,
+          stripePriceId: p.stripe_price_id,
+          stripeProductId: p.stripe_product_id,
+          maxEvents: p.max_events,
+          maxGenerations: p.max_generations,
+          maxSmsPerEvent: p.max_sms_per_event,
+          smsPriceCents: p.sms_price_cents,
+          features: p.features,
+          isActive: p.is_active,
+          sortOrder: p.sort_order,
+          createdAt: p.created_at,
+          updatedAt: p.updated_at
+        }))
+      });
+    }
+
+    // ---- CREATE PLAN (admin) ----
+    if (action === 'createPlan') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { name, displayName, description, priceCents, maxEvents, maxGenerations, maxSmsPerEvent, smsPriceCents, features, sortOrder, createStripeProduct } = req.body;
+
+      if (!name || !displayName || priceCents === undefined) {
+        return res.status(400).json({ error: 'name, displayName, and priceCents are required' });
+      }
+
+      // Validate slug format
+      const slug = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+      let stripeProductId = null;
+      let stripePriceId = null;
+
+      // Optionally create Stripe Product + Price
+      if (createStripeProduct && process.env.STRIPE_SECRET_KEY) {
+        try {
+          const stripeClient = getStripe();
+          const product = await stripeClient.products.create({
+            name: displayName,
+            description: description || undefined,
+            metadata: { ryvite_plan_slug: slug }
+          });
+          stripeProductId = product.id;
+
+          const price = await stripeClient.prices.create({
+            product: product.id,
+            unit_amount: priceCents,
+            currency: 'usd',
+            metadata: { ryvite_plan_slug: slug }
+          });
+          stripePriceId = price.id;
+        } catch (e) {
+          return res.status(400).json({ error: 'Stripe error: ' + e.message });
+        }
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('plans')
+        .insert({
+          name: slug,
+          display_name: displayName,
+          description: description || null,
+          price_cents: priceCents,
+          max_events: maxEvents || 1,
+          max_generations: maxGenerations || 20,
+          max_sms_per_event: maxSmsPerEvent || null,
+          sms_price_cents: smsPriceCents || 10,
+          features: features || [],
+          sort_order: sortOrder || 0,
+          stripe_product_id: stripeProductId,
+          stripe_price_id: stripePriceId,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({ success: true, plan: data });
+    }
+
+    // ---- UPDATE PLAN (admin) ----
+    if (action === 'updatePlan') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { planId, ...updates } = req.body;
+      if (!planId) return res.status(400).json({ error: 'planId required' });
+
+      const dbUpdates = {};
+      if (updates.displayName !== undefined) dbUpdates.display_name = updates.displayName;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.priceCents !== undefined) dbUpdates.price_cents = updates.priceCents;
+      if (updates.maxEvents !== undefined) dbUpdates.max_events = updates.maxEvents;
+      if (updates.maxGenerations !== undefined) dbUpdates.max_generations = updates.maxGenerations;
+      if (updates.maxSmsPerEvent !== undefined) dbUpdates.max_sms_per_event = updates.maxSmsPerEvent;
+      if (updates.smsPriceCents !== undefined) dbUpdates.sms_price_cents = updates.smsPriceCents;
+      if (updates.features !== undefined) dbUpdates.features = updates.features;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+      if (updates.sortOrder !== undefined) dbUpdates.sort_order = updates.sortOrder;
+      if (updates.stripePriceId !== undefined) dbUpdates.stripe_price_id = updates.stripePriceId;
+      if (updates.stripeProductId !== undefined) dbUpdates.stripe_product_id = updates.stripeProductId;
+
+      // If price changed and Stripe product exists, create a new Stripe Price
+      if (updates.priceCents !== undefined && updates.syncStripe && process.env.STRIPE_SECRET_KEY) {
+        try {
+          const stripeClient = getStripe();
+          const { data: plan } = await supabaseAdmin.from('plans').select('stripe_product_id, name').eq('id', planId).single();
+          if (plan?.stripe_product_id) {
+            const price = await stripeClient.prices.create({
+              product: plan.stripe_product_id,
+              unit_amount: updates.priceCents,
+              currency: 'usd',
+              metadata: { ryvite_plan_slug: plan.name }
+            });
+            dbUpdates.stripe_price_id = price.id;
+          }
+        } catch (e) {
+          return res.status(400).json({ error: 'Stripe price update error: ' + e.message });
+        }
+      }
+
+      const { error } = await supabaseAdmin
+        .from('plans')
+        .update(dbUpdates)
+        .eq('id', planId);
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- DELETE PLAN (soft delete) ----
+    if (action === 'deletePlan') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { planId } = req.body;
+      if (!planId) return res.status(400).json({ error: 'planId required' });
+
+      // Check no active subscriptions use this plan
+      const { count } = await supabaseAdmin
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('plan_id', planId)
+        .eq('status', 'active');
+
+      if (count > 0) {
+        return res.status(400).json({ error: `Cannot delete — ${count} active subscription(s) use this plan. Deactivate them first.` });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('plans')
+        .update({ is_active: false })
+        .eq('id', planId);
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({ success: true });
+    }
+
     // ---- UPDATE USER PROFILE (admin) ----
     if (action === 'updateUser') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
@@ -1740,6 +1920,105 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'No valid fields to update. Allowed: ' + ALLOWED_FIELDS.join(', ') });
       }
 
+      // If tier is changing, validate it matches a real plan and sync Stripe
+      let tierSyncResult = null;
+      if (updateData.tier) {
+        const newTier = updateData.tier;
+
+        // 'free' is always valid (no plan needed)
+        if (newTier !== 'free') {
+          const { data: plan } = await supabaseAdmin
+            .from('plans')
+            .select('id, name, display_name, stripe_price_id, stripe_product_id, price_cents')
+            .eq('name', newTier)
+            .eq('is_active', true)
+            .single();
+
+          if (!plan) {
+            return res.status(400).json({ error: 'Invalid tier: no active plan named "' + newTier + '"' });
+          }
+
+          // Get user profile for Stripe customer ID
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('stripe_customer_id, tier')
+            .eq('id', userId)
+            .single();
+
+          // Create/update subscription record in DB
+          // Cancel any existing active subscriptions first
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({ status: 'cancelled' })
+            .eq('user_id', userId)
+            .eq('status', 'active');
+
+          // Create new admin-granted subscription (amount_paid = 0 since admin is assigning)
+          const { error: subError } = await supabaseAdmin
+            .from('subscriptions')
+            .insert({
+              user_id: userId,
+              plan_id: plan.id,
+              status: 'active',
+              amount_paid_cents: 0,
+              discount_cents: 0,
+              events_used: 0,
+              generations_used: 0,
+              stripe_customer_id: profile?.stripe_customer_id || null
+            });
+
+          if (subError) {
+            return res.status(400).json({ error: 'Failed to create subscription: ' + subError.message });
+          }
+
+          // Sync to Stripe metadata if customer exists
+          if (profile?.stripe_customer_id && process.env.STRIPE_SECRET_KEY) {
+            try {
+              const stripeClient = getStripe();
+              await stripeClient.customers.update(profile.stripe_customer_id, {
+                metadata: {
+                  ryvite_tier: newTier,
+                  ryvite_plan_name: plan.display_name,
+                  tier_updated_by: 'admin',
+                  tier_updated_at: new Date().toISOString()
+                }
+              });
+              tierSyncResult = { stripeSync: true, planName: plan.display_name };
+            } catch (e) {
+              tierSyncResult = { stripeSync: false, error: e.message };
+            }
+          }
+        } else {
+          // Switching to free — cancel active subscriptions
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({ status: 'cancelled' })
+            .eq('user_id', userId)
+            .eq('status', 'active');
+
+          // Update Stripe metadata
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('stripe_customer_id')
+            .eq('id', userId)
+            .single();
+
+          if (profile?.stripe_customer_id && process.env.STRIPE_SECRET_KEY) {
+            try {
+              const stripeClient = getStripe();
+              await stripeClient.customers.update(profile.stripe_customer_id, {
+                metadata: {
+                  ryvite_tier: 'free',
+                  ryvite_plan_name: 'Free',
+                  tier_updated_by: 'admin',
+                  tier_updated_at: new Date().toISOString()
+                }
+              });
+            } catch (e) { /* non-fatal */ }
+          }
+        }
+      }
+
       updateData.updated_at = new Date().toISOString();
 
       const { error } = await supabaseAdmin
@@ -1749,7 +2028,11 @@ export default async function handler(req, res) {
 
       if (error) return res.status(400).json({ error: error.message });
 
-      return res.status(200).json({ success: true, updated: Object.keys(updateData).filter(k => k !== 'updated_at') });
+      return res.status(200).json({
+        success: true,
+        updated: Object.keys(updateData).filter(k => k !== 'updated_at'),
+        tierSync: tierSyncResult
+      });
     }
 
     return res.status(400).json({ error: 'Unknown action' });
