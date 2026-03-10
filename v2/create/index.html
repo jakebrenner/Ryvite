@@ -329,45 +329,71 @@
         <div id="generatingPaywall" style="display:none;">
           <!-- Phase 1: Pricing card -->
           <div id="paywallPricingPhase">
-            <div style="max-width:440px;margin:40px auto;padding:0 16px;">
-              <div style="background:white;border:1px solid #eee;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-                <p style="font-size:15px;line-height:1.6;color:var(--midnight);margin:0 0 18px 0;" id="paywallFunMsg">Your invite is about to look incredible. Let's make it official!</p>
-                <div style="background:linear-gradient(135deg,#faf0f3,#fff5f0);border:1px solid #f0dde2;border-radius:12px;padding:20px;margin-bottom:20px;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-                    <div style="font-size:16px;font-weight:700;color:var(--midnight);" id="paywallPlanName">Single Event</div>
-                    <div id="paywallPriceTag" style="font-size:22px;font-weight:700;color:var(--party-coral);">$6.99</div>
+            <div style="max-width:460px;margin:32px auto;padding:0 16px;">
+              <!-- Decorative top -->
+              <div style="text-align:center;margin-bottom:24px;">
+                <div style="font-size:40px;margin-bottom:8px;">✨</div>
+                <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:var(--midnight);margin-bottom:6px;">Almost there!</h2>
+                <p style="font-size:14px;color:#888;line-height:1.5;" id="paywallFunMsg">Your invite is about to look incredible. Let's make it official!</p>
+              </div>
+              <!-- Card -->
+              <div style="background:white;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(233,69,96,0.1),0 2px 8px rgba(0,0,0,0.04);">
+                <!-- Gradient header -->
+                <div style="background:linear-gradient(135deg,var(--party-coral),var(--blush-pop));padding:20px 24px;color:white;display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <div style="font-size:12px;font-weight:500;opacity:0.9;text-transform:uppercase;letter-spacing:0.5px;">One-time purchase</div>
+                    <div style="font-size:18px;font-weight:700;margin-top:2px;" id="paywallPlanName">Single Event</div>
                   </div>
-                  <div id="paywallFeatures" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
-                  <div id="paywallCouponArea">
-                    <a href="#" onclick="toggleCouponInput(event)" id="couponToggleLink" style="font-size:12px;color:#999;text-decoration:underline;">Have a coupon code?</a>
-                    <div id="couponInputRow" style="display:none;margin-top:8px;">
-                      <div style="display:flex;gap:6px;">
-                        <input type="text" id="paywallCouponInput" placeholder="Enter code" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Inter,sans-serif;">
-                        <button onclick="applyPaywallCoupon()" style="padding:8px 12px;border:none;border-radius:6px;background:var(--midnight);color:white;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;">Apply</button>
-                      </div>
-                      <div id="couponMessage" style="margin-top:4px;font-size:11px;"></div>
-                    </div>
+                  <div style="text-align:right;">
+                    <div id="paywallPriceTag" style="font-size:32px;font-weight:700;line-height:1;">$6.99</div>
                   </div>
                 </div>
-                <button class="btn btn-primary" id="paywallCheckoutBtn" onclick="startPaywallCheckout()" style="width:100%;padding:14px;font-size:15px;font-weight:600;border-radius:10px;">Continue for $6.99</button>
-                <div style="text-align:center;margin-top:10px;font-size:11px;color:#bbb;">Secure checkout powered by Stripe</div>
+                <!-- Features -->
+                <div style="padding:20px 24px;">
+                  <div id="paywallFeatures" style="display:flex;flex-direction:column;gap:12px;"></div>
+                </div>
+                <!-- Divider -->
+                <div style="height:1px;background:linear-gradient(90deg,transparent,#f0dde2,transparent);margin:0 24px;"></div>
+                <!-- Coupon + CTA -->
+                <div style="padding:20px 24px 24px;">
+                  <div id="paywallCouponArea" style="margin-bottom:16px;">
+                    <a href="#" onclick="toggleCouponInput(event)" id="couponToggleLink" style="font-size:12px;color:#999;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:color 0.2s;">
+                      <span style="font-size:14px;">🏷</span> Have a coupon code?
+                    </a>
+                    <div id="couponInputRow" style="display:none;margin-top:10px;">
+                      <div style="display:flex;gap:6px;">
+                        <input type="text" id="paywallCouponInput" placeholder="Enter code" style="flex:1;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:Inter,sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--party-coral)'" onblur="this.style.borderColor='#e0e0e0'">
+                        <button onclick="applyPaywallCoupon()" style="padding:10px 16px;border:none;border-radius:8px;background:var(--midnight);color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Apply</button>
+                      </div>
+                      <div id="couponMessage" style="margin-top:6px;font-size:11px;"></div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" id="paywallCheckoutBtn" onclick="startPaywallCheckout()" style="width:100%;padding:16px;font-size:15px;font-weight:600;border-radius:12px;box-shadow:0 4px 16px rgba(233,69,96,0.3);transition:all 0.2s;">Continue for $6.99</button>
+                  <div style="text-align:center;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    <span style="font-size:11px;color:#bbb;">Secure checkout powered by Stripe</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           <!-- Phase 2: Embedded Stripe checkout -->
           <div id="paywallCheckoutPhase" style="display:none;">
             <div style="max-width:500px;margin:24px auto;padding:0 16px;">
-              <button onclick="backToPricing()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--midnight);font-size:13px;font-weight:500;cursor:pointer;padding:8px 0;margin-bottom:12px;font-family:Inter,sans-serif;">
-                <span style="font-size:16px;">&#8592;</span> Back
+              <button onclick="backToPricing()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--midnight);font-size:13px;font-weight:500;cursor:pointer;padding:8px 0;margin-bottom:12px;font-family:Inter,sans-serif;transition:color 0.2s;" onmouseover="this.style.color='var(--party-coral)'" onmouseout="this.style.color='var(--midnight)'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
               </button>
-              <div style="background:white;border:1px solid #eee;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f0f0f0;">
+              <div style="background:white;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(233,69,96,0.1),0 2px 8px rgba(0,0,0,0.04);">
+                <!-- Order summary header -->
+                <div style="background:linear-gradient(135deg,#faf0f3,#fff5f0);padding:18px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0dde2;">
                   <div>
-                    <div style="font-size:14px;font-weight:600;color:var(--midnight);" id="checkoutPlanName">Single Event</div>
-                    <div style="font-size:12px;color:#999;margin-top:2px;">One-time payment</div>
+                    <div style="font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Order summary</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--midnight);margin-top:2px;" id="checkoutPlanName">Single Event</div>
                   </div>
-                  <div id="checkoutPriceTag" style="font-size:20px;font-weight:700;color:var(--party-coral);">$6.99</div>
+                  <div id="checkoutPriceTag" style="font-size:22px;font-weight:700;color:var(--party-coral);">$6.99</div>
                 </div>
+                <!-- Stripe form mount -->
                 <div id="stripe-checkout-mount" style="min-height:300px;"></div>
               </div>
             </div>
@@ -1131,11 +1157,11 @@
     }
 
     var paywallFunMessages = [
-      'You\'ve got great taste! 🎨 Before we bring this to life, let\'s get you set up.',
-      'Almost there! Your invite is going to be amazing — just one quick step.',
-      'The AI is ready to work its magic! ✨ Let\'s unlock it.',
-      'Your invite is about to look incredible. Let\'s make it official!',
-      'Great vision! 🎉 Time to bring it to life.'
+      'Your invite is going to be amazing — just one quick step.',
+      'Our AI is ready to design something beautiful for you.',
+      'One step away from a stunning, custom invite.',
+      'Let\'s bring your vision to life.',
+      'Your guests are going to love this.'
     ];
 
     function showPaywall(onSuccess) {
@@ -1153,9 +1179,12 @@
         features.push('+$0.10 per SMS sent');
         var featuresHtml = features.map(function(f) {
           var isSms = f.indexOf('$0.10') !== -1;
-          return '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;">'
-            + '<span style="color:' + (isSms ? '#999' : 'var(--mint-fizz)') + ';font-size:15px;">' + (isSms ? '💬' : '✓') + '</span> '
-            + escapeHtml(f) + '</div>';
+          var iconBg = isSms ? '#f0f0f0' : 'rgba(78,205,196,0.12)';
+          var iconColor = isSms ? '#888' : 'var(--mint-fizz)';
+          var icon = isSms ? '💬' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+          return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);">'
+            + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
+            + '<span>' + escapeHtml(f) + '</span></div>';
         }).join('');
 
         // Populate the paywall inside the generating view
@@ -1234,7 +1263,7 @@
           finalPrice = Math.max(0, finalPrice);
 
           var priceTag = document.getElementById('paywallPriceTag');
-          priceTag.innerHTML = '<span style="text-decoration:line-through;color:#bbb;font-size:14px;">$' + origPrice.toFixed(2) + '</span> $' + finalPrice.toFixed(2);
+          priceTag.innerHTML = '<span style="text-decoration:line-through;opacity:0.6;font-size:18px;">$' + origPrice.toFixed(2) + '</span> $' + finalPrice.toFixed(2);
 
           var btn = document.getElementById('paywallCheckoutBtn');
           if (finalPrice === 0) {
