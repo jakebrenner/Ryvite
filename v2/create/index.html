@@ -969,9 +969,6 @@
           // If confirmed, show final confirmation card with all details + RSVP fields
           if (result.ready && result.confirmed) {
             chatPhase = 'confirmed';
-
-          // Only show confirmation card after user has confirmed RSVP fields (ready=true)
-          if (result.ready) {
             showConfirmationCard();
           }
         } else {
