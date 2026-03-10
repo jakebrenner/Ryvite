@@ -642,13 +642,21 @@ Return a JSON object with exactly these keys:
       // Step 1: Generate draft
       const draftResult = await generateWithModel(draftModel, userMessage);
 
-      // Step 2: Refine with better model
-      const refinedResult = await refineWithModel(refineModel, draftResult);
+      // Step 2: Refine with better model (fallback to draft if refine fails)
+      let refinedResult;
+      let refineFailed = false;
+      try {
+        refinedResult = await refineWithModel(refineModel, draftResult);
+      } catch (refineErr) {
+        console.error('Hybrid refine step failed, falling back to draft:', refineErr.message);
+        refinedResult = draftResult;
+        refineFailed = true;
+      }
 
       // Combine metadata
-      const totalLatency = draftResult.metadata.latencyMs + refinedResult.metadata.latencyMs;
-      const totalInputTokens = draftResult.metadata.tokens.input + refinedResult.metadata.tokens.input;
-      const totalOutputTokens = draftResult.metadata.tokens.output + refinedResult.metadata.tokens.output;
+      const totalLatency = draftResult.metadata.latencyMs + (refinedResult.metadata.latencyMs || 0);
+      const totalInputTokens = draftResult.metadata.tokens.input + (refineFailed ? 0 : refinedResult.metadata.tokens.input);
+      const totalOutputTokens = draftResult.metadata.tokens.output + (refineFailed ? 0 : refinedResult.metadata.tokens.output);
 
       return res.status(200).json({
         success: true,
@@ -659,8 +667,11 @@ Return a JSON object with exactly these keys:
           tokens: { input: totalInputTokens, output: totalOutputTokens },
           hybrid: {
             draft: { model: draftModel, latencyMs: draftResult.metadata.latencyMs, tokens: draftResult.metadata.tokens },
-            refine: { model: refineModel, latencyMs: refinedResult.metadata.latencyMs, tokens: refinedResult.metadata.tokens }
-          }
+            refine: refineFailed
+              ? { model: refineModel, failed: true, latencyMs: 0, tokens: { input: 0, output: 0 } }
+              : { model: refineModel, latencyMs: refinedResult.metadata.latencyMs, tokens: refinedResult.metadata.tokens }
+          },
+          ...(refineFailed ? { warning: 'Refine step failed — showing draft only' } : {})
         }
       });
     }
