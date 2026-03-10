@@ -457,7 +457,8 @@ export default async function handler(req, res) {
         .from('generation_log')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('status', 'success');
+        .eq('status', 'success')
+        .not('event_id', 'is', null);
 
       // SMS usage
       const { count: smsCount } = await supabaseAdmin
@@ -473,6 +474,15 @@ export default async function handler(req, res) {
       const smsTotalCents = (smsCostData || []).reduce((sum, m) => sum + (m.cost_cents || 0), 0);
 
       const activeSub = (subscriptions || []).find(s => s.status === 'active');
+
+      // Sum limits across all active subscriptions
+      const activeSubs = (subscriptions || []).filter(s => s.status === 'active');
+      let totalMaxEvents = 0;
+      let totalMaxGenerations = 0;
+      for (const sub of activeSubs) {
+        totalMaxEvents += sub.plans?.max_events || 0;
+        totalMaxGenerations += sub.plans?.max_generations || 0;
+      }
 
       return res.status(200).json({
         success: true,
@@ -490,8 +500,8 @@ export default async function handler(req, res) {
         usage: {
           eventsUsed: eventCount || 0,
           generationsUsed: genCount || 0,
-          maxEvents: activeSub?.plans?.max_events || 0,
-          maxGenerations: activeSub?.plans?.max_generations || 0,
+          maxEvents: totalMaxEvents,
+          maxGenerations: totalMaxGenerations,
           smsSent: smsCount || 0,
           smsCostCents: smsTotalCents,
           smsPriceCents: activeSub?.plans?.sms_price_cents || 5
