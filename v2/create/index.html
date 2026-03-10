@@ -102,10 +102,6 @@
     .rsvp-defaults { font-size: 12px; color: #999; margin-bottom: 12px; padding: 8px 12px; background: #f9f9f9; border-radius: 6px; }
     .rsvp-field-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
     .rsvp-field-row:last-child { border-bottom: none; }
-    .rsvp-field-toggle { width: 36px; height: 20px; border-radius: 10px; background: #ddd; border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
-    .rsvp-field-toggle.on { background: var(--mint-fizz); }
-    .rsvp-field-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: transform 0.2s; }
-    .rsvp-field-toggle.on::after { transform: translateX(16px); }
     .rsvp-field-info { flex: 1; min-width: 0; }
     .rsvp-field-label { font-size: 13px; font-weight: 600; color: var(--midnight); }
     .rsvp-field-meta { font-size: 11px; color: #999; }
@@ -1036,6 +1032,11 @@
                 + '<span style="color:#999;font-size:11px;">(' + escapeHtml(meta) + ')</span>'
                 + '</div>';
             }).join('')
+
+          + '<h4 style="font-size:14px;font-weight:600;margin-bottom:4px;">RSVP Fields</h4>'
+          + '<p style="font-size:12px;color:#888;margin-bottom:10px;">Here\'s what I\'d suggest — remove any you don\'t want, or just ask me to add more!</p>'
+          + '<div style="font-size:11px;color:#999;margin-bottom:10px;padding:6px 10px;background:#f9f9f9;border-radius:6px;">Always included: <strong>Name</strong>, <strong>RSVP Status</strong></div>'
+          + '<div id="rsvpFieldList">' + renderRsvpFields() + '</div>'
           + '</div>';
       }
 
@@ -1049,12 +1050,10 @@
     function renderRsvpFields() {
       if (rsvpFields.length === 0) return '<div style="font-size:13px;color:#999;padding:8px 0;">No additional fields suggested.</div>';
       return rsvpFields.map(function(f, i) {
-        var toggleClass = f.enabled ? 'rsvp-field-toggle on' : 'rsvp-field-toggle';
         var meta = (FIELD_TYPE_LABELS[f.field_type] || f.field_type);
         if (f.is_required) meta += ' · Required';
         if (f.options && f.options.length) meta += ' · ' + f.options.join(', ');
         return '<div class="rsvp-field-row">'
-          + '<button class="' + toggleClass + '" onclick="toggleRsvpField(' + i + ')" title="Toggle field"></button>'
           + '<div class="rsvp-field-info">'
           + '<div class="rsvp-field-label">' + escapeHtml(f.label) + '</div>'
           + '<div class="rsvp-field-meta">' + escapeHtml(meta) + '</div>'
@@ -1062,11 +1061,6 @@
           + '<button class="btn btn-secondary btn-sm" onclick="removeRsvpField(' + i + ')" style="padding:4px 10px;font-size:11px;">Remove</button>'
           + '</div>';
       }).join('');
-    }
-
-    function toggleRsvpField(idx) {
-      rsvpFields[idx].enabled = !rsvpFields[idx].enabled;
-      document.getElementById('rsvpFieldList').innerHTML = renderRsvpFields();
     }
 
     function removeRsvpField(idx) {
