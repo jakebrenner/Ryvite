@@ -442,7 +442,7 @@
                 <!-- Gradient header -->
                 <div style="background:linear-gradient(135deg,var(--party-coral),var(--blush-pop));padding:20px 24px;color:white;display:flex;justify-content:space-between;align-items:center;">
                   <div>
-                    <div style="font-size:12px;font-weight:500;opacity:0.9;text-transform:uppercase;letter-spacing:0.5px;">One-time purchase</div>
+                    <div style="font-size:12px;font-weight:500;opacity:0.9;text-transform:uppercase;letter-spacing:0.5px;" id="paywallPlanType">One-time purchase</div>
                     <div style="font-size:18px;font-weight:700;margin-top:2px;" id="paywallPlanName">Single Event</div>
                   </div>
                   <div style="text-align:right;">
@@ -1761,37 +1761,47 @@
         document.getElementById('paywallQuickChargePhase').style.display = 'none';
 
         if (savedCard) {
+          var isUsageReturning = plan.billingType === 'usage' && plan.priceCents === 0;
           // Returning customer — show quick charge
           var brandName = (savedCard.brand || 'card').charAt(0).toUpperCase() + (savedCard.brand || 'card').slice(1);
           document.getElementById('quickChargePlanName').textContent = plan.displayName;
-          document.getElementById('quickChargePriceTag').innerHTML = priceDisplay;
+          document.getElementById('quickChargePriceTag').innerHTML = isUsageReturning ? '$0' : priceDisplay;
           document.getElementById('quickChargeCardDisplay').textContent = brandName + ' ending in ' + savedCard.last4;
           document.getElementById('quickChargeCardExpiry').textContent = 'Expires ' + savedCard.expMonth + '/' + savedCard.expYear;
-          document.getElementById('quickChargeBtn').textContent = 'Pay ' + priceDisplay + ' & Start Designing';
+          document.getElementById('quickChargeBtn').textContent = isUsageReturning ? 'Start Designing' : 'Pay ' + priceDisplay + ' & Start Designing';
           document.getElementById('quickChargeBtn').disabled = false;
           document.getElementById('paywallQuickChargePhase').style.display = 'block';
         } else {
           // New customer — show full pricing card
           var funMsg = paywallFunMessages[Math.floor(Math.random() * paywallFunMessages.length)];
+          var isUsagePlan = plan.billingType === 'usage' && plan.priceCents === 0;
 
           // Build features list with SMS cost line
           var features = (plan.features || []).slice();
           features.push('+$0.10 per SMS sent');
-          var featuresHtml = features.map(function(f) {
-            var isSms = f.indexOf('$0.10') !== -1;
-            var iconBg = isSms ? '#f0f0f0' : 'rgba(78,205,196,0.12)';
-            var iconColor = isSms ? '#888' : 'var(--mint-fizz)';
-            var icon = isSms ? '💬' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
-            return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);">'
-              + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
-              + '<span>' + escapeHtml(f) + '</span></div>';
-          }).join('');
+
+          // For usage plans, fetch estimated cost per invite and add as a feature
+          if (isUsagePlan) {
+            try {
+              var estRes = await fetch('/api/v2/billing?action=estimateCost&planSlug=' + encodeURIComponent(plan.name));
+              var estData = await estRes.json();
+              if (estData.success && estData.estimate) {
+                var estCents = estData.estimate.aiCostCents;
+                var estDisplay = '$' + (estCents / 100).toFixed(2);
+                // Insert estimated cost as first feature for visibility
+                features.unshift('Estimated ~' + estDisplay + ' per invite (AI design + 4 tweaks)');
+              }
+            } catch (e) {}
+          }
+
+          var featuresHtml = buildFeaturesHtml(features);
 
           document.getElementById('paywallFunMsg').textContent = funMsg;
+          document.getElementById('paywallPlanType').textContent = isUsagePlan ? 'Pay as you go' : 'One-time purchase';
           document.getElementById('paywallPlanName').textContent = plan.displayName;
-          document.getElementById('paywallPriceTag').innerHTML = priceDisplay;
+          document.getElementById('paywallPriceTag').innerHTML = isUsagePlan ? '$0' : priceDisplay;
           document.getElementById('paywallFeatures').innerHTML = featuresHtml;
-          document.getElementById('paywallCheckoutBtn').textContent = 'Continue for ' + priceDisplay;
+          document.getElementById('paywallCheckoutBtn').textContent = isUsagePlan ? 'Add Card & Start Designing' : 'Continue for ' + priceDisplay;
 
           // Reset coupon state
           document.getElementById('couponToggleLink').style.display = 'inline';
@@ -1812,6 +1822,22 @@
         // Navigate to step 2 (generating view)
         goToStep(2);
       });
+    }
+
+    function buildFeaturesHtml(features) {
+      return features.map(function(f) {
+        var isSms = f.indexOf('$0.10') !== -1;
+        var isEstimate = f.indexOf('Estimated ~$') !== -1;
+        var iconBg = isSms ? '#f0f0f0' : isEstimate ? 'rgba(255,183,77,0.15)' : 'rgba(78,205,196,0.12)';
+        var iconColor = isSms ? '#888' : isEstimate ? 'var(--confetti-gold)' : 'var(--mint-fizz)';
+        var icon = isSms ? '💬' : isEstimate
+          ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'
+          : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+        var fontWeight = isEstimate ? 'font-weight:600;' : '';
+        return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);' + fontWeight + '">'
+          + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
+          + '<span>' + escapeHtml(f) + '</span></div>';
+      }).join('');
     }
 
     function toggleCouponInput(e) {
@@ -1992,6 +2018,30 @@
 
       try {
         var plan = window._paywallPlan;
+        var isUsageNoCost = plan.billingType === 'usage' && plan.priceCents === 0;
+
+        if (isUsageNoCost) {
+          // Usage plan with card on file — no charge needed, just activate subscription
+          var activateRes = await authFetch('/api/v2/billing?action=activate-usage-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planId: plan.id })
+          });
+          var activateData = await activateRes.json();
+          if (!activateData.success) {
+            throw new Error(activateData.error || 'Failed to activate plan');
+          }
+          var saved = await saveEventToDB();
+          if (saved !== true) {
+            showMessage('Plan activated but event creation failed. Please try again.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Start Designing';
+            return;
+          }
+          generateTheme();
+          return;
+        }
+
         var body = { planId: plan.id };
         if (paywallCoupon) body.couponCode = paywallCoupon.code;
 
@@ -2019,8 +2069,9 @@
         }
       } catch (e) {
         btn.disabled = false;
-        btn.textContent = 'Pay $' + (window._paywallPlan.priceCents / 100).toFixed(2) + ' & Start Designing';
-        showMessage('Payment error. Please try again.', 'error');
+        var p = window._paywallPlan;
+        btn.textContent = (p.billingType === 'usage' && p.priceCents === 0) ? 'Start Designing' : 'Pay $' + (p.priceCents / 100).toFixed(2) + ' & Start Designing';
+        showMessage(e.message || 'Payment error. Please try again.', 'error');
       }
     }
 
@@ -2031,24 +2082,21 @@
 
       var plan = window._paywallPlan;
       if (plan) {
+        var isUsagePlan = plan.billingType === 'usage' && plan.priceCents === 0;
         var priceDisplay = '$' + (plan.priceCents / 100).toFixed(2);
         var funMsg = paywallFunMessages[Math.floor(Math.random() * paywallFunMessages.length)];
-        var features = (plan.features || []).slice();
-        features.push('+$0.10 per SMS sent');
-        var featuresHtml = features.map(function(f) {
-          var isSms = f.indexOf('$0.10') !== -1;
-          var iconBg = isSms ? '#f0f0f0' : 'rgba(78,205,196,0.12)';
-          var iconColor = isSms ? '#888' : 'var(--mint-fizz)';
-          var icon = isSms ? '💬' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
-          return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);">'
-            + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
-            + '<span>' + escapeHtml(f) + '</span></div>';
-        }).join('');
+        // Use cached features HTML if available (includes estimate), otherwise rebuild
+        var featuresEl = document.getElementById('paywallFeatures');
+        if (!featuresEl.innerHTML) {
+          var features = (plan.features || []).slice();
+          features.push('+$0.10 per SMS sent');
+          featuresEl.innerHTML = buildFeaturesHtml(features);
+        }
         document.getElementById('paywallFunMsg').textContent = funMsg;
+        document.getElementById('paywallPlanType').textContent = isUsagePlan ? 'Pay as you go' : 'One-time purchase';
         document.getElementById('paywallPlanName').textContent = plan.displayName;
-        document.getElementById('paywallPriceTag').innerHTML = priceDisplay;
-        document.getElementById('paywallFeatures').innerHTML = featuresHtml;
-        document.getElementById('paywallCheckoutBtn').textContent = 'Continue for ' + priceDisplay;
+        document.getElementById('paywallPriceTag').innerHTML = isUsagePlan ? '$0' : priceDisplay;
+        document.getElementById('paywallCheckoutBtn').textContent = isUsagePlan ? 'Add Card & Start Designing' : 'Continue for ' + priceDisplay;
         document.getElementById('paywallCheckoutBtn').disabled = false;
       }
     }

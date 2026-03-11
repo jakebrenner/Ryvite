@@ -190,6 +190,20 @@ export default async function handler(req, res) {
       const themeModel = config.theme_model || 'claude-sonnet-4-6';
       const chatModel = config.chat_model || 'claude-haiku-4-5-20251001';
 
+      // Fetch markup from the usage-based plan (admin-configurable)
+      let markupPct = 50;
+      const planSlug = req.query.planSlug;
+      if (planSlug) {
+        const { data: planRow } = await supabaseAdmin
+          .from('plans').select('ai_markup_pct').eq('name', planSlug).single();
+        if (planRow) markupPct = planRow.ai_markup_pct || 50;
+      } else {
+        // Default: look for any usage-based plan's markup
+        const { data: usagePlans } = await supabaseAdmin
+          .from('plans').select('ai_markup_pct').eq('billing_type', 'usage').eq('is_active', true).limit(1);
+        if (usagePlans?.length > 0) markupPct = usagePlans[0].ai_markup_pct || 50;
+      }
+
       // Typical token usage per generation (based on system prompt + theme output)
       // Initial generation: ~4K input, ~8K output
       // Tweak: ~6K input (includes current theme), ~8K output
@@ -198,7 +212,7 @@ export default async function handler(req, res) {
       const TYPICAL_TWEAK = { input: 6000, output: 8000 };
       const TYPICAL_CHAT_MSG = { input: 1500, output: 500 };
 
-      // Assume per event: 1 initial gen + 3 tweaks + 4 chat messages
+      // Assume per invite: 1 initial gen + 4 design tweaks + 4 chat messages
       const themePricing = MODEL_PRICING[themeModel] || MODEL_PRICING['claude-sonnet-4-6'];
       const chatPricing = MODEL_PRICING[chatModel] || MODEL_PRICING['claude-haiku-4-5-20251001'];
 
@@ -206,26 +220,16 @@ export default async function handler(req, res) {
       const tweakCost = (TYPICAL_TWEAK.input * themePricing.input + TYPICAL_TWEAK.output * themePricing.output) / 1_000_000;
       const chatCost = (TYPICAL_CHAT_MSG.input * chatPricing.input + TYPICAL_CHAT_MSG.output * chatPricing.output) / 1_000_000;
 
-      const numTweaks = 3;
+      const numTweaks = 4;
       const numChatMsgs = 4;
 
       const rawAiCost = initialGenCost + (tweakCost * numTweaks) + (chatCost * numChatMsgs);
-      const markupPct = 50;
       const aiCostWithMarkup = rawAiCost * (1 + markupPct / 100);
-
-      // SMS estimate: assume ~20 invites sent
-      const smsCount = 20;
-      const smsCostPer = 0.05;
-      const smsCostTotal = smsCount * smsCostPer;
-
-      const totalEstimate = aiCostWithMarkup + smsCostTotal;
 
       return res.status(200).json({
         success: true,
         estimate: {
-          totalCents: Math.round(totalEstimate * 100),
           aiCostCents: Math.round(aiCostWithMarkup * 100),
-          smsCostCents: Math.round(smsCostTotal * 100),
           breakdown: {
             themeModel: themeModel,
             themeModelLabel: themePricing.label,
@@ -234,10 +238,8 @@ export default async function handler(req, res) {
             initialGenerations: 1,
             tweaks: numTweaks,
             chatMessages: numChatMsgs,
-            smsMessages: smsCount,
             aiMarkupPct: markupPct,
-            rawAiCostCents: Math.round(rawAiCost * 100),
-            smsCostPerMessage: smsCostPer
+            rawAiCostCents: Math.round(rawAiCost * 100)
           }
         }
       });
@@ -268,7 +270,7 @@ export default async function handler(req, res) {
         const customerId = await getOrCreateStripeCustomer(user);
         const baseUrl = getBaseUrl(req);
 
-        const session = await stripe.checkout.sessions.create({
+        const sessionParams = {
           customer: customerId,
           mode: 'setup',
           payment_method_types: ['card'],
@@ -277,14 +279,27 @@ export default async function handler(req, res) {
             plan_id: plan.id,
             plan_name: plan.name,
             checkout_type: 'usage_setup'
-          },
-          success_url: returnUrl
-            ? `${baseUrl}${returnUrl}${returnUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`
-            : `${baseUrl}/v2/dashboard/?purchased=true&session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${baseUrl}/v2/pricing/`
-        });
+          }
+        };
 
-        return res.status(200).json({ success: true, sessionId: session.id, url: session.url });
+        if (embedded) {
+          sessionParams.ui_mode = 'embedded';
+          sessionParams.return_url = `${baseUrl}${returnUrl || '/v2/create/?purchased=true'}&session_id={CHECKOUT_SESSION_ID}`;
+        } else {
+          sessionParams.success_url = returnUrl
+            ? `${baseUrl}${returnUrl}${returnUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`
+            : `${baseUrl}/v2/dashboard/?purchased=true&session_id={CHECKOUT_SESSION_ID}`;
+          sessionParams.cancel_url = `${baseUrl}/v2/pricing/`;
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionParams);
+
+        return res.status(200).json({
+          success: true,
+          sessionId: session.id,
+          url: embedded ? null : session.url,
+          clientSecret: embedded ? session.client_secret : null
+        });
       }
 
       let discount = null;
@@ -484,6 +499,51 @@ export default async function handler(req, res) {
       }
 
       await stripe.paymentMethods.detach(paymentMethodId);
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- ACTIVATE USAGE PLAN (returning customer with saved card, $0 upfront) ----
+    if (action === 'activate-usage-plan') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { planId } = req.body || {};
+      if (!planId) return res.status(400).json({ error: 'planId required' });
+
+      const { data: plan } = await supabaseAdmin
+        .from('plans').select('*').eq('id', planId).eq('is_active', true).single();
+      if (!plan) return res.status(404).json({ error: 'Plan not found' });
+      if (plan.billing_type !== 'usage' || plan.price_cents !== 0) {
+        return res.status(400).json({ error: 'This endpoint is only for $0 usage-based plans' });
+      }
+
+      // Verify user has a payment method on file
+      const { data: profile } = await supabaseAdmin
+        .from('profiles').select('stripe_customer_id').eq('id', user.id).single();
+      if (!profile?.stripe_customer_id) {
+        return res.status(400).json({ error: 'No payment method on file. Please add a card first.' });
+      }
+      const pms = await stripe.paymentMethods.list({ customer: profile.stripe_customer_id, type: 'card', limit: 1 });
+      if (pms.data.length === 0) {
+        return res.status(400).json({ error: 'No card on file. Please add a payment method.' });
+      }
+
+      // Check for existing active subscription
+      const { data: existingSubs } = await supabaseAdmin
+        .from('subscriptions').select('id').eq('user_id', user.id).eq('status', 'active');
+      if (existingSubs && existingSubs.length > 0) {
+        return res.status(200).json({ success: true, message: 'Already has active subscription' });
+      }
+
+      // Create subscription record
+      const { error: subError } = await supabaseAdmin.from('subscriptions').insert({
+        user_id: user.id,
+        plan_id: plan.id,
+        status: 'active',
+        amount_paid_cents: 0,
+        stripe_customer_id: profile.stripe_customer_id
+      });
+      if (subError) return res.status(400).json({ error: subError.message });
 
       return res.status(200).json({ success: true });
     }
