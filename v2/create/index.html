@@ -359,8 +359,18 @@
     <div class="step-dot" data-step="3">3</div>
   </div>
 
-  <!-- Hide step 1 immediately when resuming an existing event (prevents flash) -->
-  <script>if(new URLSearchParams(window.location.search).get('eventId')){document.write('<style id="resumeHideChat">.chat-container[data-step="1"]{display:none !important;}</style>');}</script>
+  <!-- Hide step 1 and show loading screen when resuming an existing event -->
+  <script>if(new URLSearchParams(window.location.search).get('eventId')){document.write('<style id="resumeHideChat">.chat-container[data-step="1"]{display:none !important;}</style>');document.write('<style id="resumeShowLoader">#resumeLoader{display:flex !important;}</style>');}</script>
+
+  <!-- Resume loading screen -->
+  <div id="resumeLoader" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center;">
+    <div style="font-size:48px;animation:genFloat 3s ease-in-out infinite;">&#x2728;</div>
+    <h3 style="font-family:'Playfair Display',serif;font-size:22px;margin:16px 0 8px;">Loading your invite...</h3>
+    <p style="color:#888;font-size:14px;">Picking up right where you left off</p>
+    <div style="margin-top:24px;width:200px;height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden;">
+      <div style="height:100%;width:60%;background:linear-gradient(90deg,var(--party-coral),#ff8a80,var(--party-coral));background-size:200% 100%;border-radius:2px;animation:chatProgressShimmer 2s ease-in-out infinite;"></div>
+    </div>
+  </div>
 
   <!-- Step 1: Chat Prompt -->
   <div class="step active chat-container" data-step="1">
@@ -660,13 +670,10 @@
     var chatPhase = 'chatting'; // 'chatting' | 'confirmed' | 'styling'
     var currentPreviewMode = 'invite';
 
-    // Cost tracking state
-    var sessionCostCents = 0;
-    var sessionGenCount = 0;
-    var lastGenCostCents = 0;
+    // Cost tracking state — tracks cumulative cost for this event (persisted across sessions)
+    var eventCostCents = 0;
+    var eventGenCount = 0;
     var usagePlanUser = false;
-    var userThresholdCents = 500;
-    var userUnbilledCents = 0;
 
     var ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
     var ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp'];
@@ -802,6 +809,9 @@
           themeVersions = cachedThemes;
           activeVersionIndex = cachedThemes.findIndex(function(t) { return t.isActive; });
           if (activeVersionIndex < 0) activeVersionIndex = cachedThemes.length - 1;
+          // Hide resume loader
+          document.getElementById('resumeLoader').style.display = 'none';
+          var rls = document.getElementById('resumeShowLoader'); if (rls) rls.remove();
           var genView = document.getElementById('generatingView');
           genView.style.display = 'none';
           document.getElementById('generatedView').style.display = 'block';
@@ -842,6 +852,8 @@
           return;
         }
         // Slow path: no cache, show loading state
+        document.getElementById('resumeLoader').style.display = 'none';
+        var rls2 = document.getElementById('resumeShowLoader'); if (rls2) rls2.remove();
         document.querySelector('.chat-container').style.display = 'none';
         var resumeStep3 = document.querySelector('.container .step[data-step="2"]');
         resumeStep3.classList.add('active');
@@ -919,6 +931,7 @@
               renderVersionGallery();
               initDesignChatIfNeeded(false);
               goToStep(2);
+              initCostTracker();
               // Cache themes for fast reload
               try { sessionStorage.setItem('ryvite_theme_' + ev.id, JSON.stringify(themeVersions)); } catch(e2) {}
             } else {
@@ -1006,7 +1019,7 @@
         var res = await authFetch('/api/v2/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: chatHistory, sessionId: chatSessionId })
+          body: JSON.stringify({ messages: chatHistory, sessionId: chatSessionId, eventId: currentEvent ? currentEvent.id : null })
         });
         var result = await res.json();
 
@@ -2841,7 +2854,7 @@
             initDesignChatIfNeeded();
             // Track generation cost
             if (genResult.metadata) updateCostFromGeneration(genResult.metadata);
-            if (sessionGenCount <= 1) initCostTracker();
+            if (eventGenCount <= 1) initCostTracker();
             // Persist creation_step so resume returns to preview
             if (currentEvent) {
               authFetch('/api/v2/events?action=update', {
@@ -3067,16 +3080,27 @@
     async function initCostTracker() {
       if (!token) return;
       try {
+        // Check if user is on a usage plan
         var res = await authFetch('/api/v2/billing?action=usage_summary');
         if (!res.ok) return;
         var data = await res.json();
         if (!data.success || !data.usage) return;
         var u = data.usage;
-        // Only show cost tracker for usage-plan users
         if (u.ai.unbilledCount === 0 && u.threshold.cents === 0) return;
         usagePlanUser = true;
-        userThresholdCents = u.threshold.cents || 500;
-        userUnbilledCents = u.afterCreditsCents || 0;
+
+        // Load per-event cumulative cost from DB
+        if (currentEvent && currentEvent.id) {
+          var costRes = await authFetch('/api/v2/billing?action=event_cost&eventId=' + encodeURIComponent(currentEvent.id));
+          if (costRes.ok) {
+            var costData = await costRes.json();
+            if (costData.success) {
+              eventCostCents = costData.totalCostCents || 0;
+              eventGenCount = costData.generationCount || 0;
+            }
+          }
+        }
+
         updateCostTrackerUI();
         document.getElementById('costTracker').classList.remove('hidden');
       } catch (e) {
@@ -3086,10 +3110,9 @@
 
     function updateCostFromGeneration(metadata) {
       if (!metadata || !metadata.cost) return;
-      lastGenCostCents = metadata.cost.totalCostCents || 0;
-      sessionCostCents += lastGenCostCents;
-      sessionGenCount++;
-      userUnbilledCents += lastGenCostCents;
+      var genCost = metadata.cost.totalCostCents || 0;
+      eventCostCents += genCost;
+      eventGenCount++;
       if (usagePlanUser) {
         document.getElementById('costTracker').classList.remove('hidden');
         updateCostTrackerUI();
@@ -3101,7 +3124,7 @@
     }
 
     function updateCostTrackerUI() {
-      document.getElementById('costTrackerTotal').textContent = formatCents(sessionCostCents);
+      document.getElementById('costTrackerTotal').textContent = formatCents(eventCostCents);
     }
 
     function formatCents(cents) {

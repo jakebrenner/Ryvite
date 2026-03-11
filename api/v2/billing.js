@@ -770,6 +770,53 @@ export default async function handler(req, res) {
       });
     }
 
+    // ---- PER-EVENT COST ----
+    // Returns total AI generation cost for a specific event (all generations, including billed)
+    if (action === 'event_cost') {
+      const eventId = req.query.eventId;
+      if (!eventId) return res.status(400).json({ success: false, error: 'eventId required' });
+
+      // Verify the user owns this event
+      const { data: evt } = await supabaseAdmin
+        .from('events').select('id, user_id').eq('id', eventId).single();
+      if (!evt || evt.user_id !== user.id) {
+        return res.status(403).json({ success: false, error: 'Not your event' });
+      }
+
+      // Get markup from user's active usage plan
+      const { data: usageSub } = await supabaseAdmin
+        .from('subscriptions')
+        .select('*, plans:plan_id (ai_markup_pct)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(1)
+        .single();
+      const markupPct = usageSub?.plans?.ai_markup_pct || 50;
+
+      // Sum all generations for this event
+      const { data: gens } = await supabaseAdmin
+        .from('generation_log')
+        .select('model, input_tokens, output_tokens')
+        .eq('event_id', eventId)
+        .eq('status', 'success');
+
+      let rawCostDollars = 0;
+      let genCount = 0;
+      for (const g of (gens || [])) {
+        const pricing = AI_MODEL_PRICING[g.model] || { input: 3.00, output: 15.00 };
+        rawCostDollars += ((g.input_tokens || 0) * pricing.input + (g.output_tokens || 0) * pricing.output) / 1_000_000;
+        genCount++;
+      }
+      const totalCostCents = Math.round(rawCostDollars * (1 + markupPct / 100) * 100);
+
+      return res.status(200).json({
+        success: true,
+        eventId,
+        totalCostCents,
+        generationCount: genCount
+      });
+    }
+
     // ---- REAL-TIME USAGE SUMMARY ----
     // Returns unbilled AI and SMS costs with breakdown, threshold info, and credits
     if (action === 'usage_summary') {

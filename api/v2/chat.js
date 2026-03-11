@@ -137,7 +137,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid session' });
     }
 
-    const { messages, sessionId } = req.body;
+    const { messages, sessionId, eventId } = req.body;
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages array is required' });
     }
@@ -164,6 +164,7 @@ export default async function handler(req, res) {
     try {
       await supabase.from('generation_log').insert({
         user_id: user.id,
+        event_id: eventId || null,
         prompt: messages[messages.length - 1]?.content || '',
         model: chatModel,
         input_tokens: response.usage?.input_tokens || 0,
@@ -218,6 +219,7 @@ export default async function handler(req, res) {
     try {
       await supabase.from('generation_log').insert({
         user_id: user?.id,
+        event_id: eventId || null,
         model: 'unknown',
         input_tokens: 0,
         output_tokens: 0,
