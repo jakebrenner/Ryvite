@@ -2691,69 +2691,38 @@
             showGeneratingError(errText || 'Failed to generate theme (HTTP ' + res2.status + ')');
           }
         } else {
-          // Read SSE stream from generate-theme
-          console.log('[generate-theme] Starting SSE stream read...');
-          var genReader = res2.body.getReader();
-          var genDecoder = new TextDecoder();
-          var genBuffer = '';
+          // Read full response as text (avoids ReadableStream which Safari kills on mobile)
+          console.log('[generate-theme] Reading full response text...');
+          var genStartTime = Date.now();
+          var fullText = await res2.text();
+          var elapsed = Math.round((Date.now() - genStartTime) / 1000);
+          console.log('[generate-theme] Response received in ' + elapsed + 's, ' + fullText.length + ' bytes');
+
+          // Parse SSE events from the full text
           var genResult = null;
           var genError = null;
-          var genRawChunks = 0;
-          var genStartTime = Date.now();
-          var genEventType = null; // Persists across chunks so split event/data lines work
-
-          try {
-          while (true) {
-            var genChunk = await genReader.read();
-            if (genChunk.done) break;
-            genRawChunks++;
-            var chunkText = genDecoder.decode(genChunk.value, { stream: true });
-            genBuffer += chunkText;
-            if (genRawChunks <= 3) console.log('[generate-theme] SSE chunk #' + genRawChunks + ':', chunkText.substring(0, 200));
-
-            var genLines = genBuffer.split('\n');
-            genBuffer = genLines.pop() || '';
-            for (var gi = 0; gi < genLines.length; gi++) {
-              var genLine = genLines[gi];
-              if (genLine.startsWith('event: ')) {
-                genEventType = genLine.substring(7).trim();
-              } else if (genLine.startsWith('data: ') && genEventType) {
-                try {
-                  var genEventData = JSON.parse(genLine.substring(6));
-                  console.log('[generate-theme] SSE event:', genEventType, genEventType === 'progress' ? '(' + genEventData.bytes + ' bytes)' : JSON.stringify(genEventData).substring(0, 200));
-                  if (genEventType === 'progress') {
-                    // Update progress bar (estimate ~20KB for a full theme)
-                    var genPct = Math.min(85, Math.round((genEventData.bytes / 20000) * 85));
-                    var genBar = document.getElementById('genProgressBar');
-                    if (genBar) genBar.style.width = genPct + '%';
-                  } else if (genEventType === 'done') {
-                    genResult = genEventData;
-                  } else if (genEventType === 'error') {
-                    genError = genEventData;
-                  }
-                } catch(pe) { console.warn('[generate-theme] Failed to parse SSE data:', genLine.substring(0, 200), pe); }
-                genEventType = null;
-              }
+          var genEventType = null;
+          var genLines = fullText.split('\n');
+          for (var gi = 0; gi < genLines.length; gi++) {
+            var genLine = genLines[gi];
+            if (genLine.startsWith('event: ')) {
+              genEventType = genLine.substring(7).trim();
+            } else if (genLine.startsWith('data: ') && genEventType) {
+              try {
+                var genEventData = JSON.parse(genLine.substring(6));
+                if (genEventType === 'done') {
+                  genResult = genEventData;
+                } else if (genEventType === 'error') {
+                  genError = genEventData;
+                }
+              } catch(pe) { console.warn('[generate-theme] Failed to parse SSE data:', genLine.substring(0, 200), pe); }
+              genEventType = null;
             }
           }
-          } catch (streamErr) {
-            // Mobile Safari kills fetch streams ("Load failed") — auto-retry once
-            var elapsed = Math.round((Date.now() - genStartTime) / 1000);
-            console.error('[generate-theme] Stream read error after ' + elapsed + 's, ' + genRawChunks + ' chunks:', streamErr.message);
-            window._lastGenDebug += ' | StreamErr after ' + elapsed + 's, ' + genRawChunks + ' chunks: ' + streamErr.message;
-            if (!window._genRetried) {
-              window._genRetried = true;
-              console.log('[generate-theme] Auto-retrying after stream failure...');
-              setTimeout(function() { retryGenerate(); }, 1000);
-              return;
-            }
-            // Second failure — show error
-            throw streamErr;
-          }
 
-          console.log('[generate-theme] Stream complete. Chunks:', genRawChunks, 'Result:', !!genResult, 'Error:', genError);
+          console.log('[generate-theme] Parse complete. Result:', !!genResult, 'Error:', genError);
+          window._lastGenDebug = 'Status: ' + res2.status + ' | Bytes: ' + fullText.length + ' | Elapsed: ' + elapsed + 's | Result: ' + !!genResult + ' | Build: 2026-03-11e';
 
-          window._genRetried = false; // Reset retry flag on successful stream read
           if (genResult && genResult.success) {
             var ver = {
               id: genResult.theme.id,
@@ -2787,9 +2756,9 @@
             try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
           } else {
             stopGeneratingPuns();
-            console.error('[generate-theme] Generation failed. genError:', genError, 'genResult:', genResult ? JSON.stringify(genResult).substring(0, 500) : null, 'buffer remainder:', genBuffer.substring(0, 300));
-            var errMsg = (genError && (genError.message || genError.error)) || (genResult && !genResult.success ? 'Server returned failure' : 'No response received from server (stream ended without result)');
-            window._lastGenDebug = 'Chunks: ' + genRawChunks + ' | Error: ' + JSON.stringify(genError) + ' | Result keys: ' + (genResult ? Object.keys(genResult).join(',') : 'null') + ' | Buffer: ' + genBuffer.substring(0, 200);
+            console.error('[generate-theme] Generation failed. genError:', genError, 'genResult:', genResult ? JSON.stringify(genResult).substring(0, 500) : null);
+            var errMsg = (genError && (genError.message || genError.error)) || (genResult && !genResult.success ? 'Server returned failure' : 'No response received from server');
+            window._lastGenDebug = 'Bytes: ' + fullText.length + ' | Error: ' + JSON.stringify(genError) + ' | Result keys: ' + (genResult ? Object.keys(genResult).join(',') : 'null') + ' | Build: 2026-03-11e';
             showGeneratingError(errMsg);
           }
         }

@@ -1,4 +1,18 @@
 {
+  "headers": [
+    {
+      "source": "/v2/(.*).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/v2/(.*)/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "functions": {
     "api/v2/generate-theme.js": {
       "maxDuration": 300,
