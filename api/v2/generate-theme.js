@@ -1093,7 +1093,21 @@ Return ONLY a valid JSON object with these keys:
       sendSSE('status', { phase: 'saving' });
 
       // Parse the accumulated text using robust parser
-      let theme = parseThemeResponse(fullText);
+      let theme;
+      try {
+        theme = parseThemeResponse(fullText);
+      } catch (parseErr) {
+        // No valid JSON/HTML found — AI responded with conversational text instead of a theme.
+        // Return it as a chat response so the client can display it gracefully.
+        sendSSE('done', {
+          success: true,
+          chatOnly: true,
+          chatResponse: fullText.trim(),
+          theme: null,
+          metadata: { model: tweakModel, latencyMs: Date.now() - startTime, tokens: { input: tweakInputTokens, output: tweakOutputTokens }, cost: tweakCost }
+        });
+        return res.end();
+      }
 
       // ── Light tweak: apply diff-based html_replacements ──
       if (isLightTweak && theme.html_replacements && Array.isArray(theme.html_replacements)) {

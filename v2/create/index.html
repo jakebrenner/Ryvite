@@ -3784,7 +3784,7 @@
         // Match explicit redesign requests
         var redesignKeywords = /\b(new design|redesign|start over|start fresh|completely different|totally different|whole new|from scratch|different design|different look|different style|redo it|redo the|redo this|another design|new look|new theme|different theme|change everything|scrap this)\b/i;
         // Match vague dissatisfaction / unclear change requests
-        var vagueKeywords = /\b(don'?t (like|love|know|feel)|not (sure|happy|feeling|loving|into|vibing|what)|make.{0,15}changes|change (it|this|the design)|switch it|something (different|else|new)|doesn'?t (feel|look|seem)|i'?m not |not.{0,8}right|want.{0,10}different|don'?t.{0,10}(like|love)|try.{0,5}again|meh|hmm|idk)\b/i;
+        var vagueKeywords = /\b(don'?t (like|love|know|feel)|not (sure|happy|feeling|loving|into|vibing|what)|make.{0,15}change[s]?|change (it|this|the design)|switch it|something (different|else|new)|doesn'?t (feel|look|seem)|i'?m not |not.{0,8}right|want.{0,10}(different|change|to change)|don'?t.{0,10}(like|love)|try.{0,5}again|meh|hmm|idk|i want to (change|modify|update|tweak|edit))\b/i;
         // Only trigger clarification for vague messages — NOT for specific instructions like "make the background darker"
         var hasSpecificInstruction = /\b(make the|change the|move the|add a|remove the|bigger|smaller|darker|lighter|bolder|font|color|background|button|text|photo|image|spacing|padding|margin|border|shadow|size|position)\b/i.test(text);
 
@@ -4051,6 +4051,16 @@
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
 
           console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11k');
+
+          if (tweakResult && tweakResult.success && tweakResult.chatOnly) {
+            // AI returned conversational text instead of a theme change — display it
+            var chatOnlyMsg = (tweakResult.chatResponse || 'Could you tell me what specific changes you\'d like?') + '\n\nTry something like:\n- "Make the background darker"\n- "Change the fonts to something more elegant"\n- "Add more gold accents"';
+            if (tweakResult.metadata) updateCostFromGeneration(tweakResult.metadata);
+            designChatHistory.push({ role: 'assistant', content: chatOnlyMsg });
+            renderDesignChat();
+            enableSendBtn();
+            return;
+          }
 
           if (tweakResult && tweakResult.success) {
             var newVer = { id: tweakResult.theme.id, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
