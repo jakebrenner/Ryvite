@@ -644,6 +644,46 @@ export default async function handler(req, res) {
   const action = req.query?.action || req.body?.action || 'generate';
   const { eventId, prompt, feedback, rsvpFields, eventDetails, inspirationImages, inspirationImageUrls, tweakInstructions, currentHtml, currentCss, currentConfig, photoBase64, photoUrl, photoUrls } = req.body;
 
+  // --- INTERPRET FIELD: quick Haiku call to parse natural language into field definition ---
+  if (action === 'interpretField') {
+    const { userMessage, existingFields } = req.body;
+    if (!userMessage) return res.status(400).json({ error: 'Missing userMessage' });
+
+    try {
+      const fieldList = (existingFields || []).map(f => f.label).join(', ');
+      const resp = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 256,
+        system: 'You interpret natural language requests to add RSVP form fields. Return ONLY a JSON object, no markdown.',
+        messages: [{ role: 'user', content: `The user said: "${userMessage}"
+
+Existing fields: ${fieldList || 'none'}
+
+Return a JSON object for the new field:
+{"label": "Human-readable label", "field_key": "snake_case_key", "field_type": "text|number|textarea|email|phone|select|checkbox", "is_required": false, "placeholder": "helpful placeholder text"}
+
+Rules:
+- Pick the most appropriate field_type (number for counts/quantities, textarea for messages/notes, etc.)
+- label should be clean and title-case (e.g. "Number of Pets", "Song Request")
+- placeholder should be a helpful example (e.g. "e.g., 2", "Any song that gets you moving!")
+- Do NOT duplicate existing fields` }]
+      });
+
+      const text = resp.content[0]?.text?.trim();
+      let field;
+      try {
+        const cleaned = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
+        field = JSON.parse(cleaned);
+      } catch {
+        return res.status(500).json({ error: 'Failed to parse field', raw: text });
+      }
+      return res.json({ success: true, field });
+    } catch (err) {
+      console.error('interpretField error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   // --- TWEAK MODE: stream response via SSE to avoid timeouts ---
   if (action === 'tweak') {
     if (!eventId || !currentHtml || !currentCss || !tweakInstructions) {

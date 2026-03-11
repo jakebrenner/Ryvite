@@ -3314,34 +3314,13 @@
         }
       }
 
-      // --- ADD field ---
-      var addMatch = lower.match(/(?:add|include|put|create|insert)\s+(?:a\s+|an\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)\s*$/i);
-      if (!addMatch) addMatch = lower.match(/(?:add|include|put|create|insert)\s+(?:a\s+|an\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)/i);
-      if (addMatch) {
-        var fieldLabel = (addMatch[1] || addMatch[2] || addMatch[3] || '').trim();
-        if (fieldLabel && fieldLabel.length < 60) {
-          // Infer field type from common patterns
-          var fieldType = 'text';
-          var fieldLower = fieldLabel.toLowerCase();
-          if (/number|count|how many|quantity|amount|adults|children|kids|guests/.test(fieldLower)) fieldType = 'number';
-          else if (/message|note|comment|special request|additional info|details/.test(fieldLower)) fieldType = 'textarea';
-          else if (/email|e-mail/.test(fieldLower)) fieldType = 'email';
-          else if (/phone|mobile|cell/.test(fieldLower)) fieldType = 'phone';
-
-          var fieldKey = fieldLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-          var exists = enabledFields.some(function(f) {
-            return (f.field_key || '').toLowerCase() === fieldKey || (f.label || '').toLowerCase() === fieldLabel.toLowerCase();
-          });
-          if (!exists) {
-            // Capitalize label nicely
-            var niceLabel = fieldLabel.replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-            return {
-              action: 'add',
-              changes: [{ action: 'add', field_key: fieldKey, label: niceLabel, field_type: fieldType, is_required: false, placeholder: null }],
-              chatResponse: 'Done! I\'ve added a "' + niceLabel + '" field to your RSVP form.'
-            };
-          }
-        }
+      // --- ADD field (detected client-side, interpreted by quick AI call) ---
+      var addDetected = /\b(?:add|include|put|create|insert)\b.*\b(?:field|input|question|section|form field)\b/i.test(lower)
+        || /\b(?:add|include|put|create|insert)\b.*\b(?:for|called|named|asking|about)\b/i.test(lower)
+        || /\b(?:i want|i need|can you add|could you add|please add)\b.*\b(?:field|question|ask|input)\b/i.test(lower);
+      if (addDetected) {
+        // Return a marker so the caller knows to do an async AI interpretation
+        return { action: 'add_async', userMessage: text };
       }
 
       // --- MAKE REQUIRED / OPTIONAL ---
@@ -3621,7 +3600,7 @@
 
       // ── TIER 1: Instant client-side RSVP field changes (no AI call) ──
       var rsvpFieldResult = tryInstantRsvpFieldChange(text, hasPhotos);
-      if (rsvpFieldResult) {
+      if (rsvpFieldResult && rsvpFieldResult.action !== 'add_async') {
         console.log('[tweak] INSTANT field change:', rsvpFieldResult.action);
         applyRsvpFieldChanges(rsvpFieldResult.changes);
         renderPreview(themeVersions[activeVersionIndex]);
@@ -3630,6 +3609,45 @@
         sendBtn.disabled = false;
         renderDesignChat();
         return;
+      }
+
+      // ── TIER 1.5: Quick AI field interpretation for "add" requests (~1s) ──
+      if (rsvpFieldResult && rsvpFieldResult.action === 'add_async') {
+        console.log('[tweak] Quick AI field interpretation for:', rsvpFieldResult.userMessage);
+        try {
+          var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
+          var interpretRes = await authFetch('/api/v2/generate-theme?action=interpretField', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userMessage: rsvpFieldResult.userMessage,
+              existingFields: enabledFields.map(function(f) { return { label: f.label, field_key: f.field_key }; })
+            })
+          });
+          if (interpretRes.ok) {
+            var interpretData = await interpretRes.json();
+            if (interpretData.success && interpretData.field) {
+              var f = interpretData.field;
+              var exists = enabledFields.some(function(ef) {
+                return (ef.field_key || '').toLowerCase() === (f.field_key || '').toLowerCase();
+              });
+              if (!exists) {
+                applyRsvpFieldChanges([{ action: 'add', field_key: f.field_key, label: f.label, field_type: f.field_type || 'text', is_required: f.is_required || false, placeholder: f.placeholder || null }]);
+                renderPreview(themeVersions[activeVersionIndex]);
+                designChatHistory.push({ role: 'assistant', content: 'Done! I\'ve added a "' + f.label + '" field to your RSVP form.\n\nWant to make any more changes?' });
+              } else {
+                designChatHistory.push({ role: 'assistant', content: 'That field already exists in your RSVP form!\n\nWant to make any other changes?' });
+              }
+              clearDesignChatPhoto();
+              sendBtn.disabled = false;
+              renderDesignChat();
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('[tweak] interpretField error:', err);
+        }
+        // If interpretation failed, fall through to full AI tweak
       }
 
       // ── TIER 2 & 3: AI-powered tweaks (text-only via Haiku or design via Sonnet) ──
@@ -3749,7 +3767,7 @@
           clearInterval(tweakPunInterval);
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
 
-          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11i');
+          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11j');
 
           if (tweakResult && tweakResult.success) {
             var newVer = { id: tweakResult.theme.id, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
