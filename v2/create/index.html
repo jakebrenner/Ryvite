@@ -217,32 +217,21 @@
     .theme-rating { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 8px; animation: fadeIn 0.3s; }
     .theme-rating-label { font-size: 12px; color: #666; font-weight: 500; }
     .theme-rating-stars { display: flex; gap: 4px; }
-    .theme-rating-stars .star { width: 28px; height: 28px; cursor: pointer; transition: all 0.15s; background: none; border: none; padding: 0; }
-    .theme-rating-stars .star svg { width: 28px; height: 28px; }
-    .theme-rating-stars .star:hover { transform: scale(1.2); }
-    .theme-rating-stars .star .star-fill { fill: #ddd; transition: fill 0.15s; }
-    .theme-rating-stars .star.active .star-fill { fill: var(--confetti-gold); }
-    .theme-rating-stars .star.hover-preview .star-fill { fill: var(--confetti-gold); opacity: 0.7; }
-    .theme-rating-thanks { font-size: 12px; color: var(--mint-fizz); font-weight: 600; animation: fadeIn 0.3s; }
-
-    /* Rating feedback overlay */
-    .rating-feedback-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
-    .rating-feedback-modal { background: white; border-radius: 16px; padding: 28px; max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
-    .rating-feedback-modal h3 { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 6px; }
-    .rating-feedback-modal .rating-subtitle { font-size: 13px; color: #666; margin-bottom: 16px; }
-    .rating-feedback-modal .feedback-stars { display: flex; justify-content: center; gap: 4px; margin-bottom: 16px; }
-    .rating-feedback-modal .feedback-stars .star { width: 32px; height: 32px; }
-    .rating-feedback-modal .feedback-stars .star svg { width: 32px; height: 32px; }
-    .rating-feedback-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 12px; }
-    .rating-feedback-chips .chip { font-size: 12px; padding: 6px 12px; border: 1px solid #ddd; border-radius: 20px; cursor: pointer; background: white; transition: all 0.15s; font-family: 'Inter', sans-serif; }
-    .rating-feedback-chips .chip:hover { border-color: var(--party-coral); color: var(--party-coral); }
-    .rating-feedback-chips .chip.selected { background: var(--party-coral); color: white; border-color: var(--party-coral); }
-    .rating-feedback-modal textarea { width: 100%; min-height: 70px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 13px; resize: vertical; margin-bottom: 12px; }
-    .rating-feedback-modal textarea:focus { outline: none; border-color: var(--party-coral); box-shadow: 0 0 0 3px rgba(233,69,96,0.1); }
-    .rating-feedback-modal .tweak-hint { background: linear-gradient(135deg, #FFF3E0, #FFF8E1); border: 1px solid #FFE0B2; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; text-align: left; }
-    .rating-feedback-modal .tweak-hint p { font-size: 13px; color: #5D4037; line-height: 1.4; }
-    .rating-feedback-modal .tweak-hint strong { color: var(--party-coral); }
-    .rating-feedback-actions { display: flex; gap: 10px; justify-content: center; }
+    /* Inline chat rating */
+    .chat-rating { align-self: flex-start; background: #f8f8f8; border-radius: 12px; border-bottom-left-radius: 4px; padding: 12px 16px; max-width: 90%; }
+    .chat-rating-label { font-size: 13px; color: var(--midnight); margin-bottom: 8px; font-weight: 500; }
+    .chat-rating-stars { display: flex; gap: 4px; margin-bottom: 8px; }
+    .chat-rating-stars .star { width: 28px; height: 28px; cursor: pointer; transition: all 0.15s; background: none; border: none; padding: 0; }
+    .chat-rating-stars .star svg { width: 28px; height: 28px; }
+    .chat-rating-stars .star:hover { transform: scale(1.2); }
+    .chat-rating-stars .star .star-fill { fill: #ddd; transition: fill 0.15s; }
+    .chat-rating-stars .star.active .star-fill { fill: var(--confetti-gold); }
+    .chat-rating-stars .star.hover-preview .star-fill { fill: var(--confetti-gold); opacity: 0.7; }
+    .chat-rating-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chat-rating-chips .chip { font-size: 11px; padding: 5px 10px; border: 1px solid #ddd; border-radius: 16px; cursor: pointer; background: white; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+    .chat-rating-chips .chip:hover { border-color: var(--party-coral); color: var(--party-coral); }
+    .chat-rating-chips .chip.selected { background: var(--party-coral); color: white; border-color: var(--party-coral); }
+    .chat-rating-thanks { font-size: 12px; color: var(--mint-fizz); font-weight: 600; margin-top: 6px; }
 
     /* Right panel tabs */
     .panel-tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 16px; }
@@ -253,8 +242,8 @@
     .tab-content.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
 
     /* Design chat */
-    .design-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-    .design-chat-messages { flex: 1; overflow-y: auto; padding: 4px 0; display: flex; flex-direction: column; gap: 12px; }
+    .design-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .design-chat-messages { flex: 1; overflow-y: auto; padding: 4px 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
     .design-chat-msg { max-width: 90%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
     .design-chat-msg.assistant { align-self: flex-start; background: #f0f0f0; border-bottom-left-radius: 4px; }
     .design-chat-msg.user { align-self: flex-end; background: var(--party-coral); color: white; border-bottom-right-radius: 4px; }
@@ -290,18 +279,9 @@
     .cost-tracker.hidden { display: none; }
     .cost-tracker-row { display: flex; justify-content: space-between; align-items: center; }
     .cost-tracker-label { color: #888; font-weight: 500; }
-    .cost-tracker-value { font-weight: 700; color: var(--midnight); }
-    .cost-tracker-details { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; display: none; }
-    .cost-tracker-details.open { display: block; }
-    .cost-tracker-line { display: flex; justify-content: space-between; padding: 3px 0; color: #888; font-size: 11px; }
-    .cost-tracker-line .ct-val { color: var(--midnight); font-weight: 600; }
-    .cost-threshold-bar { height: 4px; background: #f0f0f0; border-radius: 2px; margin-top: 8px; overflow: hidden; }
-    .cost-threshold-fill { height: 100%; border-radius: 2px; transition: width 0.5s, background 0.3s; }
-    .cost-tracker-toggle { background: none; border: none; cursor: pointer; font-size: 10px; color: #aaa; padding: 0; margin-left: 8px; }
+    .cost-tracker-value { font-weight: 700; color: var(--midnight); font-size: 14px; }
     .cost-flash { animation: costFlash 0.6s ease; }
     @keyframes costFlash { 0% { background: #fff3cd; } 100% { background: white; } }
-    .cost-warning { background: #fff3cd; border-color: #ffc107; }
-    .cost-warning .cost-tracker-value { color: #856404; }
 
     /* Generating page styles */
     .gen-container { max-width: 480px; margin: 0 auto; padding: 32px 20px; text-align: center; }
@@ -540,31 +520,15 @@
       <div id="generatedView" style="display: none;">
         <h2 style="text-align:center;">Create Your Invite</h2>
         <p class="step-desc" style="text-align:center;">Love it? Continue to publish. Switch between versions below.</p>
-        <div class="generated-layout" style="display:flex;gap:32px;align-items:stretch;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
+        <div class="generated-layout" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
           <!-- Left: Tabbed panel (chat, details, versions) -->
-          <div id="editPanel" style="flex:1;min-width:280px;max-width:440px;display:flex;flex-direction:column;">
+          <div id="editPanel" style="flex:1;min-width:280px;max-width:440px;display:flex;flex-direction:column;overflow:hidden;">
 
             <!-- Generation cost tracker (visible for usage-plan users) -->
             <div id="costTracker" class="cost-tracker hidden">
               <div class="cost-tracker-row">
-                <span class="cost-tracker-label">Session Cost</span>
-                <span>
-                  <span class="cost-tracker-value" id="costTrackerTotal">$0.00</span>
-                  <button class="cost-tracker-toggle" id="costTrackerToggle" onclick="toggleCostDetails()">&#9662;</button>
-                </span>
-              </div>
-              <div class="cost-tracker-details" id="costTrackerDetails">
-                <div class="cost-tracker-line"><span>This generation</span><span class="ct-val" id="costLastGen">$0.00</span></div>
-                <div class="cost-tracker-line"><span>Generations</span><span class="ct-val" id="costGenCount">0</span></div>
-                <div class="cost-tracker-line" style="margin-top:4px;padding-top:4px;border-top:1px solid #f0f0f0;">
-                  <span>Unbilled balance</span><span class="ct-val" id="costUnbilled">$0.00</span>
-                </div>
-                <div class="cost-threshold-bar">
-                  <div class="cost-threshold-fill" id="costThresholdFill" style="width:0%;background:var(--mint-fizz);"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa;margin-top:2px;">
-                  <span>$0</span><span id="costThresholdLabel">Auto-charge at $5.00</span>
-                </div>
+                <span class="cost-tracker-label">Current Invite Cost</span>
+                <span class="cost-tracker-value" id="costTrackerTotal">$0.00</span>
               </div>
             </div>
 
@@ -643,11 +607,6 @@
             <div id="previewToggle" style="display:flex;justify-content:center;gap:4px;margin-bottom:8px;">
               <button class="preview-toggle-btn active" onclick="setPreviewMode('invite')">Invite</button>
               <button class="preview-toggle-btn" onclick="setPreviewMode('thankyou')">Thank You</button>
-            </div>
-            <div id="themeRatingWidget" class="theme-rating" style="display:none;">
-              <span class="theme-rating-label">How does this look?</span>
-              <div class="theme-rating-stars" id="themeRatingStars"></div>
-              <span class="theme-rating-thanks" id="themeRatingThanks" style="display:none;"></span>
             </div>
             <div class="phone-mockup">
               <div class="phone-frame">
@@ -2611,8 +2570,27 @@
         var toggle = document.getElementById('mobileEditToggle');
         if (toggle) toggle.style.display = 'none';
       }
+      // On desktop, constrain edit panel height to match preview column
+      syncEditPanelHeight();
     }
     window.addEventListener('resize', updateMobileLayout);
+
+    function syncEditPanelHeight() {
+      var editPanel = document.getElementById('editPanel');
+      var previewCol = document.getElementById('previewColumn');
+      if (!editPanel || !previewCol) return;
+      if (window.innerWidth <= 900) {
+        editPanel.style.maxHeight = '';
+        return;
+      }
+      // Use requestAnimationFrame to get accurate rendered height
+      requestAnimationFrame(function() {
+        var previewHeight = previewCol.offsetHeight;
+        if (previewHeight > 0) {
+          editPanel.style.maxHeight = previewHeight + 'px';
+        }
+      });
+    }
 
     function nextStep() { if (currentStep < totalSteps) goToStep(currentStep + 1); }
     function previousStep() { if (currentStep > 1) goToStep(currentStep - 1); }
@@ -3115,42 +3093,15 @@
       if (usagePlanUser) {
         document.getElementById('costTracker').classList.remove('hidden');
         updateCostTrackerUI();
-        // Flash animation
         var el = document.getElementById('costTracker');
         el.classList.remove('cost-flash');
         void el.offsetWidth;
         el.classList.add('cost-flash');
-        // Threshold warning
-        if (userUnbilledCents > userThresholdCents * 0.8) {
-          el.classList.add('cost-warning');
-        } else {
-          el.classList.remove('cost-warning');
-        }
       }
     }
 
     function updateCostTrackerUI() {
       document.getElementById('costTrackerTotal').textContent = formatCents(sessionCostCents);
-      document.getElementById('costLastGen').textContent = formatCents(lastGenCostCents);
-      document.getElementById('costGenCount').textContent = sessionGenCount;
-      document.getElementById('costUnbilled').textContent = formatCents(userUnbilledCents);
-      var pct = userThresholdCents > 0 ? Math.min(100, Math.round(userUnbilledCents / userThresholdCents * 100)) : 0;
-      var fill = document.getElementById('costThresholdFill');
-      fill.style.width = pct + '%';
-      fill.style.background = pct >= 80 ? 'var(--party-coral)' : pct >= 50 ? 'var(--confetti-gold)' : 'var(--mint-fizz)';
-      document.getElementById('costThresholdLabel').textContent = 'Auto-charge at ' + formatCents(userThresholdCents);
-    }
-
-    function toggleCostDetails() {
-      var el = document.getElementById('costTrackerDetails');
-      var btn = document.getElementById('costTrackerToggle');
-      if (el.classList.contains('open')) {
-        el.classList.remove('open');
-        btn.innerHTML = '&#9662;';
-      } else {
-        el.classList.add('open');
-        btn.innerHTML = '&#9652;';
-      }
     }
 
     function formatCents(cents) {
@@ -3684,6 +3635,11 @@
         return html;
       }).join('');
       container.scrollTop = container.scrollHeight;
+    }
+
+    function scrollDesignChat() {
+      var container = document.getElementById('designChatMessages');
+      if (container) container.scrollTop = container.scrollHeight;
     }
 
     function autoResizeTextarea(el) {
@@ -4580,33 +4536,39 @@
     }
 
     function showThemeRating(themeId) {
-      var widget = document.getElementById('themeRatingWidget');
-      var starsContainer = document.getElementById('themeRatingStars');
-      var thanks = document.getElementById('themeRatingThanks');
-
-      widget.style.display = 'flex';
-      thanks.style.display = 'none';
-
+      // Add inline rating prompt to design chat
       var existing = hostRatingsByTheme[themeId];
-      var currentRating = existing ? existing.rating : 0;
+      if (existing) return; // Already rated this version
 
-      starsContainer.innerHTML = '';
+      var ratingEl = document.createElement('div');
+      ratingEl.className = 'chat-rating';
+      ratingEl.id = 'chatRating-' + themeId;
+
+      var labelDiv = document.createElement('div');
+      labelDiv.className = 'chat-rating-label';
+      labelDiv.textContent = 'How does this design look?';
+      ratingEl.appendChild(labelDiv);
+
+      var starsDiv = document.createElement('div');
+      starsDiv.className = 'chat-rating-stars';
       for (var i = 1; i <= 5; i++) {
         var btn = document.createElement('button');
-        btn.className = 'star' + (i <= currentRating ? ' active' : '');
+        btn.className = 'star';
         btn.innerHTML = starSvg();
         btn.dataset.value = i;
         btn.dataset.themeId = themeId;
         btn.onclick = function() { handleStarClick(this.dataset.themeId, parseInt(this.dataset.value)); };
-        btn.onmouseenter = function() { previewStars(starsContainer, parseInt(this.dataset.value)); }.bind(btn);
-        btn.onmouseleave = function() { clearStarPreview(starsContainer, currentRating); };
-        starsContainer.appendChild(btn);
+        (function(starBtn, starsContainer) {
+          starBtn.onmouseenter = function() { previewStars(starsContainer, parseInt(starBtn.dataset.value)); };
+          starBtn.onmouseleave = function() { clearStarPreview(starsContainer); };
+        })(btn, starsDiv);
+        starsDiv.appendChild(btn);
       }
+      ratingEl.appendChild(starsDiv);
 
-      if (existing) {
-        thanks.textContent = existing.rating === 5 ? 'Thanks!' : 'Rated ' + existing.rating + '/5';
-        thanks.style.display = 'inline';
-      }
+      var msgContainer = document.getElementById('designChatMessages');
+      msgContainer.appendChild(ratingEl);
+      scrollDesignChat();
     }
 
     function previewStars(container, upTo) {
@@ -4623,106 +4585,92 @@
     function handleStarClick(themeId, rating) {
       hostRatingsByTheme[themeId] = { rating: rating, feedback: '' };
 
-      // Update stars UI immediately
-      var starsContainer = document.getElementById('themeRatingStars');
-      starsContainer.querySelectorAll('.star').forEach(function(s) {
+      var ratingEl = document.getElementById('chatRating-' + themeId);
+      if (!ratingEl) return;
+
+      // Update stars
+      ratingEl.querySelectorAll('.star').forEach(function(s) {
         s.classList.toggle('active', parseInt(s.dataset.value) <= rating);
         s.classList.remove('hover-preview');
+        s.style.pointerEvents = 'none';
       });
 
-      if (rating < 5) {
-        showRatingFeedbackModal(themeId, rating);
-      } else {
-        // 5 stars — just save it with a thanks
+      if (rating === 5) {
         submitHostRating(themeId, rating, '');
-        var thanks = document.getElementById('themeRatingThanks');
+        var thanks = document.createElement('div');
+        thanks.className = 'chat-rating-thanks';
         thanks.textContent = 'Thanks! Glad you love it!';
-        thanks.style.display = 'inline';
-      }
-    }
-
-    function showRatingFeedbackModal(themeId, rating) {
-      var ratingLabels = { 1: 'Not great', 2: 'Needs work', 3: 'Decent', 4: 'Almost there' };
-      var label = ratingLabels[rating] || '';
-
-      // Quick-tap feedback chips based on rating
-      var chips = [];
-      if (rating <= 2) {
-        chips = ['Text too large', 'Wrong colors', 'Looks broken', 'Not my style', 'Hard to read', 'Too plain'];
+        ratingEl.appendChild(thanks);
+        scrollDesignChat();
       } else {
-        chips = ['Colors off', 'Layout tweaks', 'Font change', 'More detail', 'Different vibe', 'Almost perfect'];
+        // Show feedback chips inline
+        showInlineRatingFeedback(ratingEl, themeId, rating);
       }
+    }
 
-      var starsHtml = '';
-      for (var i = 1; i <= 5; i++) {
-        starsHtml += '<button class="star' + (i <= rating ? ' active' : '') + '" style="pointer-events:none;">' + starSvg() + '</button>';
-      }
+    function showInlineRatingFeedback(ratingEl, themeId, rating) {
+      var chips = rating <= 2
+        ? ['Text too large', 'Wrong colors', 'Looks broken', 'Not my style', 'Hard to read', 'Too plain']
+        : ['Colors off', 'Layout tweaks', 'Font change', 'More detail', 'Different vibe', 'Almost perfect'];
 
-      var chipsHtml = chips.map(function(c) {
-        return '<button class="chip" onclick="toggleFeedbackChip(this)">' + c + '</button>';
-      }).join('');
-
-      var overlay = document.createElement('div');
-      overlay.className = 'rating-feedback-overlay';
-      overlay.id = 'ratingFeedbackOverlay';
-      overlay.innerHTML = '<div class="rating-feedback-modal">'
-        + '<h3>' + label + '</h3>'
-        + '<div class="feedback-stars">' + starsHtml + '</div>'
-        + '<p class="rating-subtitle">What could be better?</p>'
-        + '<div class="rating-feedback-chips" id="feedbackChips">' + chipsHtml + '</div>'
-        + '<textarea id="ratingFeedbackText" placeholder="Tell us more (optional)..."></textarea>'
-        + '<div class="tweak-hint">'
-        + '<p>You can <strong>tweak this design</strong> using the Design chat! Just describe what you want changed and we\'ll update it instantly.</p>'
-        + '</div>'
-        + '<div class="rating-feedback-actions">'
-        + '<button class="btn btn-secondary btn-sm" onclick="closeRatingFeedback(\'' + themeId + '\', ' + rating + ', false)">Skip</button>'
-        + '<button class="btn btn-primary btn-sm" onclick="closeRatingFeedback(\'' + themeId + '\', ' + rating + ', true)">Submit & Tweak</button>'
-        + '</div>'
-        + '</div>';
-      document.body.appendChild(overlay);
-
-      // Click outside to close
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) closeRatingFeedback(themeId, rating, false);
+      var chipsDiv = document.createElement('div');
+      chipsDiv.className = 'chat-rating-chips';
+      chips.forEach(function(c) {
+        var chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = c;
+        chip.onclick = function() {
+          this.classList.toggle('selected');
+        };
+        chipsDiv.appendChild(chip);
       });
+      ratingEl.appendChild(chipsDiv);
+
+      // Add a small "Send feedback" link
+      var sendRow = document.createElement('div');
+      sendRow.style.cssText = 'margin-top:8px;display:flex;gap:8px;align-items:center;';
+      sendRow.innerHTML = '<button class="btn btn-primary btn-sm" style="font-size:11px;padding:5px 12px;" onclick="submitInlineRating(\'' + themeId + '\', ' + rating + ')">Send feedback</button>'
+        + '<span style="font-size:11px;color:#999;">Tap issues above, then send</span>';
+      ratingEl.appendChild(sendRow);
+      scrollDesignChat();
     }
 
-    function toggleFeedbackChip(el) {
-      el.classList.toggle('selected');
-    }
+    function submitInlineRating(themeId, rating) {
+      var ratingEl = document.getElementById('chatRating-' + themeId);
+      if (!ratingEl) return;
 
-    function closeRatingFeedback(themeId, rating, focusChat) {
-      var overlay = document.getElementById('ratingFeedbackOverlay');
-      if (!overlay) return;
-
-      // Collect feedback from chips + textarea
       var selectedChips = [];
-      overlay.querySelectorAll('.chip.selected').forEach(function(c) { selectedChips.push(c.textContent); });
-      var textFeedback = (document.getElementById('ratingFeedbackText')?.value || '').trim();
-      var fullFeedback = selectedChips.concat(textFeedback ? [textFeedback] : []).join('; ');
+      ratingEl.querySelectorAll('.chip.selected').forEach(function(c) { selectedChips.push(c.textContent); });
+      var fullFeedback = selectedChips.join('; ');
 
       hostRatingsByTheme[themeId] = { rating: rating, feedback: fullFeedback };
       submitHostRating(themeId, rating, fullFeedback);
 
-      overlay.remove();
+      // Replace chips with thanks + pre-fill chat
+      var chipsDiv = ratingEl.querySelector('.chat-rating-chips');
+      var sendRow = ratingEl.querySelector('div[style*="margin-top:8px"]');
+      if (chipsDiv) chipsDiv.remove();
+      if (sendRow) sendRow.remove();
 
-      var thanks = document.getElementById('themeRatingThanks');
-      thanks.textContent = 'Feedback saved! Try the Design chat to tweak it.';
-      thanks.style.display = 'inline';
+      var thanks = document.createElement('div');
+      thanks.className = 'chat-rating-thanks';
+      thanks.textContent = 'Feedback saved!';
+      ratingEl.appendChild(thanks);
 
-      // Focus the design chat input if user clicked "Submit & Tweak"
-      if (focusChat) {
-        switchTab('design');
+      // Pre-fill chat input with feedback to encourage tweaking
+      if (fullFeedback) {
         var chatInput = document.getElementById('designChatInput');
-        if (chatInput) {
+        if (chatInput && !chatInput.value) {
+          chatInput.value = 'Can you fix: ' + fullFeedback.toLowerCase();
+          autoResizeTextarea(chatInput);
           chatInput.focus();
-          // Pre-fill with their feedback as a starting point
-          if (fullFeedback && !chatInput.value) {
-            chatInput.value = 'Can you fix: ' + fullFeedback.toLowerCase();
-            autoResizeTextarea(chatInput);
-          }
         }
       }
+      scrollDesignChat();
+    }
+
+    function toggleFeedbackChip(el) {
+      el.classList.toggle('selected');
     }
 
     function submitHostRating(themeId, rating, feedback) {
