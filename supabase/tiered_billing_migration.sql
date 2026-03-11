@@ -61,9 +61,11 @@ CREATE OR REPLACE FUNCTION apply_usage_credits(p_user_id uuid, p_amount_cents in
 RETURNS integer AS $$
 DECLARE
   credit_row RECORD;
-  remaining_to_deduct integer := p_amount_cents;
+  remaining_to_deduct integer;
   deducted integer;
 BEGIN
+  remaining_to_deduct := p_amount_cents;
+
   FOR credit_row IN
     SELECT id, remaining_cents
     FROM usage_credits
@@ -72,7 +74,9 @@ BEGIN
       AND (expires_at IS NULL OR expires_at > now())
     ORDER BY created_at ASC
   LOOP
-    IF remaining_to_deduct <= 0 THEN EXIT; END IF;
+    IF remaining_to_deduct <= 0 THEN
+      EXIT;
+    END IF;
 
     IF credit_row.remaining_cents >= remaining_to_deduct THEN
       deducted := remaining_to_deduct;
@@ -87,8 +91,8 @@ BEGIN
     remaining_to_deduct := remaining_to_deduct - deducted;
   END LOOP;
 
-  -- Return the amount actually charged (after credits)
-  RETURN GREATEST(0, p_amount_cents - (p_amount_cents - remaining_to_deduct));
+  -- Return total credits applied
+  RETURN GREATEST(0, p_amount_cents - remaining_to_deduct);
 END;
 $$ LANGUAGE plpgsql;
 
