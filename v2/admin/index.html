@@ -1864,8 +1864,31 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
     // ── Build proper srcdoc (same as front-end create page) ──
     function buildTestSrcdoc(theme) {
-      var fontsImport = theme.config.googleFontsImport || '';
-      var themeHtml = theme.html;
+      var fontsImport = (theme.config && theme.config.googleFontsImport) || '';
+      var themeHtml = theme.html || '';
+      var themeCss = theme.css || '';
+
+      // Client-side fallback: extract CSS from inline <style> tags if theme.css is empty
+      if (!themeCss && themeHtml.match(/<style[\s\S]*?<\/style>/i)) {
+        var styleMatches = themeHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+        if (styleMatches) {
+          themeCss = styleMatches.map(function(s) { return s.replace(/<\/?style[^>]*>/gi, ''); }).join('\n');
+          themeHtml = themeHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+        }
+      }
+      // Extract font @import from CSS if not in config
+      if (!fontsImport && themeCss) {
+        var fontMatch = themeCss.match(/@import\s+url\([^)]+\);?/);
+        if (fontMatch) {
+          fontsImport = fontMatch[0];
+          themeCss = themeCss.replace(/@import\s+url\([^)]+\);?\s*/g, '');
+        }
+      }
+      // Strip full HTML document wrapper if present
+      if (themeHtml.match(/^<!DOCTYPE/i) || themeHtml.match(/^<html/i)) {
+        var bodyMatch = themeHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+        if (bodyMatch) themeHtml = bodyMatch[1].trim();
+      }
 
       // Build RSVP form HTML
       var rsvpFormHtml = '<div style="padding:16px 0;">'
@@ -1919,8 +1942,9 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         + '<\/script>';
 
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; } ' + fontsImport + '</style>'
-        + '<style>' + theme.css + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
+        + (fontsImport ? '<style>' + fontsImport + '</style>' : '')
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
+        + '<style>' + themeCss + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
     }
 
     function buildTestThankYouSrcdoc(theme) {
@@ -1970,7 +1994,8 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
 
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + (fontsImport ? '<style>' + fontsImport + '</style>' : '')
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
         + '<style>' + theme.css + '</style>'
         + '<style>' + guaranteedCSS + '</style>'
         + '</head><body>' + tyHtml + '</body></html>';
