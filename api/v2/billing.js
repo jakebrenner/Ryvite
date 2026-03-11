@@ -860,13 +860,15 @@ export default async function handler(req, res) {
       const markupPct = usageSub?.plans?.ai_markup_pct || 50;
       const smsPriceCents = usageSub?.plans?.sms_price_cents || 5;
 
-      // Unbilled AI generations
-      const { data: unbilledGens } = await supabaseAdmin
+      // ALL AI generations (for total cost tracking)
+      const { data: allGens } = await supabaseAdmin
         .from('generation_log')
-        .select('id, model, input_tokens, output_tokens, created_at, event_id')
+        .select('id, model, input_tokens, output_tokens, created_at, event_id, billed')
         .eq('user_id', user.id)
-        .eq('billed', false)
         .eq('status', 'success');
+
+      // Split into unbilled (for billing threshold) and all (for display)
+      const unbilledGens = (allGens || []).filter(g => !g.billed);
 
       let rawAiCostDollars = 0;
       const genDetails = [];
@@ -886,6 +888,14 @@ export default async function handler(req, res) {
       const aiCostWithMarkup = rawAiCostDollars * (1 + markupPct / 100);
       const aiCostCents = Math.round(aiCostWithMarkup * 100);
 
+      // Total all-time AI cost (billed + unbilled)
+      let rawAllTimeAiDollars = 0;
+      for (const g of (allGens || [])) {
+        const pricing = AI_MODEL_PRICING[g.model] || { input: 3.00, output: 15.00 };
+        rawAllTimeAiDollars += ((g.input_tokens || 0) * pricing.input + (g.output_tokens || 0) * pricing.output) / 1_000_000;
+      }
+      const allTimeAiCents = Math.round(rawAllTimeAiDollars * (1 + markupPct / 100) * 100);
+
       // Unbilled SMS
       const { data: unbilledSms } = await supabaseAdmin
         .from('sms_messages')
@@ -894,6 +904,13 @@ export default async function handler(req, res) {
         .eq('billed', false);
 
       const smsCostCents = (unbilledSms || []).reduce((sum, m) => sum + (m.cost_cents || 0), 0);
+
+      // All-time SMS cost
+      const { data: allSms } = await supabaseAdmin
+        .from('sms_messages')
+        .select('cost_cents')
+        .eq('user_id', user.id);
+      const allTimeSmsCents = (allSms || []).reduce((sum, m) => sum + (m.cost_cents || 0), 0);
 
       // Available credits
       const { data: credits } = await supabaseAdmin
@@ -924,17 +941,21 @@ export default async function handler(req, res) {
         usage: {
           ai: {
             unbilledCount: (unbilledGens || []).length,
+            totalCount: (allGens || []).length,
             rawCostCents: Math.round(rawAiCostDollars * 100),
             markupPct,
             totalCents: aiCostCents,
+            allTimeCents: allTimeAiCents,
             details: genDetails
           },
           sms: {
             unbilledCount: (unbilledSms || []).length,
             totalCents: smsCostCents,
+            allTimeCents: allTimeSmsCents,
             pricePerMessageCents: smsPriceCents
           },
           totalUnbilledCents,
+          totalAllTimeCents: allTimeAiCents + allTimeSmsCents,
           credits: {
             availableCents: totalCreditsCents,
             items: (credits || []).map(c => ({

@@ -784,10 +784,11 @@ export default async function handler(req, res) {
 
   // --- INTERPRET FIELD: quick Haiku call to parse natural language into field definition ---
   if (action === 'interpretField') {
-    const { userMessage, existingFields } = req.body;
+    const { userMessage, existingFields, eventId: fieldEventId } = req.body;
     if (!userMessage) return res.status(400).json({ error: 'Missing userMessage' });
 
     try {
+      const fieldStartTime = Date.now();
       const fieldList = (existingFields || []).map(f => f.label).join(', ');
       const resp = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
@@ -808,6 +809,32 @@ Rules:
       });
 
       const text = resp.content[0]?.text?.trim();
+      const fieldInputTokens = resp.usage?.input_tokens || 0;
+      const fieldOutputTokens = resp.usage?.output_tokens || 0;
+
+      // Log cost to generation_log + increment event cost
+      const fieldLatency = Date.now() - fieldStartTime;
+      const fieldCost = calcGenerationCost('claude-haiku-4-5-20251001', fieldInputTokens, fieldOutputTokens);
+      supabase.from('generation_log').insert({
+        user_id: user.id, event_id: fieldEventId || null,
+        prompt: 'interpretField: ' + userMessage.substring(0, 200),
+        model: 'claude-haiku-4-5-20251001', input_tokens: fieldInputTokens,
+        output_tokens: fieldOutputTokens, latency_ms: fieldLatency, status: 'success',
+        is_tweak: true
+      }).catch(() => {});
+      if (fieldEventId) {
+        supabase.rpc('increment_event_cost', { p_event_id: fieldEventId, p_cost_cents: fieldCost.totalCostCents })
+          .catch(() => {
+            supabase.from('events').select('total_cost_cents').eq('id', fieldEventId).single()
+              .then(({ data }) => {
+                if (data) supabase.from('events')
+                  .update({ total_cost_cents: (data.total_cost_cents || 0) + fieldCost.totalCostCents })
+                  .eq('id', fieldEventId).catch(() => {});
+              }).catch(() => {});
+          });
+      }
+      checkAndChargeAiUsage(user.id).catch(() => {});
+
       let field;
       try {
         const cleaned = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
@@ -815,7 +842,7 @@ Rules:
       } catch {
         return res.status(500).json({ error: 'Failed to parse field', raw: text });
       }
-      return res.json({ success: true, field });
+      return res.json({ success: true, field, metadata: { cost: fieldCost } });
     } catch (err) {
       console.error('interpretField error:', err);
       return res.status(500).json({ error: err.message });

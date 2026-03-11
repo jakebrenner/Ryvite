@@ -272,7 +272,7 @@
       <div class="usage-widget-header" onclick="toggleUsageDetails()">
         <div>
           <div class="usage-widget-title">
-            Current Usage
+            Total Usage
             <span class="usage-tier-badge" id="tierBadge"></span>
           </div>
           <div class="usage-widget-total" id="usageTotal">$0.00</div>
@@ -830,21 +830,22 @@
         var u = result.usage;
         var widget = document.getElementById('usageWidget');
 
-        // Only show for users with unbilled usage or a usage-based plan
-        if (u.totalUnbilledCents === 0 && u.totalPaidToDateCents === 0 && u.credits.availableCents === 0) return;
+        // Only show for users with any usage or a usage-based plan
+        var totalAllTime = u.totalAllTimeCents || 0;
+        if (totalAllTime === 0 && u.totalUnbilledCents === 0 && u.totalPaidToDateCents === 0 && u.credits.availableCents === 0) return;
 
         widget.classList.remove('hidden');
 
-        // Total display
-        document.getElementById('usageTotal').textContent = formatCents(u.totalUnbilledCents);
+        // Total display — show all-time usage, not just unbilled
+        document.getElementById('usageTotal').textContent = formatCents(totalAllTime);
 
-        // AI breakdown
-        document.getElementById('aiGenCount').textContent = u.ai.unbilledCount;
-        document.getElementById('aiCostDisplay').textContent = formatCents(u.ai.totalCents);
+        // AI breakdown — show all-time counts and costs
+        document.getElementById('aiGenCount').textContent = u.ai.totalCount || u.ai.unbilledCount;
+        document.getElementById('aiCostDisplay').textContent = formatCents(u.ai.allTimeCents || u.ai.totalCents);
 
-        // SMS breakdown
+        // SMS breakdown — show all-time
         document.getElementById('smsCount').textContent = u.sms.unbilledCount;
-        document.getElementById('smsCostDisplay').textContent = formatCents(u.sms.totalCents);
+        document.getElementById('smsCostDisplay').textContent = formatCents(u.sms.allTimeCents || u.sms.totalCents);
 
         // Credits
         if (u.credits.availableCents > 0) {

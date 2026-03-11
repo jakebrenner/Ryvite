@@ -3870,11 +3870,13 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               userMessage: addMsg,
+              eventId: currentEvent ? currentEvent.id : null,
               existingFields: enabledFields.map(function(f) { return { label: f.label, field_key: f.field_key }; })
             })
           });
           if (interpretRes.ok) {
             var interpretData = await interpretRes.json();
+            if (interpretData.metadata) updateCostFromGeneration(interpretData);
             if (interpretData.success && interpretData.field) {
               var f = interpretData.field;
               var exists = enabledFields.some(function(ef) {

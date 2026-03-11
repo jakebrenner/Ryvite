@@ -10,6 +10,20 @@ const supabase = createClient(
 
 const DEFAULT_CHAT_MODEL = 'claude-haiku-4-5-20251001';
 
+// AI model pricing per 1M tokens (must match billing.js / generate-theme.js)
+const AI_MODEL_PRICING = {
+  'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
+  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'claude-opus-4-6': { input: 15.00, output: 75.00 },
+};
+
+function calcGenerationCost(model, inputTokens, outputTokens, markupPct = 50) {
+  const pricing = AI_MODEL_PRICING[model] || { input: 3.00, output: 15.00 };
+  const rawCost = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+  const withMarkup = rawCost * (1 + markupPct / 100);
+  return { rawCostCents: Math.round(rawCost * 100), totalCostCents: Math.round(withMarkup * 100) };
+}
+
 async function getChatModel() {
   try {
     const { data } = await supabase
@@ -161,18 +175,34 @@ export default async function handler(req, res) {
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
     // Log token usage to generation_log
+    const chatInputTokens = response.usage?.input_tokens || 0;
+    const chatOutputTokens = response.usage?.output_tokens || 0;
+    const chatCost = calcGenerationCost(chatModel, chatInputTokens, chatOutputTokens);
     try {
       await supabase.from('generation_log').insert({
         user_id: user.id,
         event_id: eventId || null,
         prompt: messages[messages.length - 1]?.content || '',
         model: chatModel,
-        input_tokens: response.usage?.input_tokens || 0,
-        output_tokens: response.usage?.output_tokens || 0,
+        input_tokens: chatInputTokens,
+        output_tokens: chatOutputTokens,
         latency_ms: latency,
         status: 'success'
       });
     } catch {}
+
+    // Increment persistent event cost if we have an eventId
+    if (eventId) {
+      supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: chatCost.totalCostCents })
+        .catch(() => {
+          supabase.from('events').select('total_cost_cents').eq('id', eventId).single()
+            .then(({ data }) => {
+              if (data) supabase.from('events')
+                .update({ total_cost_cents: (data.total_cost_cents || 0) + chatCost.totalCostCents })
+                .eq('id', eventId).catch(() => {});
+            }).catch(() => {});
+        });
+    }
 
     // Check if usage-based AI billing threshold is reached
     checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
