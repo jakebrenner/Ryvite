@@ -18,7 +18,7 @@
 
     /* Header */
     .header { background: white; border-bottom: 1px solid #eee; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
-    .header-left { display: flex; align-items: center; gap: 24px; }
+    .header-left { display: flex; align-items: center; }
     .header-left a { text-decoration: none; display: flex; align-items: center; }
     .header-nav { display: flex; gap: 4px; }
     .header-nav a { text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #666; transition: all 0.2s; }
@@ -215,12 +215,12 @@
   <div class="header">
     <div class="header-left">
       <a href="/"><svg viewBox="0 0 210 80" xmlns="http://www.w3.org/2000/svg" style="height:56px;width:auto;"><circle cx="32" cy="40" r="22" fill="none" stroke="var(--party-coral)" stroke-width="2.2"/><path d="M18 30 L32 42 L46 30" fill="none" stroke="var(--party-coral)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 50 L46 50" fill="none" stroke="var(--party-coral)" stroke-width="1.8" stroke-linecap="round"/><text x="64" y="52" font-family="Playfair Display, serif" font-size="34" font-weight="700" fill="var(--midnight)">Ryvite</text></svg></a>
+    </div>
+    <div class="header-right">
       <nav class="header-nav">
         <a href="/v2/dashboard/">Events</a>
         <a href="/v2/contacts/" class="active">Contacts</a>
       </nav>
-    </div>
-    <div class="header-right">
       <a href="/v2/create/?new=1" class="btn btn-primary">+ New Event</a>
       <div class="profile-menu">
         <button class="profile-btn" onclick="toggleProfileMenu()" id="profileBtn">
@@ -1182,7 +1182,11 @@
         + (tags ? '<div class="detail-section"><div class="detail-section-title">Tags</div>' + tags + '</div>' : '')
         + renderMetadataSection(c.metadata)
         + householdHtml
-        + '<div class="detail-section"><div class="detail-section-title">Event History</div>' + eventsHtml + '</div>';
+        + '<div class="detail-section"><div class="detail-section-title">Event History</div>' + eventsHtml + '</div>'
+        + '<div class="detail-section" id="activityLogSection"><div class="detail-section-title">Activity Log</div><div style="color:#999;font-size:13px;">Loading...</div></div>';
+
+      // Load activity log asynchronously
+      loadActivityLog(c.id);
     }
 
     function renderMetadataSection(meta) {
@@ -1203,6 +1207,54 @@
           return '<div class="detail-field"><div class="detail-field-label">' + escapeHtml(f.label) + '</div><div class="detail-field-value">' + escapeHtml(f.value) + '</div></div>';
         }).join('')
         + '</div>';
+    }
+
+    async function loadActivityLog(contactId) {
+      var section = document.getElementById('activityLogSection');
+      if (!section) return;
+      try {
+        var res = await authFetch('/api/v2/contacts?action=activityLog&contactId=' + encodeURIComponent(contactId));
+        var result = await res.json();
+        if (!result.success || !result.timeline || result.timeline.length === 0) {
+          section.innerHTML = '<div class="detail-section-title">Activity Log</div><div style="color:#999;font-size:13px;">No activity recorded yet</div>';
+          return;
+        }
+        var activityIcons = {
+          invite_added: { icon: '&#9993;', label: 'Added to event', color: '#3949ab' },
+          invite_sent: { icon: '&#9993;', label: 'Invite sent', color: '#1565c0' },
+          invite_viewed: { icon: '&#128065;', label: 'Viewed invite', color: '#6a1b9a' },
+          rsvp_submitted: { icon: '&#10003;', label: 'RSVP submitted', color: '#2e7d32' },
+          rsvp_updated: { icon: '&#9998;', label: 'RSVP updated', color: '#e65100' },
+          contact_created: { icon: '&#43;', label: 'Contact created', color: '#00838f' },
+          contact_updated: { icon: '&#9998;', label: 'Contact updated', color: '#546e7a' },
+          tag_added: { icon: '&#127991;', label: 'Tag added', color: '#7c3aed' },
+          tag_removed: { icon: '&#128465;', label: 'Tag removed', color: '#d32f2f' }
+        };
+
+        var html = '<div class="detail-section-title">Activity Log</div>';
+        html += '<div style="position:relative;padding-left:24px;">';
+        html += '<div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:#eee;"></div>';
+        result.timeline.forEach(function(a) {
+          var info = activityIcons[a.type] || { icon: '&#8226;', label: a.type, color: '#999' };
+          var date = new Date(a.timestamp);
+          var dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          var eventLink = a.eventTitle ? '<a href="/v2/event/' + encodeURIComponent(a.eventSlug || '') + '" target="_blank" style="color:var(--party-coral);text-decoration:none;font-weight:500;">' + escapeHtml(a.eventTitle) + '</a>' : '';
+          var detail = '';
+          if (a.metadata) {
+            if (a.metadata.status) detail = '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f0f0f0;margin-left:6px;">' + escapeHtml(a.metadata.status) + '</span>';
+          }
+          html += '<div style="position:relative;padding:8px 0 12px 12px;font-size:13px;">'
+            + '<div style="position:absolute;left:-20px;top:8px;width:18px;height:18px;border-radius:50%;background:' + info.color + ';color:white;font-size:10px;display:flex;align-items:center;justify-content:center;">' + info.icon + '</div>'
+            + '<div style="font-weight:500;color:var(--midnight);">' + info.label + detail + '</div>'
+            + (eventLink ? '<div style="margin-top:2px;">' + eventLink + '</div>' : '')
+            + '<div style="font-size:11px;color:#999;margin-top:2px;">' + dateStr + '</div>'
+            + '</div>';
+        });
+        html += '</div>';
+        section.innerHTML = html;
+      } catch (e) {
+        section.innerHTML = '<div class="detail-section-title">Activity Log</div><div style="color:#999;font-size:13px;">Could not load activity log</div>';
+      }
     }
 
     function closeDetail() {

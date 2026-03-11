@@ -809,6 +809,86 @@ export default async function handler(req, res) {
       });
     }
 
+    if (action === 'activityLog') {
+      const { contactId } = req.query;
+      if (!contactId) return res.status(400).json({ success: false, error: 'contactId required' });
+
+      // Verify contact belongs to user
+      const { data: contact } = await supabaseAdmin
+        .from('contacts')
+        .select('id')
+        .eq('id', contactId)
+        .eq('user_id', user.id)
+        .single();
+      if (!contact) return res.status(404).json({ success: false, error: 'Contact not found' });
+
+      // Fetch activity log entries
+      const { data: activities, error: actError } = await supabaseAdmin
+        .from('contact_activity_log')
+        .select('*, events(title, event_date, slug)')
+        .eq('contact_id', contactId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      // Also synthesize activity from guests table (invited/rsvp records)
+      const { data: guestRecords } = await supabaseAdmin
+        .from('guests')
+        .select('id, event_id, status, responded_at, created_at, response_data, events(title, event_date, slug)')
+        .eq('contact_id', contactId)
+        .order('created_at', { ascending: false });
+
+      // Build unified timeline
+      const timeline = [];
+
+      // Add explicit activity log entries
+      (activities || []).forEach(a => {
+        timeline.push({
+          id: 'log-' + a.id,
+          type: a.activity_type,
+          eventId: a.event_id,
+          eventTitle: a.events?.title || null,
+          eventDate: a.events?.event_date || null,
+          eventSlug: a.events?.slug || null,
+          metadata: a.metadata,
+          timestamp: a.created_at
+        });
+      });
+
+      // Synthesize guest record events (avoid duplicates with activity log)
+      const loggedEventIds = new Set((activities || []).map(a => a.event_id));
+      (guestRecords || []).forEach(g => {
+        // Add "invited" entry
+        timeline.push({
+          id: 'guest-invited-' + g.id,
+          type: 'invite_added',
+          eventId: g.event_id,
+          eventTitle: g.events?.title || null,
+          eventDate: g.events?.event_date || null,
+          eventSlug: g.events?.slug || null,
+          metadata: { status: g.status },
+          timestamp: g.created_at
+        });
+        // Add "responded" entry if they responded
+        if (g.responded_at && !loggedEventIds.has(g.event_id)) {
+          timeline.push({
+            id: 'guest-rsvp-' + g.id,
+            type: 'rsvp_submitted',
+            eventId: g.event_id,
+            eventTitle: g.events?.title || null,
+            eventDate: g.events?.event_date || null,
+            eventSlug: g.events?.slug || null,
+            metadata: { status: g.status, responseData: g.response_data },
+            timestamp: g.responded_at
+          });
+        }
+      });
+
+      // Sort by timestamp descending
+      timeline.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      return res.status(200).json({ success: true, timeline });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
   } catch (err) {
     console.error('Contacts API error:', err);

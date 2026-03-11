@@ -117,9 +117,20 @@ export default async function handler(req, res) {
         }).catch(() => {}); // fire and forget
       }
 
-      // Auto-capture RSVP to host's contact book
+      // Auto-capture RSVP to host's contact book and log activity
       if (event?.user_id) {
         autoCapture(event.user_id, eventId, data.id, { name, email, phone, responseData }).catch(() => {});
+        // Log RSVP activity (best-effort, uses contact_id from autoCapture if linked)
+        supabaseAdmin.from('contacts').select('id').eq('user_id', event.user_id)
+          .or(`email.eq.${(email || '').toLowerCase()},phone.eq.${(phone || '').replace(/\D/g, '').slice(-10)}`)
+          .limit(1).then(({ data: contacts }) => {
+            if (contacts?.[0]) {
+              supabaseAdmin.from('contact_activity_log').insert({
+                contact_id: contacts[0].id, user_id: event.user_id, event_id: eventId,
+                activity_type: 'rsvp_submitted', metadata: { status: guestStatus, name, responseData }
+              }).catch(() => {});
+            }
+          }).catch(() => {});
       }
 
       return res.status(200).json({ success: true, guestId: data.id });
@@ -325,16 +336,39 @@ export default async function handler(req, res) {
       const themeMap = {};
       (themes || []).forEach(t => { themeMap[t.event_id] = t; });
 
+      // Fetch RSVP counts for all events in one query
+      const { data: guests } = eventIds.length > 0
+        ? await supabaseAdmin
+            .from('guests')
+            .select('event_id, status')
+            .in('event_id', eventIds)
+        : { data: [] };
+
+      const rsvpMap = {};
+      (guests || []).forEach(g => {
+        if (!rsvpMap[g.event_id]) rsvpMap[g.event_id] = { attending: 0, declined: 0, maybe: 0, invited: 0, total: 0 };
+        rsvpMap[g.event_id].total++;
+        if (g.status === 'attending') rsvpMap[g.event_id].attending++;
+        else if (g.status === 'declined') rsvpMap[g.event_id].declined++;
+        else if (g.status === 'maybe') rsvpMap[g.event_id].maybe++;
+        else rsvpMap[g.event_id].invited++;
+      });
+
       // Build collaborator role map
       const collabRoleMap = {};
       (collabs || []).forEach(c => { collabRoleMap[c.event_id] = c.role; });
 
       return res.status(200).json({
         success: true,
-        events: (data || []).map(e => formatEvent(e, themeMap[e.id])),
+        events: (data || []).map(e => {
+          const formatted = formatEvent(e, themeMap[e.id]);
+          formatted.rsvpCounts = rsvpMap[e.id] || { attending: 0, declined: 0, maybe: 0, invited: 0, total: 0 };
+          return formatted;
+        }),
         sharedEvents: sharedEvents.map(e => {
           const formatted = formatEvent(e, themeMap[e.id]);
           formatted.collaboratorRole = collabRoleMap[e.id] || 'viewer';
+          formatted.rsvpCounts = rsvpMap[e.id] || { attending: 0, declined: 0, maybe: 0, invited: 0, total: 0 };
           return formatted;
         })
       });
@@ -390,19 +424,33 @@ export default async function handler(req, res) {
       const access = await checkEventAccess(user.id, eventId, 'viewer');
       if (!access.allowed) return res.status(404).json({ success: false, error: 'Event not found' });
 
-      const { data, error } = await supabaseAdmin
-        .from('guests')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('created_at', { ascending: false });
+      const [guestsResult, fieldsResult] = await Promise.all([
+        supabaseAdmin
+          .from('guests')
+          .select('*')
+          .eq('event_id', eventId)
+          .order('created_at', { ascending: false }),
+        supabaseAdmin
+          .from('event_custom_fields')
+          .select('*')
+          .eq('event_id', eventId)
+          .order('sort_order', { ascending: true })
+      ]);
 
-      if (error) return res.status(400).json({ success: false, error: error.message });
+      if (guestsResult.error) return res.status(400).json({ success: false, error: guestsResult.error.message });
 
       return res.status(200).json({
         success: true,
-        rsvps: (data || []).map(g => ({
+        customFields: (fieldsResult.data || []).map(f => ({
+          key: f.field_key,
+          label: f.label,
+          fieldType: f.field_type,
+          options: f.options
+        })),
+        rsvps: (guestsResult.data || []).map(g => ({
           id: g.id,
           eventId: g.event_id,
+          contactId: g.contact_id,
           name: g.name,
           email: g.email,
           phone: g.phone,
@@ -414,6 +462,57 @@ export default async function handler(req, res) {
           createdAt: g.created_at
         }))
       });
+    }
+
+    if (action === 'updateGuest') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { guestId, status, responseData, plusOnes, notes, name, email, phone } = req.body || {};
+      if (!guestId) return res.status(400).json({ success: false, error: 'guestId required' });
+
+      // Fetch guest to verify event ownership
+      const { data: guest } = await supabaseAdmin.from('guests').select('event_id').eq('id', guestId).single();
+      if (!guest) return res.status(404).json({ success: false, error: 'Guest not found' });
+
+      const access = await checkEventAccess(user.id, guest.event_id, 'editor');
+      if (!access.allowed) return res.status(403).json({ success: false, error: 'Not authorized' });
+
+      const updates = {};
+      if (status !== undefined) updates.status = status;
+      if (responseData !== undefined) updates.response_data = responseData;
+      if (plusOnes !== undefined) updates.plus_ones = plusOnes;
+      if (notes !== undefined) updates.notes = notes;
+      if (name !== undefined) updates.name = name;
+      if (email !== undefined) updates.email = email;
+      if (phone !== undefined) updates.phone = phone;
+      if (status && status !== 'invited') updates.responded_at = new Date().toISOString();
+
+      const { data, error } = await supabaseAdmin
+        .from('guests')
+        .update(updates)
+        .eq('id', guestId)
+        .select()
+        .single();
+
+      if (error) return res.status(400).json({ success: false, error: error.message });
+
+      // Log activity if contact is linked
+      if (data.contact_id) {
+        try {
+          await supabaseAdmin.from('contact_activity_log').insert({
+            contact_id: data.contact_id,
+            user_id: user.id,
+            event_id: guest.event_id,
+            activity_type: 'rsvp_updated',
+            metadata: { status: data.status, updatedBy: 'host' }
+          });
+        } catch (e) { /* activity log is best-effort */ }
+      }
+
+      return res.status(200).json({ success: true, guest: {
+        id: data.id, name: data.name, email: data.email, phone: data.phone,
+        status: data.status, responseData: data.response_data, plusOnes: data.plus_ones,
+        notes: data.notes, respondedAt: data.responded_at
+      }});
     }
 
     if (action === 'saveFields') {
