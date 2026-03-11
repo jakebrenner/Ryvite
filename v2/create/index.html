@@ -1128,31 +1128,23 @@
       // Create draft event
       await createDraftEvent();
 
-      // Show confirmation card and immediately proceed
+      // Show confirmation card — pause so user can see it
       chatPhase = 'confirmed';
       showConfirmationCard();
-      await delay(600);
+      await delay(800);
 
-      // Auto-proceed to styling
+      // Click "Let's design it!" — same as confirmDetailsAndAskStyle()
       confirmDetailsAndAskStyle();
+      await delay(500);
+
+      // Click "I have a style in mind" — triggers showCustomStyleInput()
+      showCustomStyleInput();
       await delay(400);
 
-      // Set design prompt and auto-proceed to generation
-      designPrompt = extractedData.prompt;
-      addChatBubble(designPrompt, 'user');
-      await delay(300);
-
-      await proceedAfterPlanCheck(async function() {
-        addChatBubble('Great choice! Let me generate your invite...', 'assistant');
-        var saveResult = await saveEventToDB();
-        if (saveResult && saveResult.limitReached) {
-          goToStep(2);
-          showAdditionalEventPurchase();
-          return;
-        }
-        if (saveResult !== true) return;
-        goToStep(2);
-      });
+      // Fill the style textarea and submit
+      var styleEl = document.getElementById('customStyleText');
+      if (styleEl) styleEl.value = extractedData.prompt;
+      submitCustomStyle();
     }
 
     function addChatBubble(text, role, skipSave) {
