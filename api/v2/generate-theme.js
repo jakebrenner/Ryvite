@@ -657,6 +657,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
 
     const sendSSE = (event, data) => {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -781,18 +782,41 @@ Return ONLY a valid JSON object with these keys:
       let fullText = '';
       let chunkCount = 0;
 
-      // Use .on('text') (proven to work) + resolve on 'end' event
-      // Do NOT use stream.finalMessage() — it blocks past Vercel's 60s timeout
+      // Use .on('text') (proven to work) + resolve on 'finalMessage' event
+      // Fallback: idle timeout resolves if no text for 5s after text started
       await new Promise((resolve, reject) => {
+        let resolved = false;
+        let lastChunkTime = Date.now();
+        const done = () => { if (!resolved) { resolved = true; clearInterval(idleCheck); resolve(); } };
+
         stream.on('text', (text) => {
           fullText += text;
           chunkCount++;
+          lastChunkTime = Date.now();
           if (chunkCount % 10 === 0) {
             sendSSE('progress', { chunks: chunkCount, bytes: fullText.length });
           }
         });
-        stream.on('end', () => resolve());
-        stream.on('error', (err) => reject(err));
+        stream.on('finalMessage', done);
+        stream.on('end', done);
+        stream.on('error', (err) => { if (!resolved) { resolved = true; clearInterval(idleCheck); reject(err); } });
+
+        // Safety: if text was flowing but stopped for 5s, assume done
+        const idleCheck = setInterval(() => {
+          if (chunkCount > 0 && Date.now() - lastChunkTime > 5000) {
+            console.log('[stream] Idle timeout after', chunkCount, 'chunks,', fullText.length, 'bytes');
+            done();
+          }
+        }, 1000);
+
+        // Hard timeout: 50s (leave buffer before Vercel kills function)
+        setTimeout(() => {
+          if (!resolved) {
+            console.log('[stream] Hard timeout at 50s, chunks:', chunkCount, 'bytes:', fullText.length);
+            if (fullText.length > 0) done();
+            else { resolved = true; clearInterval(idleCheck); reject(new Error('Stream timeout - no content received')); }
+          }
+        }, 50000);
       });
 
       const latency = Date.now() - startTime;
@@ -944,6 +968,7 @@ Return ONLY a valid JSON object with these keys:
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
 
   const sendSSE = (event, data) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -1049,16 +1074,41 @@ ${rsvpFieldsDesc}`;
     let fullText = '';
     let chunkCount = 0;
 
+    // Use .on('text') (proven to work) + resolve on 'finalMessage' event
+    // Fallback: idle timeout resolves if no text for 5s after text started
     await new Promise((resolve, reject) => {
+      let resolved = false;
+      let lastChunkTime = Date.now();
+      const done = () => { if (!resolved) { resolved = true; clearInterval(idleCheck); resolve(); } };
+
       stream.on('text', (text) => {
         fullText += text;
         chunkCount++;
+        lastChunkTime = Date.now();
         if (chunkCount % 10 === 0) {
           sendSSE('progress', { chunks: chunkCount, bytes: fullText.length });
         }
       });
-      stream.on('end', () => resolve());
-      stream.on('error', (err) => reject(err));
+      stream.on('finalMessage', done);
+      stream.on('end', done);
+      stream.on('error', (err) => { if (!resolved) { resolved = true; clearInterval(idleCheck); reject(err); } });
+
+      // Safety: if text was flowing but stopped for 5s, assume done
+      const idleCheck = setInterval(() => {
+        if (chunkCount > 0 && Date.now() - lastChunkTime > 5000) {
+          console.log('[stream] Idle timeout after', chunkCount, 'chunks,', fullText.length, 'bytes');
+          done();
+        }
+      }, 1000);
+
+      // Hard timeout: 50s (leave buffer before Vercel kills function)
+      setTimeout(() => {
+        if (!resolved) {
+          console.log('[stream] Hard timeout at 50s, chunks:', chunkCount, 'bytes:', fullText.length);
+          if (fullText.length > 0) done();
+          else { resolved = true; clearInterval(idleCheck); reject(new Error('Stream timeout - no content received')); }
+        }
+      }, 50000);
     });
 
     const latency = Date.now() - startTime;
