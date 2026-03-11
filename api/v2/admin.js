@@ -10,20 +10,20 @@ const FOUNDER_EMAIL = 'jake@getmrkt.com';
 
 async function verifyAdmin(req) {
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) return null;
+  if (!authHeader?.startsWith('Bearer ')) return { error: 'no_token' };
 
   const token = authHeader.slice(7);
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } }
   });
 
   const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
+  if (error || !user) return { error: 'invalid_token' };
 
   const email = user.email.toLowerCase();
 
   // Founder always passes
-  if (email === FOUNDER_EMAIL) return user;
+  if (email === FOUNDER_EMAIL) return { user };
 
   // Check DB admin list
   const { data } = await supabaseAdmin
@@ -34,10 +34,10 @@ async function verifyAdmin(req) {
 
   if (data?.value) {
     const adminList = data.value.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-    if (adminList.includes(email)) return user;
+    if (adminList.includes(email)) return { user };
   }
 
-  return null;
+  return { error: 'not_admin' };
 }
 
 export default async function handler(req, res) {
@@ -47,12 +47,17 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const admin = await verifyAdmin(req);
-  if (!admin) return res.status(403).json({ error: 'Forbidden — admin access required' });
-
-  const action = req.query.action || req.body?.action;
-
   try {
+    const authResult = await verifyAdmin(req);
+    if (authResult.error === 'no_token' || authResult.error === 'invalid_token') {
+      return res.status(401).json({ error: 'Unauthorized — invalid or expired token' });
+    }
+    if (authResult.error === 'not_admin') {
+      return res.status(403).json({ error: 'Forbidden — admin access required' });
+    }
+    const admin = authResult.user;
+
+    const action = req.query.action || req.body?.action;
     // ---- LIST ALL USERS ----
     if (action === 'users') {
       const { data: profiles, error } = await supabaseAdmin
@@ -508,13 +513,6 @@ export default async function handler(req, res) {
         .select('*')
         .order('created_at', { ascending: false });
 
-    // ---- LIST PROMPT VERSIONS ----
-    if (action === 'listPromptVersions') {
-      const { data, error } = await supabaseAdmin
-        .from('prompt_versions')
-        .select('id, version, name, description, is_active, created_by, created_at, updated_at')
-        .order('version', { ascending: false });
-
       if (error) return res.status(400).json({ error: error.message });
 
       return res.status(200).json({
@@ -536,6 +534,21 @@ export default async function handler(req, res) {
           isActive: c.is_active,
           createdAt: c.created_at
         }))
+      });
+    }
+
+    // ---- LIST PROMPT VERSIONS ----
+    if (action === 'listPromptVersions') {
+      const { data, error } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('id, version, name, description, is_active, created_by, created_at, updated_at')
+        .order('version', { ascending: false });
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({
+        success: true,
+        versions: data || []
       });
     }
 
@@ -579,9 +592,11 @@ export default async function handler(req, res) {
           created_by: admin.id
         })
         .select()
+        .single();
 
-        versions: data || []
-      });
+      if (error) return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({ success: true, coupon: data });
     }
 
     // ---- GET PROMPT VERSION (full content) ----
@@ -597,7 +612,7 @@ export default async function handler(req, res) {
 
       if (error) return res.status(400).json({ error: error.message });
 
-      return res.status(200).json({ success: true, coupon: data });
+      return res.status(200).json({ success: true, version: data });
     }
 
     // ---- UPDATE COUPON ----
@@ -753,10 +768,6 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true });
-    }
-
-
-      return res.status(200).json({ success: true, version: data });
     }
 
     // ---- GET ACTIVE PROMPT VERSION ----

@@ -263,8 +263,7 @@
     async function startCheckout() {
       if (!token || !user) {
         // Redirect to signup, then back to pricing
-        localStorage.setItem('post_login_redirect', '/v2/pricing/');
-        window.location.href = '/v2/login/#signup';
+        window.location.href = '/v2/login/?redirect=/v2/pricing/#signup';
         return;
       }
 
