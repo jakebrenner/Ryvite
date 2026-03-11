@@ -491,9 +491,10 @@ async function loadStyleReferences(eventType, promptSpecificity = 0) {
       .from('style_library')
       .select('*')
       .contains('event_types', [eventType])
+      .is('archived_at', null)
       .order('admin_rating', { ascending: false, nullsFirst: false })
       .limit(fetchLimit);
-    // Fallback if admin_rating column doesn't exist yet (migration not run)
+    // Fallback if admin_rating or archived_at column doesn't exist yet (migration not run)
     if (res.error) {
       res = await supabase
         .from('style_library')

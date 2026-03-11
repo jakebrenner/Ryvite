@@ -122,9 +122,9 @@
     .phone-screen iframe { width: 393px; height: 852px; border: none; border-radius: 36px; transform-origin: top left; }
     .phone-home-bar { width: 100px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 6px auto 2px; }
 
-    /* Prompt Lab layout — single column stacked */
+    /* Prompt Lab layout — single column stacked, full width */
     .promptlab-layout { display: flex; flex-direction: column; gap: 0; }
-    .promptlab-config { max-width: 700px; }
+    .promptlab-config { width: 100%; }
     .promptlab-config .config-section { margin-bottom: 0; }
     .preview-toggle-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 12px; }
     .preview-toggle-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd; background: white; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #888; }
@@ -189,15 +189,7 @@
     .style-card-rating .style-name { font-size: 12px; font-weight: 600; color: var(--midnight); margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
     .style-card-meta { padding: 8px 14px; background: #f9f9f9; border-top: 1px solid #eee; display: flex; flex-wrap: wrap; gap: 4px; }
     .style-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; background: #f0f0f0; color: #666; margin-right: 4px; }
-    /* Style details panel (slides down) */
-    .style-card-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #fafafa; border-top: 1px solid #eee; }
-    .style-card-details.open { max-height: 500px; }
-    .style-card-details-inner { padding: 14px; }
-    .style-card-details-inner h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--midnight); }
-    .style-card-details-inner p { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.4; }
-    .style-card-details-inner .detail-row { display: flex; gap: 6px; font-size: 11px; color: #888; margin-bottom: 4px; }
-    .style-card-details-inner .detail-row .detail-label { font-weight: 600; color: #666; min-width: 70px; }
-    .style-card-details-actions { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+    /* (Style detail view overlay styles are defined separately) */
     .style-checkbox { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f9f9f9; border-radius: 6px; cursor: pointer; margin-bottom: 6px; border: 1px solid transparent; transition: all 0.2s; }
     .style-checkbox:hover { border-color: var(--party-coral); background: #fff5f5; }
     .style-checkbox.selected { border-color: var(--party-coral); background: #fff0f0; }
@@ -236,6 +228,24 @@
     .star-rating .star.filled { color: #f59e0b; }
     .star-rating .star:hover, .star-rating .star.hover { color: #fbbf24; }
     .star-rating .star-label { font-size: 11px; color: #888; margin-left: 6px; align-self: center; }
+    .star-rating.locked { cursor: default; pointer-events: none; opacity: 0.85; }
+
+    /* Style detail view (overlay) */
+    .style-detail-overlay { position: fixed; inset: 0; z-index: 10000; background: var(--snow-white); overflow-y: auto; display: none; }
+    .style-detail-overlay.open { display: block; }
+    .style-detail-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; z-index: 1; }
+    .style-detail-header h2 { font-size: 18px; font-weight: 700; }
+    .style-detail-back { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 8px 16px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--midnight); transition: all 0.2s; }
+    .style-detail-back:hover { border-color: var(--party-coral); color: var(--party-coral); }
+    .style-detail-body { display: grid; grid-template-columns: auto 1fr; gap: 32px; padding: 24px; max-width: 1200px; margin: 0 auto; }
+    @media (max-width: 900px) { .style-detail-body { grid-template-columns: 1fr; } }
+    .style-detail-info { display: flex; flex-direction: column; gap: 16px; }
+    .style-detail-info h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .style-detail-info .detail-section { background: white; border: 1px solid #eee; border-radius: 8px; padding: 16px; }
+    .style-detail-info .detail-section h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 10px; }
+    .style-detail-info .detail-row { display: flex; gap: 8px; font-size: 13px; margin-bottom: 6px; line-height: 1.5; }
+    .style-detail-info .detail-row .detail-label { font-weight: 600; color: #666; min-width: 80px; flex-shrink: 0; }
+    .style-detail-info .detail-row .detail-value { color: #333; }
 
     /* Matrix results */
     .matrix-results { margin-top: 24px; }
@@ -903,39 +913,7 @@
             </div>
           </div>
 
-          <!-- Prompt viewers (collapsed) -->
-          <div class="config-section">
-            <div class="prompt-toggle" id="systemPromptToggle" onclick="togglePromptViewer('systemPrompt')">
-              <span class="arrow">&#9654;</span> System Prompt
-            </div>
-            <div id="systemPromptViewer" style="display:none;">
-              <div class="prompt-viewer" id="systemPromptContent"></div>
-            </div>
-            <div class="prompt-toggle" id="designDnaToggle" onclick="togglePromptViewer('designDna')" style="margin-top:8px;">
-              <span class="arrow">&#9654;</span> Design DNA
-            </div>
-            <div id="designDnaViewer" style="display:none;">
-              <div style="margin-bottom:8px;">
-                <select id="designDnaSelect" onchange="showDesignDna()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;">
-                  <option value="kidsBirthday">Kids Birthday</option>
-                  <option value="adultBirthday">Adult Birthday</option>
-                  <option value="babyShower">Baby Shower</option>
-                  <option value="engagement">Engagement</option>
-                  <option value="wedding">Wedding</option>
-                  <option value="graduation">Graduation</option>
-                  <option value="holiday">Holiday</option>
-                  <option value="dinnerParty">Dinner Party</option>
-                  <option value="retirement">Retirement</option>
-                  <option value="anniversary">Anniversary</option>
-                  <option value="sports">Sports</option>
-                  <option value="bridalShower">Bridal Shower</option>
-                  <option value="corporate">Corporate</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div class="prompt-viewer" id="designDnaContent"></div>
-            </div>
-          </div>
+          <!-- Prompt viewers removed — creative direction & design DNA are part of each prompt version -->
         </div>
 
       </div>
@@ -1635,37 +1613,9 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       other: { label: 'Custom Event', must: { photoTreatment: 'Style based on the event description.', technical: 'Let the user\'s creative direction guide all decisions.' }, consider: { decorative: 'Match the event mood.', typography: 'Fonts matching event emotional register.', colorPhilosophy: 'Derived from the creative direction.', motion: 'Match the energy level of the event.', standout: 'Whatever makes this event feel special' } }
     };
 
-    function togglePromptViewer(which) {
-      var viewer = document.getElementById(which + 'Viewer');
-      var toggle = document.getElementById(which + 'Toggle');
-      var isOpen = viewer.style.display !== 'none';
-      viewer.style.display = isOpen ? 'none' : 'block';
-      toggle.classList.toggle('open', !isOpen);
-
-      if (!isOpen && which === 'systemPrompt') {
-        document.getElementById('systemPromptContent').textContent = THEME_SYSTEM_PROMPT;
-      }
-      if (!isOpen && which === 'designDna') {
-        showDesignDna();
-      }
-    }
-
-    function showDesignDna() {
-      var type = document.getElementById('designDnaSelect').value;
-      var dna = DESIGN_DNA_DATA[type];
-      if (!dna) return;
-      var text = 'EVENT TYPE: ' + dna.label + '\n\n';
-      text += '── REQUIREMENTS (always enforced) ──\n';
-      text += '  Photo Treatment: ' + dna.must.photoTreatment + '\n';
-      text += '  Technical: ' + dna.must.technical + '\n\n';
-      text += '── SUGGESTIONS (adapt based on user prompt specificity) ──\n';
-      text += '  Decorative: ' + dna.consider.decorative + '\n';
-      text += '  Typography: ' + dna.consider.typography + '\n';
-      text += '  Color Philosophy: ' + dna.consider.colorPhilosophy + '\n';
-      text += '  Motion: ' + dna.consider.motion + '\n';
-      text += '  Standout Element: ' + dna.consider.standout;
-      document.getElementById('designDnaContent').textContent = text;
-    }
+    // Prompt viewers removed — creative direction & design DNA are part of each prompt version
+    function togglePromptViewer() {}
+    function showDesignDna() {}
 
     // ── Event Presets ──
     var EVENT_PRESETS = {
@@ -2646,17 +2596,18 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
       // Build cards with DOM so we can set srcdoc properly
       grid.innerHTML = '';
+      var currentUserEmail = (user && user.email) ? user.email.toLowerCase() : '';
       items.forEach(function(item) {
         var card = document.createElement('div');
         card.className = 'style-card';
         card.dataset.styleId = item.id;
 
-        // Details button (top-right corner)
+        // Details button (top-right corner) — navigates to detail view
         var detailsBtn = document.createElement('button');
         detailsBtn.className = 'style-card-details-btn';
         detailsBtn.innerHTML = '&#8942;';
         detailsBtn.title = 'View details';
-        detailsBtn.onclick = function() { toggleStyleDetails(item.id); };
+        detailsBtn.onclick = function() { openStyleDetailView(item.id); };
 
         // Phone mockup preview
         var previewDiv = document.createElement('div');
@@ -2668,15 +2619,33 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         previewDiv.appendChild(phoneWrapper.firstChild);
         card.appendChild(previewDiv);
 
-        // Star rating row
+        // Star rating row — locked if current user already rated this item
         var rating = item.adminRating || 0;
+        var userAlreadyRated = rating > 0 && item.ratedBy && item.ratedBy.toLowerCase() === currentUserEmail;
         var ratingDiv = document.createElement('div');
         ratingDiv.className = 'style-card-rating';
-        ratingDiv.innerHTML = '<div class="star-rating" data-style-id="' + item.id + '">'
-          + buildStarHtml(rating)
-          + '</div>'
-          + '<span class="star-label style-star-label" id="styleStarLabel_' + item.id + '">' + (rating ? STAR_LABELS[rating] : 'Rate this') + '</span>'
-          + '<span class="style-name" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</span>';
+        if (userAlreadyRated) {
+          // Locked: show filled stars (no interaction) + "Your rating" label
+          ratingDiv.innerHTML = '<div class="star-rating locked" data-style-id="' + item.id + '">'
+            + buildStarHtml(rating)
+            + '</div>'
+            + '<span class="star-label style-star-label">' + STAR_LABELS[rating] + ' (yours)</span>'
+            + '<span class="style-name" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</span>';
+        } else if (rating > 0) {
+          // Rated by someone else — show rating but allow this user to override
+          ratingDiv.innerHTML = '<div class="star-rating" data-style-id="' + item.id + '">'
+            + buildStarHtml(rating)
+            + '</div>'
+            + '<span class="star-label style-star-label" id="styleStarLabel_' + item.id + '">' + STAR_LABELS[rating] + '</span>'
+            + '<span class="style-name" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</span>';
+        } else {
+          // Unrated — interactive stars
+          ratingDiv.innerHTML = '<div class="star-rating" data-style-id="' + item.id + '">'
+            + buildStarHtml(0)
+            + '</div>'
+            + '<span class="star-label style-star-label" id="styleStarLabel_' + item.id + '">Rate this</span>'
+            + '<span class="style-name" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</span>';
+        }
         card.appendChild(ratingDiv);
 
         // Event type badges row (compact)
@@ -2691,26 +2660,6 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           metaDiv.innerHTML = eventTypeBadges + tagBadges;
           card.appendChild(metaDiv);
         }
-
-        // Expandable details panel
-        var detailsPanel = document.createElement('div');
-        detailsPanel.className = 'style-card-details';
-        detailsPanel.id = 'styleDetails_' + item.id;
-        var allTags = (item.tags || []).map(function(t) { return '<span class="style-tag">' + escapeHtml(t) + '</span>'; }).join('');
-        detailsPanel.innerHTML = '<div class="style-card-details-inner">'
-          + '<h4>' + escapeHtml(item.name) + '</h4>'
-          + (item.description ? '<p>' + escapeHtml(item.description) + '</p>' : '')
-          + (item.designNotes ? '<div class="detail-row"><span class="detail-label">Design:</span><span>' + escapeHtml(item.designNotes) + '</span></div>' : '')
-          + '<div class="detail-row"><span class="detail-label">Added:</span><span>' + formatDate(item.createdAt) + '</span></div>'
-          + (item.timesUsed ? '<div class="detail-row"><span class="detail-label">Used:</span><span>' + item.timesUsed + ' times as reference</span></div>' : '')
-          + (item.ratedBy ? '<div class="detail-row"><span class="detail-label">Rated by:</span><span>' + escapeHtml(item.ratedBy) + '</span></div>' : '')
-          + (allTags ? '<div style="margin-top:6px;">' + allTags + '</div>' : '')
-          + '<div class="style-card-details-actions">'
-          + '<button class="btn btn-secondary btn-sm" onclick="viewStyleItem(\'' + item.id + '\')">Full View</button>'
-          + '<button class="btn btn-secondary btn-sm" onclick="editStyleItem(\'' + item.id + '\')">Edit</button>'
-          + '<button class="btn btn-secondary btn-sm" style="color:var(--party-coral);" onclick="deleteStyleItem(\'' + item.id + '\')">Delete</button>'
-          + '</div></div>';
-        card.appendChild(detailsPanel);
 
         grid.appendChild(card);
       });
@@ -2729,9 +2678,116 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       });
     }
 
-    function toggleStyleDetails(styleId) {
-      var panel = document.getElementById('styleDetails_' + styleId);
-      if (panel) panel.classList.toggle('open');
+    // ── Style Detail View ──
+    var styleDetailCurrentId = null;
+
+    function openStyleDetailView(styleId) {
+      var item = styleLibrary.find(function(s) { return s.id === styleId; });
+      if (!item) return;
+      styleDetailCurrentId = styleId;
+
+      document.getElementById('styleDetailTitle').textContent = item.name;
+      document.getElementById('styleDetailName').textContent = item.name;
+      document.getElementById('styleDetailDescription').textContent = item.description || '';
+
+      // Rating
+      var rating = item.adminRating || 0;
+      var currentUserEmail = (user && user.email) ? user.email.toLowerCase() : '';
+      var userAlreadyRated = rating > 0 && item.ratedBy && item.ratedBy.toLowerCase() === currentUserEmail;
+      var starsEl = document.getElementById('styleDetailStars');
+      starsEl.innerHTML = buildStarHtml(rating);
+      starsEl.dataset.styleId = styleId;
+      if (userAlreadyRated) {
+        starsEl.classList.add('locked');
+        document.getElementById('styleDetailStarLabel').textContent = STAR_LABELS[rating] + ' (yours)';
+      } else {
+        starsEl.classList.remove('locked');
+        document.getElementById('styleDetailStarLabel').textContent = rating ? STAR_LABELS[rating] : 'Not yet rated';
+        document.getElementById('styleDetailStarLabel').id = 'styleStarLabel_' + styleId;
+      }
+
+      // Detail rows
+      var rows = '';
+      var eventTypeLabels = (item.eventTypes || []).map(function(et) {
+        var etObj = ALL_EVENT_TYPES.find(function(x) { return x.value === et; });
+        return etObj ? etObj.label : et;
+      }).join(', ');
+      if (eventTypeLabels) rows += '<div class="detail-row"><span class="detail-label">Event Types</span><span class="detail-value">' + escapeHtml(eventTypeLabels) + '</span></div>';
+      rows += '<div class="detail-row"><span class="detail-label">Added</span><span class="detail-value">' + formatDate(item.createdAt) + '</span></div>';
+      if (item.addedBy) rows += '<div class="detail-row"><span class="detail-label">Added By</span><span class="detail-value">' + escapeHtml(item.addedBy) + '</span></div>';
+      if (item.timesUsed) rows += '<div class="detail-row"><span class="detail-label">Times Used</span><span class="detail-value">' + item.timesUsed + ' as AI reference</span></div>';
+      if (item.ratedBy) rows += '<div class="detail-row"><span class="detail-label">Rated By</span><span class="detail-value">' + escapeHtml(item.ratedBy) + ' on ' + formatDate(item.ratedAt) + '</span></div>';
+      if (item.archivedAt) rows += '<div class="detail-row"><span class="detail-label">Archived</span><span class="detail-value">' + formatDate(item.archivedAt) + ' by ' + escapeHtml(item.archivedBy || '?') + '</span></div>';
+      document.getElementById('styleDetailRows').innerHTML = rows;
+
+      // Design notes
+      if (item.designNotes) {
+        document.getElementById('styleDetailDesignSection').style.display = 'block';
+        document.getElementById('styleDetailDesignNotes').textContent = item.designNotes;
+      } else {
+        document.getElementById('styleDetailDesignSection').style.display = 'none';
+      }
+
+      // Tags
+      var allTags = (item.tags || []).map(function(t) { return '<span class="style-tag">' + escapeHtml(t) + '</span>'; });
+      var etBadges = (item.eventTypes || []).map(function(et) {
+        var etObj = ALL_EVENT_TYPES.find(function(x) { return x.value === et; });
+        return '<span class="style-tag" style="background:rgba(233,69,96,0.1);color:var(--party-coral);">' + (etObj ? etObj.label : et) + '</span>';
+      });
+      document.getElementById('styleDetailTags').innerHTML = etBadges.concat(allTags).join('');
+
+      // Archive button state
+      var archBtn = document.getElementById('styleDetailArchiveBtn');
+      if (item.archivedAt) {
+        archBtn.textContent = 'Unarchive';
+        archBtn.style.color = 'var(--mint-fizz)';
+      } else {
+        archBtn.textContent = 'Archive';
+        archBtn.style.color = '';
+      }
+
+      // Show overlay
+      document.getElementById('styleDetailOverlay').classList.add('open');
+
+      // Render phone preview
+      requestAnimationFrame(function() {
+        var iframe = document.getElementById('styleDetailPreviewFrame');
+        var screen = iframe.closest('.phone-screen');
+        if (screen) {
+          iframe.style.transform = 'scale(' + (screen.offsetWidth / 393) + ')';
+        }
+        iframe.srcdoc = wrapForPreview(item.html, false);
+      });
+    }
+
+    function closeStyleDetailView() {
+      document.getElementById('styleDetailOverlay').classList.remove('open');
+      styleDetailCurrentId = null;
+    }
+
+    async function archiveStyleItem(styleId) {
+      var item = styleLibrary.find(function(s) { return s.id === styleId; });
+      if (!item) return;
+      var isArchived = !!item.archivedAt;
+      var action = isArchived ? 'unarchive' : 'archive';
+      if (!confirm(isArchived ? 'Unarchive "' + item.name + '"? It will be included in style matching again.' : 'Archive "' + item.name + '"? It will be excluded from AI style matching.')) return;
+
+      try {
+        await adminFetch('archiveStyle', { method: 'POST', body: { styleId: styleId, undo: isArchived } });
+        if (isArchived) {
+          item.archivedAt = null;
+          item.archivedBy = null;
+        } else {
+          item.archivedAt = new Date().toISOString();
+          item.archivedBy = user.email;
+        }
+        renderStyleGrid();
+        renderStyleCheckboxes();
+        // Update the detail view if still open
+        if (styleDetailCurrentId === styleId) openStyleDetailView(styleId);
+      } catch (err) {
+        alert('Failed to ' + action + ': ' + err.message);
+      }
     }
 
     function renderStyleCheckboxes() {
@@ -3562,5 +3618,60 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     loadReportingDashboard();
   </script>
   <div class="bulk-progress" id="bulkProgress" style="display:none;"></div>
+  <!-- Style Detail View Overlay -->
+  <div class="style-detail-overlay" id="styleDetailOverlay">
+    <div class="style-detail-header">
+      <h2 id="styleDetailTitle">Style Details</h2>
+      <button class="style-detail-back" onclick="closeStyleDetailView()">Back to Library</button>
+    </div>
+    <div class="style-detail-body">
+      <div>
+        <div class="phone-mockup">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <iframe id="styleDetailPreviewFrame" sandbox="allow-same-origin allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe>
+            </div>
+            <div class="phone-home-bar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="style-detail-info">
+        <div>
+          <h3 id="styleDetailName"></h3>
+          <p id="styleDetailDescription" style="font-size:14px;color:#666;line-height:1.5;"></p>
+        </div>
+
+        <div class="detail-section">
+          <h4>Rating</h4>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="star-rating" id="styleDetailStars"></div>
+            <span class="star-label" id="styleDetailStarLabel"></span>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Details</h4>
+          <div id="styleDetailRows"></div>
+        </div>
+
+        <div class="detail-section" id="styleDetailDesignSection" style="display:none;">
+          <h4>Design Notes</h4>
+          <p id="styleDetailDesignNotes" style="font-size:13px;color:#555;line-height:1.6;"></p>
+        </div>
+
+        <div class="detail-section">
+          <h4>Tags</h4>
+          <div id="styleDetailTags" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="editStyleItem(styleDetailCurrentId); closeStyleDetailView();">Edit</button>
+          <button class="btn btn-secondary" id="styleDetailArchiveBtn" onclick="archiveStyleItem(styleDetailCurrentId)">Archive</button>
+          <button class="btn btn-secondary" style="color:var(--party-coral);" onclick="if(confirm('Delete this style?')){deleteStyleItem(styleDetailCurrentId);closeStyleDetailView();}">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

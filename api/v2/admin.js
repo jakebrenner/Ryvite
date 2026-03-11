@@ -396,12 +396,35 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ---- ARCHIVE A STYLE LIBRARY ITEM ----
+    if (action === 'archiveStyle') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { styleId, undo } = req.body;
+      if (!styleId) return res.status(400).json({ error: 'styleId required' });
+
+      const updateData = undo
+        ? { archived_at: null, archived_by: null }
+        : { archived_at: new Date().toISOString(), archived_by: admin.email };
+
+      const { error } = await supabaseAdmin
+        .from('style_library')
+        .update(updateData)
+        .eq('id', styleId);
+      if (error) return res.status(500).json({ error: 'Failed to archive: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
     // ---- GET STYLE LIBRARY ----
     if (action === 'getStyleLibrary') {
-      const { data, error } = await supabaseAdmin
+      const includeArchived = req.query.includeArchived === 'true';
+      let query = supabaseAdmin
         .from('style_library')
         .select('*')
         .order('created_at', { ascending: false });
+      if (!includeArchived) {
+        query = query.is('archived_at', null);
+      }
+      const { data, error } = await query;
 
       const library = (data || []).map(row => ({
         id: row.id,
@@ -418,7 +441,9 @@ export default async function handler(req, res) {
         adminNotes: row.admin_notes || '',
         ratedBy: row.rated_by || '',
         ratedAt: row.rated_at || null,
-        timesUsed: row.times_used || 0
+        timesUsed: row.times_used || 0,
+        archivedAt: row.archived_at || null,
+        archivedBy: row.archived_by || null
       }));
 
       return res.status(200).json({ success: true, library });

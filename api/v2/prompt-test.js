@@ -426,9 +426,10 @@ Use realistic names, venues, and addresses. Make the design prompt vivid and spe
         .from('style_library')
         .select('*')
         .contains('event_types', [eventType])
+        .is('archived_at', null)
         .order('admin_rating', { ascending: false, nullsFirst: false })
         .limit(fetchLimit);
-      // Fallback if admin_rating column doesn't exist yet (migration not run)
+      // Fallback if admin_rating or archived_at column doesn't exist yet (migration not run)
       if (autoRes.error) {
         autoRes = await supabaseAdmin
           .from('style_library')
