@@ -874,6 +874,15 @@ Return ONLY a valid JSON object with these keys:
       if (!theme.theme_config && theme.config) { theme.theme_config = theme.config; }
       if (!theme.theme_thankyou_html && theme.thankyou_html) { theme.theme_thankyou_html = theme.thankyou_html; }
 
+      // Extract embedded CSS from HTML if missing
+      if (theme.theme_html && !theme.theme_css) {
+        const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+        if (styleMatch) {
+          theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+          theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+        }
+      }
+
       if (!theme.theme_html || !theme.theme_css) {
         const keys = Object.keys(theme).join(', ');
         throw new Error('Invalid tweak response — got keys: [' + keys + ']');
@@ -1174,6 +1183,25 @@ ${rsvpFieldsDesc}`;
     if (!theme.theme_css && theme.css) { theme.theme_css = theme.css; }
     if (!theme.theme_config && theme.config) { theme.theme_config = theme.config; }
     if (!theme.theme_thankyou_html && theme.thankyou_html) { theme.theme_thankyou_html = theme.thankyou_html; }
+
+    // If CSS is missing but embedded in HTML <style> tags, extract it
+    if (theme.theme_html && !theme.theme_css) {
+      const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+      if (styleMatch) {
+        theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+        theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+      }
+    }
+
+    // If config is missing, create a default with Google Fonts extracted from CSS/HTML
+    if (!theme.theme_config) {
+      theme.theme_config = {};
+      const fontImportMatch = (theme.theme_css || '').match(/@import\s+url\(['"]?(https:\/\/fonts\.googleapis\.com[^'"\)]+)['"]?\)/);
+      if (fontImportMatch) {
+        theme.theme_config.googleFontsImport = fontImportMatch[1];
+        theme.theme_css = theme.theme_css.replace(/@import\s+url\([^)]+\);?\s*/g, '');
+      }
+    }
 
     if (!theme.theme_html || !theme.theme_css || !theme.theme_config) {
       const keys = Object.keys(theme).join(', ');
