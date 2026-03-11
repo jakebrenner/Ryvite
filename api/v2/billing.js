@@ -790,32 +790,42 @@ export default async function handler(req, res) {
         .eq('event_id', eventId)
         .eq('status', 'success');
 
-      // Use persisted total_cost_cents (atomically incremented on each generation)
-      // Falls back to recalculation if column doesn't exist yet (pre-migration)
-      let totalCostCents = evt.total_cost_cents;
-      if (totalCostCents === undefined || totalCostCents === null) {
-        // Fallback: recalculate from generation_log (pre-migration path)
-        let markupPct = 50;
-        const { data: usageSubs } = await supabaseAdmin
-          .from('subscriptions')
-          .select('plans:plan_id (ai_markup_pct)')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .limit(1);
-        if (usageSubs && usageSubs.length > 0 && usageSubs[0].plans?.ai_markup_pct) {
-          markupPct = usageSubs[0].plans.ai_markup_pct;
-        }
-        const { data: gens } = await supabaseAdmin
-          .from('generation_log')
-          .select('model, input_tokens, output_tokens')
-          .eq('event_id', eventId)
-          .eq('status', 'success');
-        let rawCostDollars = 0;
-        for (const g of (gens || [])) {
-          const pricing = AI_MODEL_PRICING[g.model] || { input: 3.00, output: 15.00 };
-          rawCostDollars += ((g.input_tokens || 0) * pricing.input + (g.output_tokens || 0) * pricing.output) / 1_000_000;
-        }
-        totalCostCents = Math.round(rawCostDollars * (1 + markupPct / 100) * 100);
+      // Always recalculate from generation_log as ground truth, then take the
+      // max of that vs persisted column (handles partial backfills & pre-deploy gaps)
+      let markupPct = 50;
+      const { data: usageSubs } = await supabaseAdmin
+        .from('subscriptions')
+        .select('plans:plan_id (ai_markup_pct)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(1);
+      if (usageSubs && usageSubs.length > 0 && usageSubs[0].plans?.ai_markup_pct) {
+        markupPct = usageSubs[0].plans.ai_markup_pct;
+      }
+
+      const { data: gens } = await supabaseAdmin
+        .from('generation_log')
+        .select('model, input_tokens, output_tokens')
+        .eq('event_id', eventId)
+        .eq('status', 'success');
+
+      let rawCostDollars = 0;
+      for (const g of (gens || [])) {
+        const pricing = AI_MODEL_PRICING[g.model] || { input: 3.00, output: 15.00 };
+        rawCostDollars += ((g.input_tokens || 0) * pricing.input + (g.output_tokens || 0) * pricing.output) / 1_000_000;
+      }
+      const recalcCents = Math.round(rawCostDollars * (1 + markupPct / 100) * 100);
+      const persistedCents = evt.total_cost_cents || 0;
+
+      // Use whichever is higher — persisted tracks increments that may include
+      // costs not in generation_log; recalc catches pre-deploy generations
+      const totalCostCents = Math.max(recalcCents, persistedCents);
+
+      // Self-heal: if recalculated is higher, update the persisted column
+      if (recalcCents > persistedCents) {
+        supabaseAdmin.from('events')
+          .update({ total_cost_cents: recalcCents })
+          .eq('id', eventId).catch(() => {});
       }
 
       return res.status(200).json({
