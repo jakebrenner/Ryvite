@@ -676,7 +676,7 @@ export default async function handler(req, res) {
 `;
       }
       if (rsvpFields?.length > 0) {
-        eventContext += `\n**Current RSVP Fields:** ${rsvpFields.map(f => `${f.label} (${f.field_type}${f.is_required ? ', required' : ''})`).join(', ')}\n`;
+        eventContext += `\n**Current RSVP Fields (these are rendered dynamically by the platform, NOT in the HTML):**\n${rsvpFields.map(f => `- "${f.label}" (key: ${f.field_key || f.label.toLowerCase().replace(/\s+/g, '_')}, type: ${f.field_type}${f.is_required ? ', required' : ''})`).join('\n')}\n`;
       }
 
       let tweakMessage = `Here is an existing invite theme. The user is using the chat designer to modify their invite.
@@ -714,7 +714,16 @@ IMPORTANT: The .rsvp-slot div must contain ONLY a <button class="rsvp-button"> �
         tweakMessage += `\n\n**Current Thank You Page HTML:**\n\`\`\`html\n${existingThankyou}\n\`\`\`\nIf your changes affect the visual style (colors, fonts, spacing, backgrounds), update the thank you page to match. If the change is content-only (e.g., changing text, adding an element to the invite), you may set theme_thankyou_html to null to keep it unchanged.`;
       }
 
-      tweakMessage += `\n\nReturn the updated theme as a JSON object: { "theme_html": "...", "theme_css": "...", "theme_thankyou_html": "..." or null if unchanged, "theme_config": { ... }, "chat_response": "Brief friendly message about what you changed" }. Make ONLY the changes the user requested — keep everything else exactly the same. If the thank you page doesn't need changes, set theme_thankyou_html to null.
+      tweakMessage += `\n\nReturn the updated theme as a JSON object: { "theme_html": "...", "theme_css": "...", "theme_thankyou_html": "..." or null if unchanged, "theme_config": { ... }, "chat_response": "Brief friendly message about what you changed", "rsvp_field_changes": [...] or null if no RSVP field changes }. Make ONLY the changes the user requested — keep everything else exactly the same. If the thank you page doesn't need changes, set theme_thankyou_html to null.
+
+### RSVP Field Changes
+If the user asks to add, remove, or modify RSVP fields, include "rsvp_field_changes" — an array of operations:
+- Remove a field: { "action": "remove", "field_key": "birthday_message_for_max" }
+- Add a field: { "action": "add", "field_key": "song_request", "label": "Song Request", "field_type": "text", "is_required": false, "placeholder": "What song gets you dancing?" }
+- Modify a field: { "action": "modify", "field_key": "dietary_restrictions", "label": "New Label", "is_required": true }
+Valid field_types: text, number, select, checkbox, email, phone, textarea.
+If the user is NOT requesting RSVP field changes, set rsvp_field_changes to null.
+Remember: RSVP fields are rendered by the platform, NOT in theme HTML. Do NOT add form inputs to the HTML — use rsvp_field_changes instead.
 
 ⚠️ CONTRAST CHECK: After making changes, verify ALL text is readable. Dark/colored backgrounds → white text (#FFFFFF). Light backgrounds → dark text (#1A1A1A). Never use accent colors as text on dark backgrounds.`;
 
@@ -745,7 +754,8 @@ Return ONLY a valid JSON object with these keys:
   "theme_css": "...",
   "theme_thankyou_html": "..." or null if unchanged,
   "theme_config": { ... },
-  "chat_response": "A brief, friendly message (1-2 sentences) describing what you changed. Use a conversational tone."
+  "chat_response": "A brief, friendly message (1-2 sentences) describing what you changed. Use a conversational tone.",
+  "rsvp_field_changes": [...] or null if no RSVP field changes
 }
 
 ## CRITICAL RULES
@@ -759,8 +769,10 @@ Return ONLY a valid JSON object with these keys:
 
 ### RSVP form section:
 - \`.rsvp-slot\` MUST contain ONLY a \`<button class="rsvp-button">\` — NO form inputs, labels, or fields
-- The platform injects the real RSVP form at runtime
-- When users mention RSVP fields, acknowledge in chat_response but do NOT add form inputs
+- The platform injects the real RSVP form at runtime from the field definitions (NOT from the HTML)
+- To add/remove/modify RSVP fields, use the "rsvp_field_changes" array in your response — do NOT add form inputs to HTML
+- Example: user says "remove birthday message field" → include { "action": "remove", "field_key": "birthday_message_for_max" } in rsvp_field_changes
+- Example: user says "add a song request field" → include { "action": "add", "field_key": "song_request", "label": "Song Request", "field_type": "text", "is_required": false, "placeholder": "What song gets you dancing?" }
 
 ### Design rules:
 - Max-width 393px, mobile-first, WCAG AA contrast
@@ -907,7 +919,8 @@ Return ONLY a valid JSON object with these keys:
       sendSSE('done', {
         success: true,
         theme: { id: 'pending', version: 0, html: theme.theme_html, css: theme.theme_css, config: tweakConfig },
-        chatResponse: theme.chat_response || null
+        chatResponse: theme.chat_response || null,
+        rsvpFieldChanges: theme.rsvp_field_changes || null
       });
 
       // Save as new version (best-effort — client already has the theme)

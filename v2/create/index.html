@@ -3599,7 +3599,7 @@
           clearInterval(tweakPunInterval);
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
 
-          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11f');
+          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11g');
 
           if (tweakResult && tweakResult.success) {
             var newVer = { id: tweakResult.theme.id, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
@@ -3608,6 +3608,55 @@
             currentEvent.themeHtml = newVer.html;
             currentEvent.themeCss = newVer.css;
             currentEvent.themeConfig = newVer.config;
+
+            // Apply RSVP field changes if the AI returned any
+            var fieldChanges = tweakResult.rsvpFieldChanges || tweakResult.rsvp_field_changes;
+            if (fieldChanges && Array.isArray(fieldChanges) && fieldChanges.length > 0) {
+              console.log('[tweak] Applying RSVP field changes:', fieldChanges);
+              fieldChanges.forEach(function(change) {
+                if (change.action === 'remove') {
+                  // Remove field by field_key (fuzzy match: lowercase, strip spaces/underscores)
+                  var removeKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+                  rsvpFields = rsvpFields.filter(function(f) {
+                    var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+                    var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
+                    return fKey !== removeKey && fLabel !== removeKey;
+                  });
+                } else if (change.action === 'add') {
+                  // Add new field — avoid duplicates
+                  var addKey = change.field_key || change.label.toLowerCase().replace(/\s+/g, '_');
+                  var exists = rsvpFields.some(function(f) { return f.field_key === addKey; });
+                  if (!exists) {
+                    rsvpFields.push({
+                      field_key: addKey,
+                      label: change.label,
+                      field_type: change.field_type || 'text',
+                      is_required: change.is_required || false,
+                      options: change.options || null,
+                      placeholder: change.placeholder || null,
+                      enabled: true
+                    });
+                  }
+                } else if (change.action === 'modify') {
+                  // Modify existing field
+                  var modKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+                  rsvpFields.forEach(function(f) {
+                    var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+                    if (fKey === modKey) {
+                      if (change.label) f.label = change.label;
+                      if (change.field_type) f.field_type = change.field_type;
+                      if (change.is_required !== undefined) f.is_required = change.is_required;
+                      if (change.placeholder) f.placeholder = change.placeholder;
+                      if (change.options) f.options = change.options;
+                    }
+                  });
+                }
+              });
+              // Save updated fields to DB and re-render the RSVP field editor UI
+              saveCustomFields();
+              if (typeof renderRsvpFields === 'function') renderRsvpFields();
+            }
+
             renderPreview(newVer);
             renderVersionGallery();
             // Update sessionStorage cache
