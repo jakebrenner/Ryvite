@@ -776,46 +776,53 @@ export default async function handler(req, res) {
       const eventId = req.query.eventId;
       if (!eventId) return res.status(400).json({ success: false, error: 'eventId required' });
 
-      // Verify the user owns this event
+      // Verify the user owns this event and get persisted cost
       const { data: evt } = await supabaseAdmin
-        .from('events').select('id, user_id').eq('id', eventId).single();
+        .from('events').select('id, user_id, total_cost_cents').eq('id', eventId).single();
       if (!evt || evt.user_id !== user.id) {
         return res.status(403).json({ success: false, error: 'Not your event' });
       }
 
-      // Get markup from user's active usage plan (default 50% if no plan found)
-      let markupPct = 50;
-      const { data: usageSubs } = await supabaseAdmin
-        .from('subscriptions')
-        .select('plans:plan_id (ai_markup_pct)')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .limit(1);
-      if (usageSubs && usageSubs.length > 0 && usageSubs[0].plans?.ai_markup_pct) {
-        markupPct = usageSubs[0].plans.ai_markup_pct;
-      }
-
-      // Sum all generations for this event
-      const { data: gens } = await supabaseAdmin
+      // Get generation count for display
+      const { count: genCount } = await supabaseAdmin
         .from('generation_log')
-        .select('model, input_tokens, output_tokens')
+        .select('id', { count: 'exact', head: true })
         .eq('event_id', eventId)
         .eq('status', 'success');
 
-      let rawCostDollars = 0;
-      let genCount = 0;
-      for (const g of (gens || [])) {
-        const pricing = AI_MODEL_PRICING[g.model] || { input: 3.00, output: 15.00 };
-        rawCostDollars += ((g.input_tokens || 0) * pricing.input + (g.output_tokens || 0) * pricing.output) / 1_000_000;
-        genCount++;
+      // Use persisted total_cost_cents (atomically incremented on each generation)
+      // Falls back to recalculation if column doesn't exist yet (pre-migration)
+      let totalCostCents = evt.total_cost_cents;
+      if (totalCostCents === undefined || totalCostCents === null) {
+        // Fallback: recalculate from generation_log (pre-migration path)
+        let markupPct = 50;
+        const { data: usageSubs } = await supabaseAdmin
+          .from('subscriptions')
+          .select('plans:plan_id (ai_markup_pct)')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .limit(1);
+        if (usageSubs && usageSubs.length > 0 && usageSubs[0].plans?.ai_markup_pct) {
+          markupPct = usageSubs[0].plans.ai_markup_pct;
+        }
+        const { data: gens } = await supabaseAdmin
+          .from('generation_log')
+          .select('model, input_tokens, output_tokens')
+          .eq('event_id', eventId)
+          .eq('status', 'success');
+        let rawCostDollars = 0;
+        for (const g of (gens || [])) {
+          const pricing = AI_MODEL_PRICING[g.model] || { input: 3.00, output: 15.00 };
+          rawCostDollars += ((g.input_tokens || 0) * pricing.input + (g.output_tokens || 0) * pricing.output) / 1_000_000;
+        }
+        totalCostCents = Math.round(rawCostDollars * (1 + markupPct / 100) * 100);
       }
-      const totalCostCents = Math.round(rawCostDollars * (1 + markupPct / 100) * 100);
 
       return res.status(200).json({
         success: true,
         eventId,
         totalCostCents,
-        generationCount: genCount
+        generationCount: genCount || 0
       });
     }
 

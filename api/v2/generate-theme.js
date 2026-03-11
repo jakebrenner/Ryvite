@@ -1198,6 +1198,17 @@ Return ONLY a valid JSON object with these keys:
           is_tweak: true, event_type: eventDetails?.eventType || '',
           client_ip: tweakMeta.ip, client_geo: tweakMeta.geo, user_agent: tweakMeta.userAgent
         }).catch(() => {});
+        // Atomically increment persistent event cost
+        supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: tweakCost.totalCostCents })
+          .catch(() => {
+            supabase.from('events')
+              .select('total_cost_cents').eq('id', eventId).single()
+              .then(({ data }) => {
+                if (data) supabase.from('events')
+                  .update({ total_cost_cents: (data.total_cost_cents || 0) + tweakCost.totalCostCents })
+                  .eq('id', eventId).catch(() => {});
+              }).catch(() => {});
+          });
 
         // Check if usage-based AI billing threshold is reached
         checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
@@ -1506,7 +1517,7 @@ This is the most common failure mode. Double-check it.`;
       }
       if (themeError) console.error('Failed to save theme:', themeError.message);
 
-      // Fire-and-forget: generation log + first_generation_at
+      // Fire-and-forget: generation log + first_generation_at + cost tracking
       const genMeta = getClientMeta(req);
       supabase.from('generation_log').insert({
         event_id: eventId, user_id: user.id, prompt: effectivePrompt,
@@ -1520,6 +1531,18 @@ This is the most common failure mode. Double-check it.`;
         .update({ first_generation_at: new Date().toISOString() })
         .eq('id', eventId).is('first_generation_at', null)
         .then(() => {}).catch(() => {});
+      // Atomically increment persistent event cost
+      supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: genCost.totalCostCents })
+        .catch(() => {
+          // Fallback: direct update if RPC doesn't exist yet
+          supabase.from('events')
+            .select('total_cost_cents').eq('id', eventId).single()
+            .then(({ data }) => {
+              if (data) supabase.from('events')
+                .update({ total_cost_cents: (data.total_cost_cents || 0) + genCost.totalCostCents })
+                .eq('id', eventId).catch(() => {});
+            }).catch(() => {});
+        });
 
       // Check if usage-based AI billing threshold is reached
       checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
