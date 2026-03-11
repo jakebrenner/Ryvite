@@ -100,8 +100,9 @@
         if (result.event.themeHtml && result.event.themeCss) {
           var config = result.event.themeConfig || {};
           var fontsImport = config.googleFontsImport || '';
+          var fontsTag = fontsImport ? '<style>' + fontsImport + '</style>' : '';
           var iframe = document.getElementById('themeFrame');
-          iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; } ' + fontsImport + '</style><style>' + result.event.themeCss + '</style></head><body>' + result.event.themeHtml + '</body></html>';
+          iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' + fontsTag + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; }</style><style>' + result.event.themeCss + '</style></head><body>' + result.event.themeHtml + '</body></html>';
           iframe.style.display = 'block';
           iframe.onload = function() { try { iframe.style.height = Math.max(iframe.contentDocument.body.scrollHeight + 40, 600) + 'px'; } catch(e) {} };
         }
@@ -357,8 +358,9 @@
         tyHtml = stripAndInjectGuaranteedElements(tyHtml);
 
         var fontsImport = config.googleFontsImport || '';
+        var fontsTag2 = fontsImport ? '<style>' + fontsImport + '</style>' : '';
         var iframe = document.getElementById('themeFrame');
-        iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 0; background: transparent; } ' + fontsImport + '</style><style>' + guaranteedCSS + '</style><style>' + (currentEventData.themeCss || '') + '</style></head><body>' + tyHtml + '</body></html>';
+        iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' + fontsTag2 + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 0; background: transparent; }</style><style>' + guaranteedCSS + '</style><style>' + (currentEventData.themeCss || '') + '</style></head><body>' + tyHtml + '</body></html>';
         iframe.onload = function() { try { iframe.style.height = Math.max(iframe.contentDocument.body.scrollHeight + 40, 600) + 'px'; } catch(e) {} };
 
         // Wire up calendar buttons inside the iframe after load

@@ -211,8 +211,8 @@ export default async function handler(req, res) {
       const dbUpdates = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.eventDate !== undefined) dbUpdates.event_date = updates.eventDate;
-      if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate;
+      if (updates.eventDate !== undefined) dbUpdates.event_date = updates.eventDate || null;
+      if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate || null;
       if (updates.locationName !== undefined) dbUpdates.location_name = updates.locationName;
       if (updates.locationAddress !== undefined) dbUpdates.location_address = updates.locationAddress;
       if (updates.locationUrl !== undefined) dbUpdates.location_url = updates.locationUrl;
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
       if (updates.eventType !== undefined) dbUpdates.event_type = updates.eventType;
       if (updates.timezone !== undefined) dbUpdates.timezone = updates.timezone;
       if (updates.maxGuests !== undefined) dbUpdates.max_guests = updates.maxGuests;
-      if (updates.rsvpDeadline !== undefined) dbUpdates.rsvp_deadline = updates.rsvpDeadline;
+      if (updates.rsvpDeadline !== undefined) dbUpdates.rsvp_deadline = updates.rsvpDeadline || null;
       if (updates.zapierWebhook !== undefined) dbUpdates.zapier_webhook = updates.zapierWebhook;
       // Settings: merge with existing instead of overwrite
       if (updates.settings !== undefined) {
@@ -232,6 +232,28 @@ export default async function handler(req, res) {
 
       // Status: frontend sends "Published"/"Draft"/"Archived" — normalize to lowercase enum
       if (updates.status !== undefined) dbUpdates.status = updates.status.toLowerCase();
+
+      // Track generations-to-publish when first published
+      if (dbUpdates.status === 'published') {
+        try {
+          // Only compute if not already published (first publish)
+          const { data: currentEvent } = await supabaseAdmin
+            .from('events')
+            .select('published_at')
+            .eq('id', eventId)
+            .single();
+          if (!currentEvent?.published_at) {
+            // Count successful generations for this event
+            const { count: genCount } = await supabaseAdmin
+              .from('generation_log')
+              .select('*', { count: 'exact', head: true })
+              .eq('event_id', eventId)
+              .eq('status', 'success');
+            dbUpdates.generations_to_publish = genCount || 1;
+            dbUpdates.published_at = new Date().toISOString();
+          }
+        } catch {} // Don't block publish if tracking fails
+      }
 
       const { data, error } = await supabaseAdmin
         .from('events')

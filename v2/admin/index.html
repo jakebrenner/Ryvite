@@ -216,6 +216,45 @@
     .bulk-item .file-status.error { color: var(--party-coral); }
     .bulk-progress-summary { padding: 10px 16px; font-size: 12px; font-weight: 600; border-top: 1px solid #eee; flex-shrink: 0; }
 
+    /* Prompt Versions */
+    #tab-promptversions table { font-size: 13px; }
+    #promptVersionModal textarea { tab-size: 2; }
+
+    /* Star ratings */
+    .star-rating { display: inline-flex; gap: 2px; cursor: pointer; }
+    .star-rating .star { font-size: 20px; color: #ddd; transition: color 0.15s; user-select: none; }
+    .star-rating .star.filled { color: #f59e0b; }
+    .star-rating .star:hover, .star-rating .star.hover { color: #fbbf24; }
+    .star-rating .star-label { font-size: 11px; color: #888; margin-left: 6px; align-self: center; }
+
+    /* Matrix results */
+    .matrix-results { margin-top: 24px; }
+    .matrix-row { margin-bottom: 24px; }
+    .matrix-row-header { font-size: 14px; font-weight: 700; color: var(--midnight); margin-bottom: 12px; padding: 8px 14px; background: #f0f0f0; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .matrix-row-header .avg-score { font-size: 12px; color: #888; font-weight: 600; }
+    .matrix-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .matrix-card { background: white; border: 1px solid #eee; border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+    .matrix-card:hover { border-color: var(--party-coral); }
+    .matrix-card-header { padding: 10px 14px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .matrix-card-header h4 { font-size: 13px; font-weight: 700; }
+    .matrix-card-preview { padding: 12px; display: flex; justify-content: center; }
+    .matrix-card-rating { padding: 10px 14px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+    .matrix-card-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 14px; background: #f9f9f9; font-size: 11px; }
+    .matrix-card-stats .stat .lbl { color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
+    .matrix-card-stats .stat .val { font-weight: 700; color: var(--midnight); font-size: 13px; }
+
+    /* Reporting */
+    .report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .report-card { background: white; border-radius: 8px; padding: 16px; border: 1px solid #eee; text-align: center; }
+    .report-card .report-val { font-size: 28px; font-weight: 700; color: var(--midnight); }
+    .report-card .report-lbl { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .leaderboard-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; background: #fafafa; border-bottom: 1px solid #eee; }
+    .leaderboard-table td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+    .leaderboard-table tr:hover td { background: #fafafa; }
+    .score-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--mint-fizz); vertical-align: middle; margin-left: 8px; }
+    .score-stars { color: #f59e0b; font-size: 13px; letter-spacing: -1px; }
+
     .loading { text-align: center; padding: 60px 20px; color: #888; }
     .access-denied { text-align: center; padding: 80px 20px; }
     .access-denied h2 { font-family: 'Playfair Display', serif; margin-bottom: 12px; }
@@ -249,6 +288,7 @@
       <button class="tab" data-tab="subscriptions" onclick="switchTab('subscriptions');loadSubscriptions();">Billing</button>
       <button class="tab" data-tab="coupons" onclick="switchTab('coupons');loadCoupons();">Coupons</button>
       <button class="tab" data-tab="settings" onclick="switchTab('settings')">AI Models</button>
+      <button class="tab" data-tab="promptversions" onclick="switchTab('promptversions')">Prompt Versions</button>
       <button class="tab" data-tab="promptlab" onclick="switchTab('promptlab')">Prompt Lab</button>
       <button class="tab" data-tab="stylelibrary" onclick="switchTab('stylelibrary')">Style Library</button>
     </div>
@@ -581,6 +621,139 @@
     </div>
   </div>
 
+    <!-- Prompt Versions Tab -->
+    <div class="tab-content" id="tab-promptversions">
+      <div class="config-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div>
+            <h3>Prompt Version Control</h3>
+            <p style="font-size:13px;color:#888;margin-top:4px;">Manage versioned system prompts for invite generation. The active version drives production. Test iterations in the Prompt Lab before going live.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openPromptVersionModal()">New Version</button>
+        </div>
+
+        <div id="promptVersionsList">
+          <div class="loading">Loading prompt versions...</div>
+        </div>
+      </div>
+
+      <!-- Reporting Dashboard -->
+      <div class="config-section" id="reportingSection">
+        <h3>Test Results &amp; Insights</h3>
+        <p style="font-size:13px;color:#888;margin-bottom:16px;">Aggregated results from Prompt Lab tests. Rate generations in the Prompt Lab to populate these insights.</p>
+
+        <div id="reportingEmpty" style="text-align:center;padding:40px 20px;color:#888;">
+          <div style="font-size:36px;margin-bottom:8px;opacity:0.3;">&#9733;</div>
+          <p style="font-size:13px;">No rated test runs yet. Generate invites in the Prompt Lab and rate them to see insights here.</p>
+        </div>
+
+        <div id="reportingContent" style="display:none;">
+          <!-- Summary cards -->
+          <div class="report-grid" id="reportSummaryCards"></div>
+
+          <!-- Leaderboard: Prompt × Model combos -->
+          <div style="margin-bottom:24px;">
+            <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">Prompt × Model Leaderboard</h4>
+            <div class="table-container">
+              <table class="leaderboard-table" id="comboLeaderboard">
+                <thead><tr><th>Rank</th><th>Prompt</th><th>Model</th><th>Avg Score</th><th>Tests</th><th>Avg Latency</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- By Prompt Version -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">By Prompt Version</h4>
+              <div class="table-container">
+                <table class="leaderboard-table" id="promptLeaderboard">
+                  <thead><tr><th>Prompt</th><th>Avg Score</th><th>Tests</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">By Model</h4>
+              <div class="table-container">
+                <table class="leaderboard-table" id="modelLeaderboard">
+                  <thead><tr><th>Model</th><th>Avg Score</th><th>Tests</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Score distribution + by event type -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">Score Distribution</h4>
+              <div id="scoreDistribution" style="padding:16px;background:white;border:1px solid #eee;border-radius:8px;"></div>
+            </div>
+            <div>
+              <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">By Event Type</h4>
+              <div class="table-container">
+                <table class="leaderboard-table" id="eventTypeLeaderboard">
+                  <thead><tr><th>Event Type</th><th>Avg Score</th><th>Tests</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt Version Editor Modal -->
+    <div id="promptVersionModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closePromptVersionModal()">
+      <div class="modal modal-wide" style="max-width:1100px;max-height:90vh;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 id="pvModalTitle">New Prompt Version</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closePromptVersionModal()">Close</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="config-field">
+            <label>Version Name</label>
+            <input type="text" id="pvName" placeholder="e.g. v12 – better RSVP buttons" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+          </div>
+          <div class="config-field">
+            <label>Description (what changed?)</label>
+            <input type="text" id="pvDescription" placeholder="e.g. Improved button styling rules, added WCAG section" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+          </div>
+        </div>
+        <!-- Layer 1: Structural Rules (read-only) -->
+        <div class="config-field" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <label style="margin-bottom:0;">Structural Rules <span class="badge badge-blue" style="font-size:10px;vertical-align:middle;">Locked</span></label>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pvStructuralRules').style.display=document.getElementById('pvStructuralRules').style.display==='none'?'block':'none'">Toggle View</button>
+          </div>
+          <p style="font-size:12px;color:#888;margin-bottom:8px;">Platform contract (JSON output, data attributes, .rsvp-slot, no-JS, thank-you page). Always prepended — cannot be edited here.</p>
+          <textarea id="pvStructuralRules" rows="12" readonly style="display:none;width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:11px;line-height:1.5;background:#f5f5f5;color:#666;resize:vertical;cursor:not-allowed;"></textarea>
+        </div>
+        <!-- Layer 2: Creative Direction (editable) -->
+        <div class="config-field" style="margin-bottom:16px;">
+          <label>Creative Direction <span class="badge badge-green" style="font-size:10px;vertical-align:middle;">Editable</span></label>
+          <p style="font-size:12px;color:#888;margin-bottom:8px;">The creative layer — design philosophy, typography, color approach, animation, anti-patterns. Iterate freely without breaking the platform.</p>
+          <textarea id="pvCreativeDirection" rows="20" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.5;resize:vertical;" placeholder="Design philosophy, typography rules, color approach, animation style, anti-patterns..."></textarea>
+        </div>
+        <!-- Layer 3: Design DNA (editable) -->
+        <div class="config-field" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <label style="margin-bottom:0;">Design DNA (JSON) <span class="badge badge-green" style="font-size:10px;vertical-align:middle;">Editable</span></label>
+            <button class="btn btn-secondary btn-sm" onclick="loadCurrentDesignDna()">Load Current DNA</button>
+          </div>
+          <p style="font-size:12px;color:#888;margin-bottom:8px;">Per-event-type guidance (14 types). "must" = hard requirements, "consider" = suggestions adapted to prompt specificity.</p>
+          <textarea id="pvDesignDna" rows="12" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.5;resize:vertical;" placeholder='{"kidsBirthday": {...}, "wedding": {...}, ...}'></textarea>
+        </div>
+        <input type="hidden" id="pvEditId" value="">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-primary" onclick="savePromptVersion()">Save Version</button>
+          <button class="btn btn-secondary" onclick="closePromptVersionModal()">Cancel</button>
+          <span id="pvSaveStatus" style="font-size:13px;color:#888;"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- Prompt Lab Tab -->
     <div class="tab-content" id="tab-promptlab">
       <!-- Main layout: config left, phone preview right -->
@@ -618,7 +791,10 @@
             <div id="eventDetailsFilled" style="display:none;padding:12px 16px;background:#f0faf0;border:1px solid #c3e6cb;border-radius:8px;margin-bottom:12px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <span style="font-size:12px;font-weight:600;color:#28a745;text-transform:uppercase;letter-spacing:0.5px;">AI-Generated Test Data</span>
-                <button class="btn btn-secondary btn-sm" onclick="toggleEventDetailsExpand()" id="expandDetailsBtn" style="font-size:11px;">Edit</button>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleEventDetailsExpand()" id="expandDetailsBtn" style="font-size:11px;">Edit</button>
+                  <button class="btn btn-secondary btn-sm" onclick="regenDummyData()" id="regenBtn" style="font-size:11px;">AI Gen</button>
+                </div>
               </div>
               <div id="eventDetailsSummary" style="font-size:13px;color:#333;line-height:1.6;"></div>
             </div>
@@ -670,26 +846,41 @@
 
           <div class="config-section">
             <h3>Generation Settings</h3>
+
+            <!-- Prompt Versions multi-select -->
             <div class="config-field" style="margin-bottom:16px;">
-              <label>Model</label>
-              <select id="testModelSelect" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
-                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fast ($0.80/$4)</option>
-                <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 — Balanced ($3/$15)</option>
-                <option value="claude-opus-4-6">Claude Opus 4.6 — Best ($15/$75)</option>
-              </select>
+              <label>Prompt Versions</label>
+              <div id="promptVersionCheckboxes" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+                <label class="style-checkbox selected" style="margin-bottom:0;">
+                  <input type="checkbox" name="pvCheck" value="" checked> <span style="font-size:13px;">Hardcoded Default (in code)</span>
+                </label>
+              </div>
+              <div class="hint" style="margin-top:6px;">Select one or more prompt versions to test. Multiple selections run a matrix across all selected models.</div>
             </div>
 
-            <div class="compare-toggle" id="compareToggle" onclick="toggleCompareMode()">
-              <input type="checkbox" id="compareCheckbox" onclick="event.stopPropagation(); syncCompareMode();">
-              <div>
-                <div class="compare-label">Compare All Models</div>
-                <div class="compare-hint">Runs Haiku, Sonnet, Opus &amp; Hybrid (Haiku→Sonnet polish) in parallel. Side-by-side with cost breakdown.</div>
+            <!-- Models multi-select -->
+            <div class="config-field" style="margin-bottom:16px;">
+              <label>Models</label>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+                <label class="style-checkbox" style="margin-bottom:0;" id="modelCheck_haiku">
+                  <input type="checkbox" name="modelCheck" value="claude-haiku-4-5-20251001"> <span style="font-size:13px;">Haiku 4.5 — Fast ($0.80/$4)</span>
+                </label>
+                <label class="style-checkbox selected" style="margin-bottom:0;" id="modelCheck_sonnet">
+                  <input type="checkbox" name="modelCheck" value="claude-sonnet-4-6" checked> <span style="font-size:13px;">Sonnet 4.6 — Balanced ($3/$15)</span>
+                </label>
+                <label class="style-checkbox" style="margin-bottom:0;" id="modelCheck_opus">
+                  <input type="checkbox" name="modelCheck" value="claude-opus-4-6"> <span style="font-size:13px;">Opus 4.6 — Best ($15/$75)</span>
+                </label>
               </div>
             </div>
 
             <div id="styleLibraryCheckboxes" style="margin-top:16px;">
               <label style="display:block;font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Style References (auto-matched)</label>
               <div id="styleRefList"><span style="font-size:12px;color:#aaa;">Select an event type above to see matched styles.</span></div>
+            </div>
+
+            <div id="matrixSummary" style="display:none;margin-top:16px;padding:10px 14px;background:#f0f0ff;border:1px solid #c7d2fe;border-radius:8px;">
+              <span style="font-size:13px;font-weight:600;color:#4f46e5;" id="matrixSummaryText"></span>
             </div>
 
             <div style="display:flex;gap:12px;align-items:center;margin-top:16px;">
@@ -775,18 +966,17 @@
         </div>
       </div>
 
-      <!-- Multi-model comparison results (full width, shown when compare mode) -->
-      <div id="comparisonResultSection" style="display:none;">
+      <!-- Matrix results (full width, shown after generation) -->
+      <div id="matrixResultSection" style="display:none;">
         <div class="config-section">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h3>Model Comparison</h3>
+            <h3 id="matrixResultTitle">Results</h3>
             <div class="preview-toggle-row" style="margin-bottom:0;">
-              <button class="preview-toggle-btn active" onclick="setComparisonPreviewMode('invite')">Invite</button>
-              <button class="preview-toggle-btn" onclick="setComparisonPreviewMode('thankyou')">Thank You</button>
+              <button class="preview-toggle-btn active" onclick="setMatrixPreviewMode('invite')">Invite</button>
+              <button class="preview-toggle-btn" onclick="setMatrixPreviewMode('thankyou')">Thank You</button>
             </div>
           </div>
-          <div id="comparisonGrid" class="comparison-grid cols-3"></div>
-          <div id="comparisonSummary" style="margin-top:16px;"></div>
+          <div id="matrixResultGrid" class="matrix-results"></div>
         </div>
       </div>
     </div>
@@ -1233,10 +1423,11 @@
     }
 
     // ---- Prompt Lab ----
-    // The SYSTEM_PROMPT and DESIGN_DNA are embedded here so admins can view them
-    var THEME_SYSTEM_PROMPT = `You are building a production-grade, single-file HTML event invite and RSVP page. This page must be visually extraordinary — better than Evite, Paperless Post, Canva, or any other existing provider. It should feel like it was designed by a top creative studio, not generated by AI.
-
-## OUTPUT FORMAT
+    // The prompt is split into two layers:
+    // 1. STRUCTURAL_RULES_TEXT — platform contract (locked, read-only)
+    // 2. DEFAULT_CREATIVE_TEXT — the editable creative direction
+    // The old combined prompt is THEME_SYSTEM_PROMPT for backward compat with the prompt viewer
+    var STRUCTURAL_RULES_TEXT = `## OUTPUT FORMAT — MANDATORY
 Return a JSON object with exactly these keys:
 {
   "theme_html": "...",
@@ -1256,6 +1447,36 @@ Return a JSON object with exactly these keys:
   }
 }
 
+## PAGE STRUCTURE — REQUIRED SECTIONS
+1. THEMATIC HEADER — An animated or illustrated element specific to this event type.
+2. HERO SECTION — Large display headline with event title/names/tagline.
+3. EVENT DETAILS — Icon + text layout for date, time, location.
+4. RSVP SECTION — <div class="rsvp-slot"><button class="rsvp-button">...</button></div>. The rsvp-slot MUST contain ONLY the button.
+
+## RSVP BUTTON — CRITICAL PLATFORM RULES
+- Full-width (width: 100% or min 280px), min-height: 56px, generous padding (16px 32px)
+- Centered text via flexbox, 16-18px bold, appearance:none, explicit styling
+- NEVER put form inputs/selects/labels inside .rsvp-slot — ONLY the button
+
+## REQUIRED DATA ATTRIBUTES
+- data-field="title"  data-field="datetime"  data-field="location"  data-field="dresscode"  data-field="host"
+
+## TECHNICAL CONSTRAINTS — NON-NEGOTIABLE
+- Max-width 393px, centered, mobile-first. Min 14px body, WCAG AA contrast.
+- Generous padding (20-24px sides). CSS custom properties for theme colors.
+- No JavaScript. No fixed positioning. No iframes. Google Fonts only.
+- Keep height reasonable — 3-5 phone screen scrolls.
+
+## THANK YOU PAGE (theme_thankyou_html)
+Provide ONLY .thankyou-page > .thankyou-hero. NO calendar buttons, NO footer. Include <span class="thankyou-guest">Guest</span> in subtitle.
+
+## TEXT CONTRAST — NEVER VIOLATE
+- WCAG AA minimum on ALL text. Never light-on-light or dark-on-dark.`;
+
+    var DEFAULT_CREATIVE_TEXT = `You are a world-class invite designer building a production-grade, single-file HTML event invite page. This page must be visually extraordinary — better than Evite, Paperless Post, Canva, or any other existing provider. It should feel like it was designed by a top creative studio, not generated by AI.
+
+When the user gives you minimal input, that is creative freedom, not a gap to fill conservatively. Make bold decisions. Pick a strong visual direction, commit to it, and execute it with detail. A vague brief is an invitation to surprise them.
+
 ## CRITICAL DESIGN PHILOSOPHY
 - This must be UNFORGETTABLE. Every spacing, shadow, border-radius, and animation timing must feel intentional and designed.
 - Choose a clear aesthetic direction and execute it with total commitment.
@@ -1264,55 +1485,51 @@ Return a JSON object with exactly these keys:
 - Use unexpected moments: overlapping elements, asymmetric composition, color blocks that break the grid, type that surprises.
 
 ## TYPOGRAPHY RULES
-- Source all fonts from Google Fonts only (include @import in googleFontsImport)
 - Choose a BOLD, characterful display font that matches the event's emotional register
 - Pair with a warm, readable body font — NEVER Inter, Roboto, Arial, or any system default
 - Typography should do heavy creative lifting, not just label things
 - Vary weight, scale, case, and tracking deliberately — type IS the design
+- Headline: large, tight line-height, slight text-shadow for depth
 
-## PAGE STRUCTURE
-Build the page with these sections (creative freedom on visual execution):
+## COLOR RULES
+- One color dominates (60%+ of the page). Maximum 2 true accent colors.
+- No purple gradients on white. Dark themes: near-black in #08-#18 range, never pure #000
+- Background should never be plain white — use a pattern, texture, subtle gradient, or tinted base
 
-1. **THEMATIC HEADER** — An animated or illustrated element specific to this event type. Must feel DESIGNED for this event, not generic.
-2. **HERO SECTION** — Large display headline with event title/names/tagline. Photo treatment if photos provided. All entrance animations staggered.
-3. **EVENT DETAILS** — Icon + text layout for date, time, location. Clear hierarchy, memorable presentation.
-4. **RSVP SECTION** — .rsvp-slot with ONLY a styled <button class="rsvp-button">. The rsvp-slot MUST contain ONLY the button.
-
-## REQUIRED DATA ATTRIBUTES
-- data-field="title" — on the element containing the event title text
-- data-field="datetime" — on the container with date/time information
-- data-field="location" — on the container with location information
-- data-field="dresscode" — on the container with dress code (omit entirely if not specified)
-- data-field="host" — on the element showing host name(s), if included
+## SVG & ILLUSTRATION
+- When no photos are provided, use hand-crafted inline SVG illustrations as the emotional hero
+- SVG subjects should be recognizable and detailed — layered construction with shadows and highlights
+- Background must have depth: sky + ground, environment layers, or architectural context
+- Include secondary elements: props, nature, objects, decorations specific to the theme
 
 ## ANIMATION RULES — EVERY INVITE SHOULD FEEL ALIVE
-- **Ambient background**: floating/falling elements specific to event type on infinite loop, varied speeds, 0.1-0.2 opacity
-- **Photo animations**: bobbing for kids parties, subtle scale pulse for editorial, soft glow for romantic
-- **Entrance**: staggered fade-up on page load (animation-delay: 0.1s increments)
-- **Interactive**: hover states on all buttons with smooth transitions
-- **Decorative**: gentle sway or float on header decorations
-- Use CSS only (no JavaScript).
+- Ambient background: floating/falling elements on infinite loop, varied speeds, 0.1-0.2 opacity
+- Photo animations: bobbing for kids parties, subtle scale pulse for editorial, soft glow for romantic
+- Entrance: staggered fade-up on page load (animation-delay: 0.1s increments)
+- Interactive: hover states on all buttons with smooth transitions
+- Decorative: gentle sway or float on header decorations
+- The RSVP button must feel like the CLIMAX of the page — the visual payoff of scrolling
+- Use transform and opacity for smooth performance
 
-## TECHNICAL CONSTRAINTS
-- Max-width 393px (iPhone), centered, mobile-first
-- Text must be readable: min 14px body, WCAG AA contrast ratios (4.5:1 body, 3:1 headings)
-- Generous padding (20-24px sides)
-- RSVP button: min 48px height, prominent, high contrast
-- CSS custom properties for all theme colors
-- No JavaScript, no fixed positioning, no iframes
-- NEVER put form inputs inside .rsvp-slot
-- Keep height reasonable — 3-5 phone screen scrolls
+## PHOTO HANDLING
+- Photos should ANCHOR the design, not just decorate it
+- Always crop/frame with intention — style with border-radius, box-shadow, creative framing
+- If photos are bad quality, save them with CSS filters (overlay, vignette, color grade)
 
-## THANK YOU PAGE (theme_thankyou_html)
-Same CSS applies. Provide ONLY .thankyou-page container with .thankyou-hero. NO calendar buttons, NO footer.
-
-## TEXT CONTRAST — CRITICAL, NEVER VIOLATE
-- EVERY piece of text must have sufficient contrast against its background (WCAG AA minimum)
-- NEVER put light text on a light background or dark text on a dark background
-- Button text MUST contrast against the button background color
+## WHAT KILLS A GOOD INVITE — NEVER DO THESE
+- Using Inter, Roboto, or system fonts
+- Purple gradients on white backgrounds
+- Evenly spaced, equal-weight visual elements — hierarchy matters
+- Generic "party balloons" clipart as the only decoration
+- No animations — the page should feel alive
+- Light text on light backgrounds or dark text on dark backgrounds
+- Playing it safe when the brief is minimal — lean into a strong POV
 
 ## INSPIRATION IMAGES
-If provided, analyze them for color palette, visual mood, textures, typography style, and overall aesthetic.`;
+If provided, analyze them for color palette, visual mood, textures, typography style, and overall aesthetic. Use as strong creative direction.`;
+
+    // Combined for the prompt viewer
+    var THEME_SYSTEM_PROMPT = STRUCTURAL_RULES_TEXT + '\\n\\n' + DEFAULT_CREATIVE_TEXT;
 
     var DESIGN_DNA_DATA = {
       kidsBirthday: { label: 'Kids Birthday (Ages 0-10)', must: { photoTreatment: 'If photos provided, use circular crops that feel playful. Faces should fill 80% of the frame.', technical: 'Keep all text large and readable. Bright, high-contrast colors.' }, consider: { decorative: 'Animated floating balloons, confetti bursts, bunting flags, or theme-specific elements.', typography: 'Bold, rounded display fonts work well (e.g. Fredoka One, Baloo 2, Lilita One).', colorPhilosophy: 'Joyful and vibrant palettes with fully saturated colors tend to work best.', motion: 'Consider floating/falling elements on infinite loop at 0.1-0.2 opacity.', standout: 'Kid faces with playful decorations make a strong visual anchor' } },
@@ -1438,6 +1655,12 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       document.getElementById('expandDetailsBtn').textContent = isShown ? 'Edit' : 'Collapse';
     }
 
+    function regenDummyData() {
+      var type = document.getElementById('testEventType').value;
+      if (!type) return;
+      generateDummyData(type);
+    }
+
     async function onEventTypeChange() {
       var type = document.getElementById('testEventType').value;
       if (!type) return;
@@ -1510,25 +1733,46 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       renderStyleCheckboxes();
     }
 
-    // ── Compare mode toggle ──
-    var isCompareMode = false;
+    // ── Multi-select checkbox toggle helpers ──
+    document.addEventListener('click', function(e) {
+      var cb = e.target.closest('.style-checkbox');
+      if (cb && (cb.querySelector('input[name="modelCheck"]') || cb.querySelector('input[name="pvCheck"]'))) {
+        var input = cb.querySelector('input[type="checkbox"]');
+        if (e.target !== input) { input.checked = !input.checked; }
+        cb.classList.toggle('selected', input.checked);
+        updateMatrixSummary();
+      }
+    });
 
-    function toggleCompareMode() {
-      var cb = document.getElementById('compareCheckbox');
-      cb.checked = !cb.checked;
-      syncCompareMode();
+    function updateMatrixSummary() {
+      var prompts = getSelectedPromptVersions();
+      var models = getSelectedModels();
+      var total = prompts.length * models.length;
+      var summary = document.getElementById('matrixSummary');
+      if (total > 1) {
+        summary.style.display = 'block';
+        document.getElementById('matrixSummaryText').textContent = prompts.length + ' prompt' + (prompts.length > 1 ? 's' : '') + ' × ' + models.length + ' model' + (models.length > 1 ? 's' : '') + ' = ' + total + ' generations';
+      } else {
+        summary.style.display = 'none';
+      }
     }
-    function syncCompareMode() {
-      var cb = document.getElementById('compareCheckbox');
-      isCompareMode = cb.checked;
-      document.getElementById('compareToggle').classList.toggle('active', isCompareMode);
-      document.getElementById('testModelSelect').disabled = isCompareMode;
-      document.getElementById('testModelSelect').style.opacity = isCompareMode ? '0.5' : '1';
+
+    function getSelectedPromptVersions() {
+      var ids = [];
+      document.querySelectorAll('input[name="pvCheck"]:checked').forEach(function(cb) { ids.push(cb.value); });
+      return ids;
+    }
+
+    function getSelectedModels() {
+      var ids = [];
+      document.querySelectorAll('input[name="modelCheck"]:checked').forEach(function(cb) { ids.push(cb.value); });
+      return ids;
     }
 
     // ── Test preview state ──
     var lastTestResult = null;
     var lastComparisonResults = null;
+    var matrixResults = []; // [{promptLabel, promptVersionId, model, modelLabel, theme, metadata, testRunId, score}]
     var testPreviewMode = 'invite';
 
     // ── Build proper srcdoc (same as front-end create page) ──
@@ -1669,29 +1913,25 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
     }
 
-    // ── Comparison preview mode toggle ──
-    function setComparisonPreviewMode(mode) {
+    // ── Matrix preview mode toggle ──
+    function setMatrixPreviewMode(mode) {
       testPreviewMode = mode;
-      document.querySelectorAll('#comparisonResultSection .preview-toggle-btn').forEach(function(btn, i) {
+      document.querySelectorAll('#matrixResultSection .preview-toggle-btn').forEach(function(btn, i) {
         btn.classList.toggle('active', (mode === 'invite' && i === 0) || (mode === 'thankyou' && i === 1));
       });
-      if (lastComparisonResults) {
-        lastComparisonResults.forEach(function(r, i) {
-          if (r && r.success) {
-            var iframe = document.querySelector('#compCard' + i + ' iframe');
-            if (iframe) renderPhonePreview(iframe, r.theme, mode);
-          }
-        });
-      }
+      matrixResults.forEach(function(r, i) {
+        if (r && r.theme) {
+          var iframe = document.querySelector('#matrixCard' + i + ' iframe');
+          if (iframe) renderPhonePreview(iframe, r.theme, mode);
+        }
+      });
     }
 
-    // ── Main generation function ──
-    var COMP_MODELS = [
-      { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', badge: 'haiku' },
-      { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', badge: 'sonnet' },
-      { id: 'claude-opus-4-6', label: 'Opus 4.6', badge: 'opus' },
-      { id: 'hybrid', label: 'Hybrid', badge: 'hybrid', isHybrid: true, draftModel: 'claude-haiku-4-5-20251001', refineModel: 'claude-sonnet-4-6' }
-    ];
+    var MODEL_INFO = {
+      'claude-haiku-4-5-20251001': { label: 'Haiku 4.5', badge: 'haiku' },
+      'claude-sonnet-4-6': { label: 'Sonnet 4.6', badge: 'sonnet' },
+      'claude-opus-4-6': { label: 'Opus 4.6', badge: 'opus' }
+    };
 
     function getTestEventDetails() {
       return {
@@ -1714,6 +1954,40 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       return ids;
     }
 
+    // ── Cost calculation helper ──
+    var COST_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
+    var COST_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
+
+    function calcEstCost(meta) {
+      if (meta.hybrid) {
+        var d = meta.hybrid.draft, r = meta.hybrid.refine;
+        var draftCost = (d.tokens.input * (COST_IN[d.model] || 0.80) + d.tokens.output * (COST_OUT[d.model] || 4)) / 1000000;
+        var refineCost = (r.tokens.input * (COST_IN[r.model] || 3) + r.tokens.output * (COST_OUT[r.model] || 15)) / 1000000;
+        return draftCost + refineCost;
+      }
+      return (meta.tokens.input * (COST_IN[meta.model] || 3) + meta.tokens.output * (COST_OUT[meta.model] || 15)) / 1000000;
+    }
+
+    function shortModelName(model) {
+      if (model && model.indexOf('→') !== -1) return 'Hybrid';
+      var names = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-opus-4-6': 'Opus 4.6' };
+      return names[model] || model;
+    }
+
+    function showTestView(view) {
+      var isPreview = view === 'preview';
+      ['preview', 'html', 'css', 'config'].forEach(function(v) {
+        var el = document.getElementById('testView' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (el) el.style.display = v === view && !isPreview ? 'block' : 'none';
+        var btn = document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (btn) {
+          btn.style.background = v === view ? 'var(--midnight)' : '';
+          btn.style.color = v === view ? 'white' : '';
+        }
+      });
+    }
+
+    // ── Matrix-aware prompt test runner ──
     async function runPromptTest() {
       var btn = document.getElementById('runTestBtn');
       var status = document.getElementById('testStatus');
@@ -1722,81 +1996,101 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
       var styleIds = getTestStyleIds();
       var eventDetails = getTestEventDetails();
+      var selectedPrompts = getSelectedPromptVersions();
+      var selectedModels = getSelectedModels();
+
+      if (selectedModels.length === 0) {
+        status.textContent = 'Select at least one model.';
+        btn.disabled = false;
+        btn.textContent = 'Generate Test Invite';
+        return;
+      }
+
+      // Build the matrix: every prompt × every model
+      var combos = [];
+      selectedPrompts.forEach(function(pvId) {
+        var pvData = promptVersionsData.find(function(v) { return v.id === pvId; });
+        var pvLabel = pvId ? ('v' + (pvData ? pvData.version : '?') + ' – ' + (pvData ? pvData.name : 'Unknown')) : 'Hardcoded Default';
+        selectedModels.forEach(function(modelId) {
+          var mi = MODEL_INFO[modelId] || { label: modelId, badge: '' };
+          combos.push({ promptVersionId: pvId || null, promptLabel: pvLabel, model: modelId, modelLabel: mi.label, modelBadge: mi.badge });
+        });
+      });
+
+      var total = combos.length;
+      var isMatrix = total > 1;
+
+      // Generate a unique session ID to link all runs from this matrix test
+      var currentTestSessionId = 'ts_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
 
       try {
-        if (isCompareMode) {
-          var totalModels = COMP_MODELS.length;
-          status.textContent = 'Running ' + totalModels + ' models in parallel...';
-          lastTestResult = null;
-          lastComparisonResults = COMP_MODELS.map(function() { return null; });
-
-          // Show comparison grid immediately with loading states
-          document.getElementById('comparisonResultSection').style.display = 'block';
+        if (isMatrix) {
+          // Matrix mode: show matrix result section
+          status.textContent = 'Running ' + total + ' generations in parallel...';
+          matrixResults = combos.map(function() { return null; });
+          document.getElementById('matrixResultSection').style.display = 'block';
           document.getElementById('singlePreviewEmpty').style.display = 'block';
           document.getElementById('singlePreviewContent').style.display = 'none';
-          renderComparisonSkeleton();
-          document.getElementById('comparisonResultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-          // Fire each model individually in parallel
+          // Render skeleton
+          renderMatrixSkeleton(combos);
+          document.getElementById('matrixResultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
           var completedCount = 0;
-          var promises = COMP_MODELS.map(function(m, i) {
-            var startTime = Date.now();
-            updateCompCardStatus(i, 'generating', m.isHybrid ? 'Drafting with Haiku...' : 'Generating...');
-
-            // Build request body — hybrid uses different params
-            var reqBody;
-            if (m.isHybrid) {
-              reqBody = { hybrid: { draftModel: m.draftModel, refineModel: m.refineModel }, eventDetails: eventDetails, styleLibraryIds: styleIds };
-            } else {
-              reqBody = { model: m.id, eventDetails: eventDetails, styleLibraryIds: styleIds };
-            }
-
+          var promises = combos.map(function(combo, i) {
+            updateMatrixCardStatus(i, 'generating', 'Generating...');
             return fetch('/api/v2/prompt-test', {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-              body: JSON.stringify(reqBody)
-            }).then(function(r) {
-              if (!r.ok && r.status >= 500) console.error(m.label + ' returned HTTP ' + r.status);
-              return r.json();
-            }).then(function(data) {
+              body: JSON.stringify({ model: combo.model, eventDetails: eventDetails, styleLibraryIds: styleIds, promptVersionId: combo.promptVersionId })
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
               completedCount++;
-              status.textContent = completedCount + '/' + totalModels + ' models complete...';
+              status.textContent = completedCount + '/' + total + ' complete...';
               if (data.success) {
-                var result = { success: true, theme: data.theme, metadata: data.metadata };
-                lastComparisonResults[i] = result;
-                renderCompCardResult(i, result);
+                var result = { success: true, theme: data.theme, metadata: data.metadata, promptVersionId: combo.promptVersionId, promptLabel: combo.promptLabel, model: combo.model, modelLabel: combo.modelLabel, score: 0, testRunId: null };
+                matrixResults[i] = result;
+                renderMatrixCardResult(i, result, combo);
+                // Auto-save test run
+                saveMatrixTestRun(i, combo, data, currentTestSessionId);
               } else {
-                var errMsg = data.message || data.error || 'Failed';
-                lastComparisonResults[i] = { success: false, model: m.id, error: errMsg };
-                updateCompCardStatus(i, 'error', errMsg);
+                matrixResults[i] = { success: false, error: data.message || data.error || 'Failed' };
+                updateMatrixCardStatus(i, 'error', data.message || data.error || 'Failed');
               }
             }).catch(function(err) {
               completedCount++;
-              status.textContent = completedCount + '/' + totalModels + ' models complete...';
-              lastComparisonResults[i] = { success: false, model: m.id, error: err.message };
-              updateCompCardStatus(i, 'error', err.message);
+              status.textContent = completedCount + '/' + total + ' complete...';
+              matrixResults[i] = { success: false, error: err.message };
+              updateMatrixCardStatus(i, 'error', err.message);
             });
           });
 
           await Promise.all(promises);
-          renderComparisonSummary(lastComparisonResults);
-          status.textContent = 'Done! All ' + totalModels + ' models complete.';
+          renderMatrixSummary();
+          status.textContent = 'Done! All ' + total + ' generations complete.';
           setTimeout(function() { status.textContent = ''; }, 3000);
+
         } else {
-          status.textContent = 'This may take 15-60s...';
-          // Single model
+          // Single generation mode
+          var combo = combos[0];
+          status.textContent = 'Generating with ' + combo.modelLabel + '... (15-60s)';
+          document.getElementById('matrixResultSection').style.display = 'none';
+
           var r = await fetch('/api/v2/prompt-test', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: document.getElementById('testModelSelect').value, eventDetails: eventDetails, styleLibraryIds: styleIds })
+            body: JSON.stringify({ model: combo.model, eventDetails: eventDetails, styleLibraryIds: styleIds, promptVersionId: combo.promptVersionId })
           });
           var data = await r.json();
           if (!data.success) throw new Error(data.message || data.error || 'Generation failed');
 
           lastTestResult = data;
-          lastComparisonResults = null;
-          document.getElementById('comparisonResultSection').style.display = 'none';
+          matrixResults = [{ success: true, theme: data.theme, metadata: data.metadata, promptVersionId: combo.promptVersionId, promptLabel: combo.promptLabel, model: combo.model, modelLabel: combo.modelLabel, score: 0, testRunId: null }];
           renderSingleResult(data);
+
+          // Auto-save test run
+          saveMatrixTestRun(0, combo, data, currentTestSessionId);
+
           status.textContent = 'Done!';
           setTimeout(function() { status.textContent = ''; }, 3000);
         }
@@ -1810,123 +2104,209 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       btn.textContent = 'Generate Test Invite';
     }
 
-    // ── Comparison: render skeleton with loading spinners ──
-    function renderComparisonSkeleton() {
-      var grid = document.getElementById('comparisonGrid');
-      grid.className = 'comparison-grid cols-' + COMP_MODELS.length;
-      grid.innerHTML = COMP_MODELS.map(function(m, i) {
-        return '<div class="comparison-card" id="compCard' + i + '">'
-          + '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span></div>'
-          + '<div class="comparison-card-body" id="compCardBody' + i + '">'
-          + '<div class="generating-overlay" id="compCardLoading' + i + '">'
-          + '<div class="generating-spinner"></div>'
-          + '<div style="font-size:13px;color:#888;" id="compCardStatusText' + i + '">Waiting to start...</div>'
-          + '<div style="margin-top:8px;width:100%;max-width:200px;height:4px;background:#eee;border-radius:2px;overflow:hidden;">'
-          + '<div id="compCardProgress' + i + '" style="height:100%;background:var(--party-coral);border-radius:2px;width:0%;transition:width 0.3s;"></div>'
-          + '</div>'
-          + '</div>'
-          + '</div></div>';
-      }).join('');
-
-      // Start progress bar animations
-      COMP_MODELS.forEach(function(m, i) {
-        animateProgress(i);
-      });
-
-      document.getElementById('comparisonSummary').innerHTML = '';
+    // ── Auto-save a test run to DB (fire and forget) ──
+    function saveMatrixTestRun(idx, combo, data, sessionId) {
+      var meta = data.metadata;
+      var eventDetails = getTestEventDetails();
+      var styleIds = getTestStyleIds();
+      adminFetch('saveTestRun', {
+        method: 'POST',
+        body: {
+          promptVersionId: combo.promptVersionId,
+          model: combo.model,
+          eventType: eventDetails.eventType || 'other',
+          eventDetails: eventDetails,
+          styleLibraryIds: styleIds,
+          testSessionId: sessionId || null,
+          sessionPosition: idx,
+          resultHtml: data.theme.html,
+          resultCss: data.theme.css,
+          resultConfig: data.theme.config,
+          resultThankyouHtml: data.theme.thankyouHtml || '',
+          inputTokens: meta.tokens ? meta.tokens.input : 0,
+          outputTokens: meta.tokens ? meta.tokens.output : 0,
+          latencyMs: meta.latencyMs || 0
+        }
+      }).then(function(res) {
+        if (res.success && res.testRunId && matrixResults[idx]) {
+          matrixResults[idx].testRunId = res.testRunId;
+        }
+      }).catch(function() {});
     }
 
-    var progressTimers = {};
-    function animateProgress(idx) {
-      var bar = document.getElementById('compCardProgress' + idx);
+    // ── Matrix skeleton ──
+    var matrixProgressTimers = {};
+
+    function renderMatrixSkeleton(combos) {
+      var grid = document.getElementById('matrixResultGrid');
+      // Group combos by prompt version
+      var grouped = {};
+      combos.forEach(function(c, i) {
+        var key = c.promptVersionId || '__default__';
+        if (!grouped[key]) grouped[key] = { label: c.promptLabel, items: [] };
+        grouped[key].items.push({ combo: c, idx: i });
+      });
+
+      var html = '';
+      Object.keys(grouped).forEach(function(key) {
+        var group = grouped[key];
+        html += '<div class="matrix-row">';
+        html += '<div class="matrix-row-header"><span>' + escapeHtml(group.label) + '</span><span class="avg-score" id="matrixRowAvg_' + key + '"></span></div>';
+        html += '<div class="matrix-cards">';
+        group.items.forEach(function(item) {
+          var i = item.idx;
+          var c = item.combo;
+          html += '<div class="matrix-card" id="matrixCard' + i + '">'
+            + '<div class="matrix-card-header"><h4>' + escapeHtml(c.modelLabel) + '</h4><span class="model-badge ' + c.modelBadge + '">' + c.modelBadge + '</span></div>'
+            + '<div class="matrix-card-preview" id="matrixCardPreview' + i + '">'
+            + '<div class="generating-overlay" id="matrixCardLoading' + i + '">'
+            + '<div class="generating-spinner"></div>'
+            + '<div style="font-size:13px;color:#888;" id="matrixCardStatusText' + i + '">Waiting...</div>'
+            + '<div style="margin-top:8px;width:100%;max-width:200px;height:4px;background:#eee;border-radius:2px;overflow:hidden;">'
+            + '<div id="matrixCardProgress' + i + '" style="height:100%;background:var(--party-coral);border-radius:2px;width:0%;transition:width 0.3s;"></div>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+        });
+        html += '</div></div>';
+      });
+
+      grid.innerHTML = html;
+
+      // Animate progress bars
+      combos.forEach(function(c, i) {
+        animateMatrixProgress(i);
+      });
+
+      document.getElementById('matrixResultTitle').textContent = combos.length + ' Generations';
+    }
+
+    function animateMatrixProgress(idx) {
+      var bar = document.getElementById('matrixCardProgress' + idx);
       if (!bar) return;
       var pct = 0;
-      if (progressTimers[idx]) clearInterval(progressTimers[idx]);
-      progressTimers[idx] = setInterval(function() {
-        if (pct >= 90) { clearInterval(progressTimers[idx]); return; }
+      if (matrixProgressTimers[idx]) clearInterval(matrixProgressTimers[idx]);
+      matrixProgressTimers[idx] = setInterval(function() {
+        if (pct >= 90) { clearInterval(matrixProgressTimers[idx]); return; }
         pct += Math.random() * 3 + 0.5;
         if (pct > 90) pct = 90;
         bar.style.width = pct + '%';
       }, 500);
     }
 
-    function updateCompCardStatus(idx, state, text) {
-      var statusEl = document.getElementById('compCardStatusText' + idx);
-      var progressBar = document.getElementById('compCardProgress' + idx);
+    function updateMatrixCardStatus(idx, state, text) {
+      var statusEl = document.getElementById('matrixCardStatusText' + idx);
+      var progressBar = document.getElementById('matrixCardProgress' + idx);
       if (statusEl) statusEl.textContent = text;
       if (state === 'generating') {
         if (progressBar) progressBar.style.width = '5%';
       } else if (state === 'error') {
-        if (progressTimers[idx]) clearInterval(progressTimers[idx]);
+        if (matrixProgressTimers[idx]) clearInterval(matrixProgressTimers[idx]);
         if (progressBar) { progressBar.style.width = '100%'; progressBar.style.background = 'var(--party-coral)'; }
+        var card = document.getElementById('matrixCard' + idx);
+        if (card) card.style.borderColor = 'var(--party-coral)';
       }
     }
 
-    // ── Cost calculation helper ──
-    var COST_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-    var COST_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
-
-    function calcEstCost(meta) {
-      // Hybrid mode: calculate cost from individual steps
-      if (meta.hybrid) {
-        var d = meta.hybrid.draft, r = meta.hybrid.refine;
-        var draftCost = (d.tokens.input * (COST_IN[d.model] || 0.80) + d.tokens.output * (COST_OUT[d.model] || 4)) / 1000000;
-        var refineCost = (r.tokens.input * (COST_IN[r.model] || 3) + r.tokens.output * (COST_OUT[r.model] || 15)) / 1000000;
-        return draftCost + refineCost;
-      }
-      return (meta.tokens.input * (COST_IN[meta.model] || 3) + meta.tokens.output * (COST_OUT[meta.model] || 15)) / 1000000;
-    }
-
-    // ── Comparison: fill in a single card with its result ──
-    function renderCompCardResult(idx, result) {
-      if (progressTimers[idx]) clearInterval(progressTimers[idx]);
-      var m = COMP_MODELS[idx];
+    // ── Render a completed matrix card ──
+    function renderMatrixCardResult(idx, result, combo) {
+      if (matrixProgressTimers[idx]) clearInterval(matrixProgressTimers[idx]);
       var meta = result.metadata;
       var estCost = calcEstCost(meta);
 
-      var card = document.getElementById('compCard' + idx);
-      var hybridNote = m.isHybrid
-        ? (meta.warning ? '<div style="font-size:10px;color:#e65100;margin-top:2px;">⚠ ' + escapeHtml(meta.warning) + '</div>'
-          : '<div style="font-size:10px;color:#888;margin-top:2px;">Haiku draft → Sonnet polish</div>')
-        : '';
-      var headerExtra = hybridNote;
-      card.innerHTML = '<div class="comparison-card-header"><h4>' + m.label + '</h4><span class="model-badge ' + m.badge + '">' + m.badge + '</span>' + headerExtra + '</div>'
-        + '<div class="comparison-card-body">'
+      var card = document.getElementById('matrixCard' + idx);
+      card.innerHTML = '<div class="matrix-card-header"><h4>' + escapeHtml(combo.modelLabel) + '</h4><span class="model-badge ' + combo.modelBadge + '">' + combo.modelBadge + '</span></div>'
+        + '<div class="matrix-card-preview">'
         + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
         + '</div>'
-        + '<div class="code-tabs">'
-        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'html\')">HTML</button>'
-        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'css\')">CSS</button>'
-        + '<button class="code-tab" onclick="showCompCode(' + idx + ',\'config\')">Config</button>'
+        + '<div class="matrix-card-rating">'
+        + '<div class="star-rating" data-idx="' + idx + '">'
+        + buildStarHtml(0)
         + '</div>'
-        + '<div id="compCode' + idx + '" style="display:none;padding:0 16px 12px;"><div class="prompt-viewer" style="max-height:300px;" id="compCodeContent' + idx + '"></div></div>'
-        + '<div class="comparison-card-stats">'
+        + '<span class="star-label" id="starLabel' + idx + '">Rate this</span>'
+        + '</div>'
+        + '<div class="matrix-card-stats">'
         + '<div class="stat"><div class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</div><div class="lbl">Latency</div></div>'
-        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.input) + '</div><div class="lbl">In Tokens</div></div>'
-        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.output) + '</div><div class="lbl">Out Tokens</div></div>'
-        + '<div class="stat"><div class="val">' + fmtCost(estCost) + '</div><div class="lbl">Est. Cost</div></div>'
+        + '<div class="stat"><div class="val">' + formatNumber(meta.tokens.input) + '/' + formatNumber(meta.tokens.output) + '</div><div class="lbl">Tokens</div></div>'
+        + '<div class="stat"><div class="val">' + fmtCost(estCost) + '</div><div class="lbl">Cost</div></div>'
         + '</div>';
 
-      // Render preview
+      // Render phone preview
       setTimeout(function() {
         var iframe = card.querySelector('iframe');
         if (iframe) renderPhonePreview(iframe, result.theme, testPreviewMode);
       }, 50);
     }
 
-    // ── Comparison summary (after all complete) ──
-    function renderComparisonSummary(results) {
+    // ── Star rating helpers ──
+    function buildStarHtml(score) {
+      var html = '';
+      for (var s = 1; s <= 5; s++) {
+        html += '<span class="star' + (s <= score ? ' filled' : '') + '" data-score="' + s + '">&#9733;</span>';
+      }
+      return html;
+    }
+
+    var STAR_LABELS = ['', 'Poor', 'Below Avg', 'Average', 'Good', 'Excellent'];
+
+    // Star click handler (delegated)
+    document.addEventListener('click', function(e) {
+      var star = e.target.closest('.star-rating .star');
+      if (!star) return;
+      var ratingEl = star.closest('.star-rating');
+      var idx = parseInt(ratingEl.dataset.idx);
+      var score = parseInt(star.dataset.score);
+      if (isNaN(idx) || isNaN(score)) return;
+
+      // Update visual
+      ratingEl.querySelectorAll('.star').forEach(function(s) {
+        s.classList.toggle('filled', parseInt(s.dataset.score) <= score);
+      });
+
+      // Update label
+      var label = document.getElementById('starLabel' + idx);
+      if (label) label.textContent = STAR_LABELS[score] || '';
+
+      // Save score
+      if (matrixResults[idx]) {
+        matrixResults[idx].score = score;
+        var testRunId = matrixResults[idx].testRunId;
+        if (testRunId) {
+          adminFetch('updateTestRunScore', { method: 'POST', body: { testRunId: testRunId, score: score } }).catch(function() {});
+        }
+      }
+    });
+
+    // Star hover effect (delegated)
+    document.addEventListener('mouseover', function(e) {
+      var star = e.target.closest('.star-rating .star');
+      if (!star) return;
+      var ratingEl = star.closest('.star-rating');
+      var hoverScore = parseInt(star.dataset.score);
+      ratingEl.querySelectorAll('.star').forEach(function(s) {
+        s.classList.toggle('hover', parseInt(s.dataset.score) <= hoverScore);
+      });
+    });
+    document.addEventListener('mouseout', function(e) {
+      var star = e.target.closest('.star-rating .star');
+      if (!star) return;
+      var ratingEl = star.closest('.star-rating');
+      ratingEl.querySelectorAll('.star').forEach(function(s) { s.classList.remove('hover'); });
+    });
+
+    // ── Matrix summary after all complete ──
+    function renderMatrixSummary() {
       var totalCost = 0;
       var successCount = 0;
-      results.forEach(function(r) {
+      matrixResults.forEach(function(r) {
         if (r && r.success) {
           totalCost += calcEstCost(r.metadata);
           successCount++;
         }
       });
-      document.getElementById('comparisonSummary').innerHTML =
-        '<div class="test-meta"><span>' + successCount + '/' + results.length + ' models succeeded</span>'
-        + '<span>Total cost: <span class="val">' + fmtCost(totalCost) + '</span></span></div>';
+      document.getElementById('matrixResultTitle').textContent =
+        successCount + '/' + matrixResults.length + ' succeeded — Total cost: ' + fmtCost(totalCost);
     }
 
     // ── Render single model result into phone sidebar ──
@@ -1958,50 +2338,6 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         btn.classList.toggle('active', i === 0);
       });
       showTestView('preview');
-    }
-
-    function showCompCode(idx, type) {
-      var codeDiv = document.getElementById('compCode' + idx);
-      var contentDiv = document.getElementById('compCodeContent' + idx);
-      var tabs = document.querySelectorAll('#compCard' + idx + ' .code-tab');
-
-      // Toggle off if same tab clicked
-      var currentType = codeDiv.dataset.activeType;
-      if (currentType === type && codeDiv.style.display !== 'none') {
-        codeDiv.style.display = 'none';
-        tabs.forEach(function(t) { t.classList.remove('active'); });
-        return;
-      }
-
-      codeDiv.dataset.activeType = type;
-      codeDiv.style.display = 'block';
-      tabs.forEach(function(t) { t.classList.remove('active'); });
-      tabs.forEach(function(t) { if (t.textContent.toLowerCase() === type) t.classList.add('active'); });
-
-      var r = lastComparisonResults[idx];
-      if (!r || !r.success) return;
-      if (type === 'html') contentDiv.textContent = r.theme.html;
-      else if (type === 'css') contentDiv.textContent = r.theme.css;
-      else contentDiv.textContent = JSON.stringify(r.theme.config, null, 2);
-    }
-
-    function shortModelName(model) {
-      if (model && model.indexOf('→') !== -1) return 'Hybrid';
-      var names = { 'claude-haiku-4-5-20251001': 'Haiku 4.5', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-opus-4-6': 'Opus 4.6' };
-      return names[model] || model;
-    }
-
-    function showTestView(view) {
-      var isPreview = view === 'preview';
-      ['preview', 'html', 'css', 'config'].forEach(function(v) {
-        var el = document.getElementById('testView' + v.charAt(0).toUpperCase() + v.slice(1));
-        if (el) el.style.display = v === view && !isPreview ? 'block' : 'none';
-        var btn = document.getElementById('btn' + v.charAt(0).toUpperCase() + v.slice(1));
-        if (btn) {
-          btn.style.background = v === view ? 'var(--midnight)' : '';
-          btn.style.color = v === view ? 'white' : '';
-        }
-      });
     }
 
     // ---- Style Library ----
@@ -2100,8 +2436,8 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         var previewDiv = document.createElement('div');
         previewDiv.className = 'style-card-preview';
         var iframe = document.createElement('iframe');
-        iframe.sandbox = 'allow-same-origin';
-        iframe.srcdoc = wrapForPreview(item.html, false, true);
+        iframe.sandbox = 'allow-same-origin allow-scripts';
+        iframe.srcdoc = wrapForPreview(item.html, false);
         previewDiv.appendChild(iframe);
         card.appendChild(previewDiv);
 
@@ -2701,6 +3037,272 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     }
     function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
     function logout() { localStorage.removeItem('sb_access_token'); localStorage.removeItem('v2_user'); window.location.href = '/v2/login/'; }
+
+    // ═══════════════════════════════════════════════
+    // PROMPT VERSIONS
+    // ═══════════════════════════════════════════════
+
+    var promptVersionsData = [];
+
+    async function loadPromptVersions() {
+      try {
+        var res = await adminFetch('listPromptVersions');
+        if (!res.success) throw new Error(res.error || 'Failed');
+        promptVersionsData = res.versions || [];
+        renderPromptVersionsList();
+        populatePromptVersionDropdown();
+      } catch (err) {
+        console.error('Failed to load prompt versions:', err);
+        document.getElementById('promptVersionsList').innerHTML = '<div style="color:#888;font-size:13px;padding:12px;">No prompt versions yet. Create your first version to get started.</div>';
+      }
+    }
+
+    function renderPromptVersionsList() {
+      var container = document.getElementById('promptVersionsList');
+      if (!promptVersionsData || promptVersionsData.length === 0) {
+        container.innerHTML = '<div style="color:#888;font-size:13px;padding:20px;text-align:center;">No prompt versions yet. Click "New Version" to save the current prompt as version 1.</div>';
+        return;
+      }
+
+      var html = '<table><thead><tr><th>Version</th><th>Name</th><th>Description</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>';
+      promptVersionsData.forEach(function(v) {
+        var statusBadge = v.is_active
+          ? '<span class="badge badge-green">Active (Live)</span>'
+          : '<span class="badge badge-gray">Inactive</span>';
+        html += '<tr>'
+          + '<td style="font-weight:700;font-family:monospace;">v' + v.version + '</td>'
+          + '<td>' + escapeHtml(v.name) + '</td>'
+          + '<td style="color:#888;font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(v.description) + '</td>'
+          + '<td>' + statusBadge + '</td>'
+          + '<td style="font-size:12px;color:#888;">' + formatDate(v.created_at) + '</td>'
+          + '<td style="white-space:nowrap;">'
+          + '<button class="btn btn-secondary btn-sm" onclick="editPromptVersion(\'' + v.id + '\')" style="margin-right:4px;">Edit</button>'
+          + '<button class="btn btn-secondary btn-sm" onclick="duplicatePromptVersion(\'' + v.id + '\')" style="margin-right:4px;">Duplicate</button>';
+        if (!v.is_active) {
+          html += '<button class="btn btn-primary btn-sm" onclick="activatePromptVersion(\'' + v.id + '\', \'v' + v.version + ' – ' + escapeHtml(v.name) + '\')" style="margin-right:4px;">Activate</button>';
+          html += '<button class="btn btn-sm" onclick="deletePromptVersion(\'' + v.id + '\')" style="background:#fee;color:var(--party-coral);border:1px solid #fcc;">Delete</button>';
+        }
+        html += '</td></tr>';
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function populatePromptVersionDropdown() {
+      var container = document.getElementById('promptVersionCheckboxes');
+      if (!container) return;
+      // Keep the hardcoded default checkbox
+      var html = '<label class="style-checkbox selected" style="margin-bottom:0;">'
+        + '<input type="checkbox" name="pvCheck" value="" checked> <span style="font-size:13px;">Hardcoded Default (in code)</span>'
+        + '</label>';
+      (promptVersionsData || []).forEach(function(v) {
+        var label = 'v' + v.version + ' – ' + escapeHtml(v.name);
+        if (v.is_active) label += ' <span class="badge badge-green" style="font-size:9px;vertical-align:middle;">Active</span>';
+        html += '<label class="style-checkbox" style="margin-bottom:0;">'
+          + '<input type="checkbox" name="pvCheck" value="' + v.id + '"> <span style="font-size:13px;">' + label + '</span>'
+          + '</label>';
+      });
+      container.innerHTML = html;
+      updateMatrixSummary();
+    }
+
+    function openPromptVersionModal(editData) {
+      document.getElementById('pvModalTitle').textContent = editData ? 'Edit Prompt Version' : 'New Prompt Version';
+      document.getElementById('pvEditId').value = editData?.id || '';
+      document.getElementById('pvName').value = editData?.name || '';
+      document.getElementById('pvDescription').value = editData?.description || '';
+      document.getElementById('pvStructuralRules').value = STRUCTURAL_RULES_TEXT;
+      document.getElementById('pvCreativeDirection').value = editData?.creative_direction || '';
+      document.getElementById('pvDesignDna').value = editData?.design_dna ? JSON.stringify(editData.design_dna, null, 2) : '';
+      document.getElementById('pvSaveStatus').textContent = '';
+
+      // For new versions, pre-fill with the hardcoded defaults
+      if (!editData) {
+        document.getElementById('pvCreativeDirection').value = DEFAULT_CREATIVE_TEXT;
+        document.getElementById('pvDesignDna').value = JSON.stringify(DESIGN_DNA_DATA, null, 2);
+        var nextNum = (promptVersionsData.length > 0) ? promptVersionsData[0].version + 1 : 1;
+        document.getElementById('pvName').value = 'v' + nextNum;
+      }
+
+      document.getElementById('promptVersionModal').style.display = 'flex';
+    }
+
+    function closePromptVersionModal() {
+      document.getElementById('promptVersionModal').style.display = 'none';
+    }
+
+    function loadCurrentDesignDna() {
+      document.getElementById('pvDesignDna').value = JSON.stringify(DESIGN_DNA_DATA, null, 2);
+    }
+
+    async function savePromptVersion() {
+      var name = document.getElementById('pvName').value.trim();
+      var desc = document.getElementById('pvDescription').value.trim();
+      var creativeDirection = document.getElementById('pvCreativeDirection').value;
+      var dnaText = document.getElementById('pvDesignDna').value.trim();
+      var editId = document.getElementById('pvEditId').value;
+
+      if (!name) { alert('Name is required'); return; }
+      if (!creativeDirection) { alert('Creative direction is required'); return; }
+
+      var designDna = {};
+      if (dnaText) {
+        try { designDna = JSON.parse(dnaText); }
+        catch (e) { alert('Design DNA must be valid JSON: ' + e.message); return; }
+      }
+
+      document.getElementById('pvSaveStatus').textContent = 'Saving...';
+
+      try {
+        var body = { name: name, description: desc, creativeDirection: creativeDirection, designDna: designDna };
+        if (editId) body.id = editId;
+
+        var res = await adminFetch('savePromptVersion', { method: 'POST', body: body });
+        if (!res.success) throw new Error(res.error || 'Failed');
+
+        promptVersionsData = res.versions || [];
+        renderPromptVersionsList();
+        populatePromptVersionDropdown();
+        closePromptVersionModal();
+      } catch (err) {
+        document.getElementById('pvSaveStatus').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function editPromptVersion(versionId) {
+      try {
+        var res = await adminFetch('getPromptVersion', { params: { versionId: versionId } });
+        if (!res.success) throw new Error(res.error || 'Failed');
+        openPromptVersionModal(res.version);
+      } catch (err) {
+        alert('Failed to load version: ' + err.message);
+      }
+    }
+
+    async function duplicatePromptVersion(versionId) {
+      try {
+        var res = await adminFetch('getPromptVersion', { params: { versionId: versionId } });
+        if (!res.success) throw new Error(res.error || 'Failed');
+        var v = res.version;
+        var nextNum = (promptVersionsData.length > 0) ? promptVersionsData[0].version + 1 : 1;
+        openPromptVersionModal({
+          name: 'v' + nextNum + ' (copy of ' + v.name + ')',
+          description: v.description,
+          creative_direction: v.creative_direction,
+          design_dna: v.design_dna
+        });
+      } catch (err) {
+        alert('Failed to duplicate: ' + err.message);
+      }
+    }
+
+    async function activatePromptVersion(versionId, versionLabel) {
+      if (!confirm('Activate ' + versionLabel + '? This will immediately change what prompt is used in production for all new invite generations.')) return;
+      try {
+        var res = await adminFetch('activatePromptVersion', { method: 'POST', body: { versionId: versionId } });
+        if (!res.success) throw new Error(res.error || 'Failed');
+        await loadPromptVersions();
+      } catch (err) {
+        alert('Failed to activate: ' + err.message);
+      }
+    }
+
+    async function deletePromptVersion(versionId) {
+      if (!confirm('Delete this prompt version? This cannot be undone.')) return;
+      try {
+        var res = await adminFetch('deletePromptVersion', { method: 'POST', body: { versionId: versionId } });
+        if (!res.success) throw new Error(res.error || 'Failed');
+        await loadPromptVersions();
+      } catch (err) {
+        alert('Failed to delete: ' + err.message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════
+    // REPORTING DASHBOARD
+    // ═══════════════════════════════════════════════
+
+    async function loadReportingDashboard() {
+      try {
+        var res = await adminFetch('testRunStats');
+        if (!res.success || !res.stats) return;
+        var stats = res.stats;
+
+        if (stats.totalTests === 0) {
+          document.getElementById('reportingEmpty').style.display = 'block';
+          document.getElementById('reportingContent').style.display = 'none';
+          return;
+        }
+
+        document.getElementById('reportingEmpty').style.display = 'none';
+        document.getElementById('reportingContent').style.display = 'block';
+
+        // Summary cards
+        document.getElementById('reportSummaryCards').innerHTML =
+          renderSummaryCard('Total Rated', stats.totalTests, '#4f46e5')
+          + renderSummaryCard('Avg Score', stats.overallAvg.toFixed(1) + ' / 5', '#f59e0b')
+          + renderSummaryCard('Top Prompt', stats.byPrompt.length > 0 ? stats.byPrompt[0].promptLabel : '—', '#10b981')
+          + renderSummaryCard('Top Model', stats.byModel.length > 0 ? shortModelName(stats.byModel[0].model) : '—', '#e93961');
+
+        // Combo leaderboard
+        var comboTbody = document.querySelector('#comboLeaderboard tbody');
+        comboTbody.innerHTML = stats.byCombo.map(function(c, i) {
+          var barWidth = Math.round((c.avgScore / 5) * 100);
+          return '<tr><td style="font-weight:700;color:#4f46e5;">#' + (i + 1) + '</td>'
+            + '<td>' + escapeHtml(c.promptLabel) + '</td>'
+            + '<td>' + shortModelName(c.model) + '</td>'
+            + '<td>' + c.avgScore.toFixed(1) + '<span class="score-bar" style="width:' + barWidth + 'px;"></span></td>'
+            + '<td>' + c.count + '</td>'
+            + '<td>' + (c.avgLatency / 1000).toFixed(1) + 's</td></tr>';
+        }).join('');
+
+        // By prompt
+        var promptTbody = document.querySelector('#promptLeaderboard tbody');
+        promptTbody.innerHTML = stats.byPrompt.map(function(p) {
+          return '<tr><td>' + escapeHtml(p.promptLabel) + '</td><td><strong>' + p.avgScore.toFixed(1) + '</strong></td><td>' + p.count + '</td></tr>';
+        }).join('');
+
+        // By model
+        var modelTbody = document.querySelector('#modelLeaderboard tbody');
+        modelTbody.innerHTML = stats.byModel.map(function(m) {
+          return '<tr><td>' + shortModelName(m.model) + '</td><td><strong>' + m.avgScore.toFixed(1) + '</strong></td><td>' + m.count + '</td></tr>';
+        }).join('');
+
+        // Score distribution
+        var maxDist = Math.max.apply(null, stats.distribution) || 1;
+        document.getElementById('scoreDistribution').innerHTML = stats.distribution.map(function(count, i) {
+          var pct = Math.round((count / maxDist) * 100);
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+            + '<span style="font-size:16px;width:24px;text-align:center;color:#f59e0b;">&#9733;</span>'
+            + '<span style="width:16px;font-size:13px;font-weight:600;">' + (i + 1) + '</span>'
+            + '<div style="flex:1;height:20px;background:#f0f0f0;border-radius:4px;overflow:hidden;">'
+            + '<div style="height:100%;width:' + pct + '%;background:' + (i >= 3 ? '#10b981' : i >= 2 ? '#f59e0b' : '#ef4444') + ';border-radius:4px;transition:width 0.5s;"></div>'
+            + '</div>'
+            + '<span style="font-size:12px;font-weight:600;width:28px;text-align:right;">' + count + '</span>'
+            + '</div>';
+        }).join('');
+
+        // By event type
+        var etTbody = document.querySelector('#eventTypeLeaderboard tbody');
+        etTbody.innerHTML = stats.byEventType.map(function(et) {
+          return '<tr><td>' + escapeHtml(et.eventType) + '</td><td><strong>' + et.avgScore.toFixed(1) + '</strong></td><td>' + et.count + '</td></tr>';
+        }).join('');
+
+      } catch (err) {
+        console.error('Failed to load reporting:', err);
+      }
+    }
+
+    function renderSummaryCard(label, value, color) {
+      return '<div style="background:white;border:1px solid #eee;border-radius:10px;padding:16px 20px;border-left:4px solid ' + color + ';">'
+        + '<div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">' + escapeHtml(label) + '</div>'
+        + '<div style="font-size:22px;font-weight:700;color:var(--midnight);">' + value + '</div>'
+        + '</div>';
+    }
+
+    // Load prompt versions on init
+    loadPromptVersions();
+    loadReportingDashboard();
   </script>
   <div class="bulk-progress" id="bulkProgress" style="display:none;"></div>
 </body>

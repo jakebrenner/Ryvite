@@ -508,6 +508,13 @@ export default async function handler(req, res) {
         .select('*')
         .order('created_at', { ascending: false });
 
+    // ---- LIST PROMPT VERSIONS ----
+    if (action === 'listPromptVersions') {
+      const { data, error } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('id, version, name, description, is_active, created_by, created_at, updated_at')
+        .order('version', { ascending: false });
+
       if (error) return res.status(400).json({ error: error.message });
 
       return res.status(200).json({
@@ -572,6 +579,20 @@ export default async function handler(req, res) {
           created_by: admin.id
         })
         .select()
+
+        versions: data || []
+      });
+    }
+
+    // ---- GET PROMPT VERSION (full content) ----
+    if (action === 'getPromptVersion') {
+      const versionId = req.query.versionId;
+      if (!versionId) return res.status(400).json({ error: 'versionId required' });
+
+      const { data, error } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('*')
+        .eq('id', versionId)
         .single();
 
       if (error) return res.status(400).json({ error: error.message });
@@ -732,6 +753,657 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true });
+    }
+
+
+      return res.status(200).json({ success: true, version: data });
+    }
+
+    // ---- GET ACTIVE PROMPT VERSION ----
+    if (action === 'getActivePromptVersion') {
+      const { data, error } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('*')
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({ success: true, version: data || null });
+    }
+
+    // ---- SAVE PROMPT VERSION (create or update) ----
+    if (action === 'savePromptVersion') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { id, name, description, creativeDirection, designDna } = req.body;
+      if (!name || !creativeDirection) return res.status(400).json({ error: 'name and creativeDirection are required' });
+
+      if (id) {
+        // Update existing version
+        const { error } = await supabaseAdmin
+          .from('prompt_versions')
+          .update({
+            name,
+            description: description || '',
+            creative_direction: creativeDirection,
+            design_dna: designDna || {}
+          })
+          .eq('id', id);
+
+        if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
+      } else {
+        // Get next version number
+        const { data: latest } = await supabaseAdmin
+          .from('prompt_versions')
+          .select('version')
+          .order('version', { ascending: false })
+          .limit(1);
+
+        const nextVersion = (latest && latest.length > 0) ? latest[0].version + 1 : 1;
+
+        const { error } = await supabaseAdmin
+          .from('prompt_versions')
+          .insert({
+            version: nextVersion,
+            name,
+            description: description || '',
+            creative_direction: creativeDirection,
+            design_dna: designDna || {},
+            is_active: false,
+            created_by: admin.email
+          });
+
+        if (error) return res.status(500).json({ error: 'Failed to create: ' + error.message });
+      }
+
+      // Return updated list
+      const { data } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('id, version, name, description, is_active, created_by, created_at, updated_at')
+        .order('version', { ascending: false });
+
+      return res.status(200).json({ success: true, versions: data || [] });
+    }
+
+    // ---- ACTIVATE PROMPT VERSION ----
+    if (action === 'activatePromptVersion') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { versionId } = req.body;
+      if (!versionId) return res.status(400).json({ error: 'versionId required' });
+
+      // Deactivate all
+      await supabaseAdmin
+        .from('prompt_versions')
+        .update({ is_active: false })
+        .eq('is_active', true);
+
+      // Activate selected
+      const { error } = await supabaseAdmin
+        .from('prompt_versions')
+        .update({ is_active: true })
+        .eq('id', versionId);
+
+      if (error) return res.status(500).json({ error: 'Failed to activate: ' + error.message });
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- DELETE PROMPT VERSION ----
+    if (action === 'deletePromptVersion') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { versionId } = req.body;
+      if (!versionId) return res.status(400).json({ error: 'versionId required' });
+
+      // Don't allow deleting the active version
+      const { data: check } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('is_active')
+        .eq('id', versionId)
+        .single();
+
+      if (check?.is_active) {
+        return res.status(400).json({ error: 'Cannot delete the active prompt version. Activate a different version first.' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('prompt_versions')
+        .delete()
+        .eq('id', versionId);
+
+      if (error) return res.status(500).json({ error: 'Failed to delete: ' + error.message });
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- SAVE PROMPT TEST RUN ----
+    if (action === 'saveTestRun') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { promptVersionId, model, eventType, eventDetails: testEventDetails, resultHtml, resultCss, resultConfig, resultThankyouHtml, styleLibraryIds, testSessionId, sessionPosition, inputTokens, outputTokens, latencyMs, score, notes } = req.body;
+
+      const insertData = {
+        prompt_version_id: promptVersionId || null,
+        model: model || 'unknown',
+        event_type: eventType || 'other',
+        event_details: testEventDetails || {},
+        result_html: resultHtml || '',
+        result_css: resultCss || '',
+        result_config: resultConfig || {},
+        input_tokens: inputTokens || 0,
+        output_tokens: outputTokens || 0,
+        latency_ms: latencyMs || 0,
+        score: score || null,
+        notes: notes || '',
+        created_by: admin.email
+      };
+
+      // Add metadata fields (gracefully skip if columns don't exist yet)
+      if (Array.isArray(styleLibraryIds) && styleLibraryIds.length > 0) {
+        insertData.style_library_ids = styleLibraryIds;
+      }
+      if (resultThankyouHtml) {
+        insertData.result_thankyou_html = resultThankyouHtml;
+      }
+      if (testSessionId) {
+        insertData.test_session_id = testSessionId;
+      }
+      if (sessionPosition !== undefined) {
+        insertData.session_position = sessionPosition;
+      }
+
+      let { data: insertedRun, error } = await supabaseAdmin
+        .from('prompt_test_runs')
+        .insert(insertData)
+        .select('id')
+        .single();
+
+      // Retry without new columns if migration hasn't been run
+      if (error && (error.message?.includes('style_library_ids') || error.message?.includes('result_thankyou_html') || error.message?.includes('test_session_id') || error.message?.includes('session_position'))) {
+        delete insertData.style_library_ids;
+        delete insertData.result_thankyou_html;
+        delete insertData.test_session_id;
+        delete insertData.session_position;
+        ({ data: insertedRun, error } = await supabaseAdmin
+          .from('prompt_test_runs')
+          .insert(insertData)
+          .select('id')
+          .single());
+      }
+
+      if (error) return res.status(500).json({ error: 'Failed to save test run: ' + error.message });
+
+      return res.status(200).json({ success: true, testRunId: insertedRun?.id || null });
+    }
+
+    // ---- LIST TEST RUNS FOR A PROMPT VERSION ----
+    if (action === 'listTestRuns') {
+      const promptVersionId = req.query.promptVersionId;
+      const limit = parseInt(req.query.limit) || 100;
+      let query = supabaseAdmin
+        .from('prompt_test_runs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (promptVersionId) {
+        query = query.eq('prompt_version_id', promptVersionId);
+      }
+
+      const { data, error } = await query;
+      if (error) return res.status(400).json({ error: error.message });
+
+      return res.status(200).json({ success: true, testRuns: data || [] });
+    }
+
+    // ---- GET TEST SESSION (all runs in one session) ----
+    if (action === 'getTestSession') {
+      const sessionId = req.query.sessionId;
+      if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+
+      const { data: runs, error } = await supabaseAdmin
+        .from('prompt_test_runs')
+        .select('*')
+        .eq('test_session_id', sessionId)
+        .order('session_position', { ascending: true });
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      // Get prompt version names
+      const pvIds = [...new Set((runs || []).map(r => r.prompt_version_id).filter(Boolean))];
+      let versionMap = {};
+      if (pvIds.length > 0) {
+        const { data: versions } = await supabaseAdmin.from('prompt_versions').select('id, version, name').in('id', pvIds);
+        (versions || []).forEach(v => { versionMap[v.id] = { version: v.version, name: v.name }; });
+      }
+
+      // Build comparison summary
+      const scoredRuns = (runs || []).filter(r => r.score != null);
+      const bestRun = scoredRuns.length > 0 ? scoredRuns.reduce((best, r) => r.score > best.score ? r : best, scoredRuns[0]) : null;
+      const worstRun = scoredRuns.length > 0 ? scoredRuns.reduce((worst, r) => r.score < worst.score ? r : worst, scoredRuns[0]) : null;
+
+      return res.status(200).json({
+        success: true,
+        sessionId,
+        totalRuns: (runs || []).length,
+        ratedRuns: scoredRuns.length,
+        runs: (runs || []).map(r => {
+          const pv = versionMap[r.prompt_version_id] || { version: 0, name: 'Default' };
+          return {
+            id: r.id,
+            model: r.model,
+            promptVersionId: r.prompt_version_id,
+            promptLabel: r.prompt_version_id ? `v${pv.version} – ${pv.name}` : 'Hardcoded Default',
+            eventType: r.event_type,
+            score: r.score,
+            notes: r.notes,
+            latencyMs: r.latency_ms,
+            inputTokens: r.input_tokens,
+            outputTokens: r.output_tokens,
+            position: r.session_position,
+            isBest: bestRun ? r.id === bestRun.id : false,
+            isWorst: worstRun ? r.id === worstRun.id : false
+          };
+        }),
+        comparison: scoredRuns.length >= 2 ? {
+          scoreSpread: (bestRun?.score || 0) - (worstRun?.score || 0),
+          avgScore: Math.round(scoredRuns.reduce((a, r) => a + r.score, 0) / scoredRuns.length * 100) / 100,
+          bestModel: bestRun?.model,
+          worstModel: worstRun?.model
+        } : null
+      });
+    }
+
+    // ---- SESSION INSIGHTS — aggregate session-level analytics ----
+    if (action === 'sessionInsights') {
+      // Fetch all sessions with at least 2 scored runs
+      const { data: allRuns, error } = await supabaseAdmin
+        .from('prompt_test_runs')
+        .select('test_session_id, model, prompt_version_id, score, latency_ms, event_type')
+        .not('test_session_id', 'is', null)
+        .not('score', 'is', null)
+        .order('test_session_id');
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      // Group by session
+      const sessions = {};
+      (allRuns || []).forEach(r => {
+        if (!sessions[r.test_session_id]) sessions[r.test_session_id] = [];
+        sessions[r.test_session_id].push(r);
+      });
+
+      // Only sessions with 2+ scored runs
+      const validSessions = Object.entries(sessions).filter(([, runs]) => runs.length >= 2);
+
+      // Model head-to-head wins
+      const modelWins = {};
+      const modelAppearances = {};
+      const modelScores = {};
+
+      validSessions.forEach(([, runs]) => {
+        const sorted = [...runs].sort((a, b) => b.score - a.score);
+        const winner = sorted[0];
+        runs.forEach(r => {
+          if (!modelWins[r.model]) modelWins[r.model] = 0;
+          if (!modelAppearances[r.model]) modelAppearances[r.model] = 0;
+          if (!modelScores[r.model]) modelScores[r.model] = [];
+          modelAppearances[r.model]++;
+          modelScores[r.model].push(r.score);
+        });
+        modelWins[winner.model] = (modelWins[winner.model] || 0) + 1;
+      });
+
+      const headToHead = Object.keys(modelAppearances).map(model => ({
+        model,
+        wins: modelWins[model] || 0,
+        appearances: modelAppearances[model],
+        winRate: Math.round(100 * (modelWins[model] || 0) / modelAppearances[model]) / 100,
+        avgScore: Math.round(modelScores[model].reduce((a, b) => a + b, 0) / modelScores[model].length * 100) / 100
+      })).sort((a, b) => b.winRate - a.winRate);
+
+      // Common patterns: sessions with big score spreads
+      const bigSpreadSessions = validSessions
+        .map(([sessionId, runs]) => {
+          const scores = runs.map(r => r.score);
+          const spread = Math.max(...scores) - Math.min(...scores);
+          const best = runs.reduce((b, r) => r.score > b.score ? r : b, runs[0]);
+          const worst = runs.reduce((w, r) => r.score < w.score ? r : w, runs[0]);
+          return { sessionId, spread, eventType: runs[0].event_type, bestModel: best.model, worstModel: worst.model, bestScore: best.score, worstScore: worst.score, runCount: runs.length };
+        })
+        .filter(s => s.spread >= 2)
+        .sort((a, b) => b.spread - a.spread)
+        .slice(0, 20);
+
+      return res.status(200).json({
+        success: true,
+        insights: {
+          totalSessions: validSessions.length,
+          totalComparisons: validSessions.reduce((a, [, r]) => a + r.length, 0),
+          headToHead,
+          bigSpreadSessions
+        }
+      });
+    }
+
+    // ---- UPDATE TEST RUN SCORE ----
+    if (action === 'updateTestRunScore') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { testRunId, score, notes } = req.body;
+      if (!testRunId) return res.status(400).json({ error: 'testRunId required' });
+
+      const updates = {};
+      if (score !== undefined) updates.score = score;
+      if (notes !== undefined) updates.notes = notes;
+
+      const { error } = await supabaseAdmin
+        .from('prompt_test_runs')
+        .update(updates)
+        .eq('id', testRunId);
+
+      if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
+
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- TEST RUN STATS / REPORTING ----
+    if (action === 'testRunStats') {
+      // Get all scored test runs with prompt version info
+      const { data: runs, error } = await supabaseAdmin
+        .from('prompt_test_runs')
+        .select('id, prompt_version_id, model, event_type, score, input_tokens, output_tokens, latency_ms, style_library_ids, test_session_id, created_at')
+        .not('score', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      // Get prompt version names for mapping
+      const { data: versions } = await supabaseAdmin
+        .from('prompt_versions')
+        .select('id, version, name');
+
+      const versionMap = {};
+      (versions || []).forEach(v => { versionMap[v.id] = { version: v.version, name: v.name }; });
+
+      // Aggregate stats
+      const scoredRuns = runs || [];
+      const totalTests = scoredRuns.length;
+
+      // By prompt version
+      const byPrompt = {};
+      scoredRuns.forEach(r => {
+        const key = r.prompt_version_id || 'default';
+        if (!byPrompt[key]) byPrompt[key] = { scores: [], totalLatency: 0, totalCost: 0, count: 0 };
+        byPrompt[key].scores.push(r.score);
+        byPrompt[key].totalLatency += r.latency_ms || 0;
+        byPrompt[key].count++;
+      });
+
+      const promptStats = Object.entries(byPrompt).map(([id, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        const info = versionMap[id] || { version: 0, name: 'Hardcoded Default' };
+        return {
+          promptVersionId: id === 'default' ? null : id,
+          promptLabel: id === 'default' ? 'Hardcoded Default' : `v${info.version} – ${info.name}`,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          avgLatency: Math.round(data.totalLatency / data.count)
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // By model
+      const byModel = {};
+      scoredRuns.forEach(r => {
+        if (!byModel[r.model]) byModel[r.model] = { scores: [], totalLatency: 0, count: 0 };
+        byModel[r.model].scores.push(r.score);
+        byModel[r.model].totalLatency += r.latency_ms || 0;
+        byModel[r.model].count++;
+      });
+
+      const modelStats = Object.entries(byModel).map(([model, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        return {
+          model,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          avgLatency: Math.round(data.totalLatency / data.count)
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // By prompt × model combo (the leaderboard)
+      const byCombo = {};
+      scoredRuns.forEach(r => {
+        const pvKey = r.prompt_version_id || 'default';
+        const key = `${pvKey}::${r.model}`;
+        if (!byCombo[key]) byCombo[key] = { promptVersionId: pvKey, model: r.model, scores: [], totalLatency: 0, count: 0 };
+        byCombo[key].scores.push(r.score);
+        byCombo[key].totalLatency += r.latency_ms || 0;
+        byCombo[key].count++;
+      });
+
+      const comboStats = Object.values(byCombo).map(data => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        const info = versionMap[data.promptVersionId] || { version: 0, name: 'Hardcoded Default' };
+        return {
+          promptLabel: data.promptVersionId === 'default' ? 'Hardcoded Default' : `v${info.version} – ${info.name}`,
+          model: data.model,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          avgLatency: Math.round(data.totalLatency / data.count)
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // By event type
+      const byEventType = {};
+      scoredRuns.forEach(r => {
+        if (!byEventType[r.event_type]) byEventType[r.event_type] = { scores: [], count: 0 };
+        byEventType[r.event_type].scores.push(r.score);
+        byEventType[r.event_type].count++;
+      });
+
+      const eventTypeStats = Object.entries(byEventType).map(([type, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        return { eventType: type, avgScore: Math.round(avg * 100) / 100, count: data.count };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      // Score distribution
+      const distribution = [0, 0, 0, 0, 0]; // index 0=1star, 4=5star
+      scoredRuns.forEach(r => { if (r.score >= 1 && r.score <= 5) distribution[r.score - 1]++; });
+
+      // By style library item — which reference styles correlate with higher scores
+      const byStyle = {};
+      scoredRuns.forEach(r => {
+        const ids = r.style_library_ids;
+        if (!Array.isArray(ids)) return;
+        ids.forEach(styleId => {
+          if (!byStyle[styleId]) byStyle[styleId] = { scores: [], count: 0 };
+          byStyle[styleId].scores.push(r.score);
+          byStyle[styleId].count++;
+        });
+      });
+
+      // Fetch style names for mapping
+      const styleIds = Object.keys(byStyle);
+      let styleNameMap = {};
+      if (styleIds.length > 0) {
+        const { data: styles } = await supabaseAdmin
+          .from('style_library')
+          .select('id, name')
+          .in('id', styleIds);
+        (styles || []).forEach(s => { styleNameMap[s.id] = s.name; });
+      }
+
+      const styleStats = Object.entries(byStyle).map(([id, data]) => {
+        const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+        return {
+          styleId: id,
+          styleName: styleNameMap[id] || id,
+          avgScore: Math.round(avg * 100) / 100,
+          count: data.count,
+          highQuality: data.scores.filter(s => s >= 4).length,
+          lowQuality: data.scores.filter(s => s <= 2).length
+        };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      return res.status(200).json({
+        success: true,
+        stats: {
+          totalTests,
+          overallAvg: totalTests > 0 ? Math.round(scoredRuns.reduce((a, r) => a + r.score, 0) / totalTests * 100) / 100 : 0,
+          distribution,
+          byPrompt: promptStats,
+          byModel: modelStats,
+          byCombo: comboStats,
+          byEventType: eventTypeStats,
+          byStyle: styleStats
+        }
+      });
+    }
+
+    // ════════════════════════════════════════════════
+    // ADMIN RATINGS — Style Library + Event Themes
+    // ════════════════════════════════════════════════
+
+    // ---- RATE A STYLE LIBRARY ITEM ----
+    if (action === 'rateStyle') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { styleId, rating, notes } = req.body;
+      if (!styleId) return res.status(400).json({ error: 'styleId required' });
+      if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating must be 1-5' });
+
+      const { error } = await supabaseAdmin
+        .from('style_library')
+        .update({ admin_rating: rating, admin_notes: notes || '', rated_by: admin.email, rated_at: new Date().toISOString() })
+        .eq('id', styleId);
+
+      if (error) return res.status(500).json({ error: 'Failed to rate: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- BROWSE ALL EVENT THEMES (with pagination + filters) ----
+    if (action === 'listThemes') {
+      const page = parseInt(req.query.page) || 1;
+      const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+      const offset = (page - 1) * limit;
+      const ratingFilter = req.query.ratingFilter; // 'unrated', 'rated', '1', '2', '3', '4', '5'
+      const modelFilter = req.query.model;
+      const eventTypeFilter = req.query.eventType;
+      const promptVersionFilter = req.query.promptVersionId;
+      const sortBy = req.query.sortBy || 'created_at'; // 'created_at', 'admin_rating', 'latency_ms'
+      const sortDir = req.query.sortDir === 'asc' ? true : false;
+
+      let query = supabaseAdmin
+        .from('event_themes')
+        .select('id, event_id, version, is_active, html, css, config, model, input_tokens, output_tokens, latency_ms, admin_rating, admin_notes, rated_by, rated_at, prompt_version_id, created_at, events!inner(title, event_type, slug)', { count: 'exact' });
+
+      if (ratingFilter === 'unrated') query = query.is('admin_rating', null);
+      else if (ratingFilter === 'rated') query = query.not('admin_rating', 'is', null);
+      else if (['1','2','3','4','5'].includes(ratingFilter)) query = query.eq('admin_rating', parseInt(ratingFilter));
+
+      if (modelFilter) query = query.eq('model', modelFilter);
+      if (promptVersionFilter) query = query.eq('prompt_version_id', promptVersionFilter);
+      if (eventTypeFilter) query = query.eq('events.event_type', eventTypeFilter);
+
+      query = query.order(sortBy, { ascending: sortDir }).range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+      if (error) return res.status(400).json({ error: error.message });
+
+      // Get prompt version names for display
+      const pvIds = [...new Set((data || []).map(t => t.prompt_version_id).filter(Boolean))];
+      let pvMap = {};
+      if (pvIds.length > 0) {
+        const { data: pvs } = await supabaseAdmin.from('prompt_versions').select('id, version, name').in('id', pvIds);
+        (pvs || []).forEach(v => { pvMap[v.id] = `v${v.version} – ${v.name}`; });
+      }
+
+      const themes = (data || []).map(t => ({
+        ...t,
+        eventTitle: t.events?.title || '',
+        eventType: t.events?.event_type || '',
+        eventSlug: t.events?.slug || '',
+        promptVersionLabel: t.prompt_version_id ? (pvMap[t.prompt_version_id] || 'Unknown') : 'Default',
+        events: undefined
+      }));
+
+      return res.status(200).json({ success: true, themes, total: count || 0, page, limit });
+    }
+
+    // ---- RATE AN EVENT THEME ----
+    if (action === 'rateTheme') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { themeId, rating, notes } = req.body;
+      if (!themeId) return res.status(400).json({ error: 'themeId required' });
+      if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating must be 1-5' });
+
+      const { error } = await supabaseAdmin
+        .from('event_themes')
+        .update({ admin_rating: rating, admin_notes: notes || '', rated_by: admin.email, rated_at: new Date().toISOString() })
+        .eq('id', themeId);
+
+      if (error) return res.status(500).json({ error: 'Failed to rate: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- THEME QUALITY STATS (across all real generations) ----
+    if (action === 'themeQualityStats') {
+      const { data: themes, error } = await supabaseAdmin
+        .from('event_themes')
+        .select('id, model, admin_rating, prompt_version_id, latency_ms, input_tokens, output_tokens, created_at')
+        .not('admin_rating', 'is', null);
+
+      if (error) return res.status(400).json({ error: error.message });
+
+      const rated = themes || [];
+      const totalRated = rated.length;
+
+      // Get prompt version names
+      const { data: versions } = await supabaseAdmin.from('prompt_versions').select('id, version, name');
+      const vMap = {};
+      (versions || []).forEach(v => { vMap[v.id] = `v${v.version} – ${v.name}`; });
+
+      // By model
+      const byModel = {};
+      rated.forEach(t => {
+        const m = t.model || 'unknown';
+        if (!byModel[m]) byModel[m] = { scores: [], count: 0 };
+        byModel[m].scores.push(t.admin_rating);
+        byModel[m].count++;
+      });
+      const modelStats = Object.entries(byModel).map(([model, d]) => ({
+        model, avgScore: Math.round(d.scores.reduce((a,b) => a+b, 0) / d.scores.length * 100) / 100, count: d.count
+      })).sort((a,b) => b.avgScore - a.avgScore);
+
+      // By prompt version
+      const byPv = {};
+      rated.forEach(t => {
+        const k = t.prompt_version_id || 'default';
+        if (!byPv[k]) byPv[k] = { scores: [], count: 0 };
+        byPv[k].scores.push(t.admin_rating);
+        byPv[k].count++;
+      });
+      const pvStats = Object.entries(byPv).map(([id, d]) => ({
+        promptLabel: id === 'default' ? 'Hardcoded Default' : (vMap[id] || 'Unknown'),
+        avgScore: Math.round(d.scores.reduce((a,b) => a+b, 0) / d.scores.length * 100) / 100, count: d.count
+      })).sort((a,b) => b.avgScore - a.avgScore);
+
+      // Distribution
+      const distribution = [0, 0, 0, 0, 0];
+      rated.forEach(t => { if (t.admin_rating >= 1 && t.admin_rating <= 5) distribution[t.admin_rating - 1]++; });
+
+      return res.status(200).json({
+        success: true,
+        stats: {
+          totalRated,
+          overallAvg: totalRated > 0 ? Math.round(rated.reduce((a,t) => a + t.admin_rating, 0) / totalRated * 100) / 100 : 0,
+          distribution,
+          byModel: modelStats,
+          byPrompt: pvStats
+        }
+      });
     }
 
     return res.status(400).json({ error: 'Unknown action' });

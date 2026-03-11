@@ -102,10 +102,6 @@
     .rsvp-defaults { font-size: 12px; color: #999; margin-bottom: 12px; padding: 8px 12px; background: #f9f9f9; border-radius: 6px; }
     .rsvp-field-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
     .rsvp-field-row:last-child { border-bottom: none; }
-    .rsvp-field-toggle { width: 36px; height: 20px; border-radius: 10px; background: #ddd; border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
-    .rsvp-field-toggle.on { background: var(--mint-fizz); }
-    .rsvp-field-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: transform 0.2s; }
-    .rsvp-field-toggle.on::after { transform: translateX(16px); }
     .rsvp-field-info { flex: 1; min-width: 0; }
     .rsvp-field-label { font-size: 13px; font-weight: 600; color: var(--midnight); }
     .rsvp-field-meta { font-size: 11px; color: #999; }
@@ -177,13 +173,21 @@
     /* Responsive phone sizing */
     @media (max-width: 900px) {
       [data-step="2"] > div > div:first-child > div:first-child { flex-direction: column; align-items: center; }
-      #editPanel { max-width: 100% !important; min-width: 0 !important; width: 100%; }
+      .generated-layout { gap: 16px !important; }
+      #editPanel { max-width: 100% !important; min-width: 0 !important; width: 100%; order: 2; }
+      #previewColumn { order: 1; width: 100%; display: flex; flex-direction: column; align-items: center; }
     }
     @media (max-width: 640px) {
-      .phone-mockup { width: 280px; }
+      .phone-mockup { width: 320px; margin: 12px auto; }
       .phone-frame { border-radius: 44px; padding: 10px; }
       .phone-notch { width: 90px; height: 24px; top: 16px; }
       .phone-screen { border-radius: 36px; }
+      /* 320px mockup - 20px padding = 300px screen / 393px = 0.763 */
+      .phone-screen iframe { transform: scale(0.763); }
+    }
+    @media (max-width: 370px) {
+      .phone-mockup { width: 280px; }
+      /* 280px - 20px = 260px / 393px = 0.662 */
       .phone-screen iframe { transform: scale(0.662); }
     }
 
@@ -208,6 +212,37 @@
     .preview-toggle-btn { padding: 6px 16px; border: 1px solid #ddd; background: white; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; color: #666; transition: all 0.2s; }
     .preview-toggle-btn:hover { border-color: var(--party-coral); color: var(--party-coral); }
     .preview-toggle-btn.active { background: var(--party-coral); color: white; border-color: var(--party-coral); }
+
+    /* Host rating widget */
+    .theme-rating { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 8px; animation: fadeIn 0.3s; }
+    .theme-rating-label { font-size: 12px; color: #666; font-weight: 500; }
+    .theme-rating-stars { display: flex; gap: 4px; }
+    .theme-rating-stars .star { width: 28px; height: 28px; cursor: pointer; transition: all 0.15s; background: none; border: none; padding: 0; }
+    .theme-rating-stars .star svg { width: 28px; height: 28px; }
+    .theme-rating-stars .star:hover { transform: scale(1.2); }
+    .theme-rating-stars .star .star-fill { fill: #ddd; transition: fill 0.15s; }
+    .theme-rating-stars .star.active .star-fill { fill: var(--confetti-gold); }
+    .theme-rating-stars .star.hover-preview .star-fill { fill: var(--confetti-gold); opacity: 0.7; }
+    .theme-rating-thanks { font-size: 12px; color: var(--mint-fizz); font-weight: 600; animation: fadeIn 0.3s; }
+
+    /* Rating feedback overlay */
+    .rating-feedback-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
+    .rating-feedback-modal { background: white; border-radius: 16px; padding: 28px; max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
+    .rating-feedback-modal h3 { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 6px; }
+    .rating-feedback-modal .rating-subtitle { font-size: 13px; color: #666; margin-bottom: 16px; }
+    .rating-feedback-modal .feedback-stars { display: flex; justify-content: center; gap: 4px; margin-bottom: 16px; }
+    .rating-feedback-modal .feedback-stars .star { width: 32px; height: 32px; }
+    .rating-feedback-modal .feedback-stars .star svg { width: 32px; height: 32px; }
+    .rating-feedback-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 12px; }
+    .rating-feedback-chips .chip { font-size: 12px; padding: 6px 12px; border: 1px solid #ddd; border-radius: 20px; cursor: pointer; background: white; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+    .rating-feedback-chips .chip:hover { border-color: var(--party-coral); color: var(--party-coral); }
+    .rating-feedback-chips .chip.selected { background: var(--party-coral); color: white; border-color: var(--party-coral); }
+    .rating-feedback-modal textarea { width: 100%; min-height: 70px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 13px; resize: vertical; margin-bottom: 12px; }
+    .rating-feedback-modal textarea:focus { outline: none; border-color: var(--party-coral); box-shadow: 0 0 0 3px rgba(233,69,96,0.1); }
+    .rating-feedback-modal .tweak-hint { background: linear-gradient(135deg, #FFF3E0, #FFF8E1); border: 1px solid #FFE0B2; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; text-align: left; }
+    .rating-feedback-modal .tweak-hint p { font-size: 13px; color: #5D4037; line-height: 1.4; }
+    .rating-feedback-modal .tweak-hint strong { color: var(--party-coral); }
+    .rating-feedback-actions { display: flex; gap: 10px; justify-content: center; }
 
     /* Right panel tabs */
     .panel-tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 16px; }
@@ -240,7 +275,8 @@
     .design-chat-loading span:last-child { transition: opacity 0.2s ease; }
     .design-chat-loading .loading-spinner { flex-shrink: 0; }
     .design-chat-progress { width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; }
-    .design-chat-progress-bar { height: 100%; background: linear-gradient(90deg, var(--party-coral), #ff8a80); border-radius: 3px; transition: width 0.4s ease; width: 0%; }
+    .design-chat-progress-bar { height: 100%; background: linear-gradient(90deg, var(--party-coral), #ff8a80, var(--party-coral)); background-size: 200% 100%; border-radius: 3px; transition: width 0.8s ease; width: 0%; animation: chatProgressShimmer 2s ease-in-out infinite; }
+    @keyframes chatProgressShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
     .design-chat-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 16px; padding: 40px 20px; text-align: center; }
     .design-chat-loader .loader-dots { display: flex; gap: 6px; }
     .design-chat-loader .loader-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--party-coral); animation: loaderBounce 1.4s ease-in-out infinite; }
@@ -326,7 +362,7 @@
   </div>
 
   <!-- Hide step 1 immediately when resuming an existing event (prevents flash) -->
-  <script>if(new URLSearchParams(window.location.search).get('eventId')){document.write('<style>.chat-container[data-step="1"]{display:none !important;}</style>');}</script>
+  <script>if(new URLSearchParams(window.location.search).get('eventId')){document.write('<style id="resumeHideChat">.chat-container[data-step="1"]{display:none !important;}</style>');}</script>
 
   <!-- Step 1: Chat Prompt -->
   <div class="step active chat-container" data-step="1">
@@ -337,7 +373,7 @@
     </div>
     <div class="chat-input-area">
       <div class="chat-input-row">
-        <input type="text" class="chat-input" id="chatInput" placeholder="Describe your event..." autofocus>
+        <input type="text" class="chat-input" id="chatInput" placeholder="Tell me what's on your mind..." autofocus>
         <button class="chat-send" id="chatSendBtn" onclick="sendMessage()">&#10148;</button>
       </div>
     </div>
@@ -486,7 +522,7 @@
       <div id="generatedView" style="display: none;">
         <h2 style="text-align:center;">Create Your Invite</h2>
         <p class="step-desc" style="text-align:center;">Love it? Continue to publish. Switch between versions below.</p>
-        <div style="display:flex;gap:32px;align-items:stretch;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
+        <div class="generated-layout" style="display:flex;gap:32px;align-items:stretch;flex-wrap:wrap;justify-content:center;max-width:900px;margin:0 auto;">
           <!-- Left: Tabbed panel (chat, details, versions) -->
           <div id="editPanel" style="flex:1;min-width:280px;max-width:440px;display:flex;flex-direction:column;">
 
@@ -561,10 +597,15 @@
             </div>
           </div>
           <!-- Right: Phone preview -->
-          <div style="flex:0 0 auto;">
-            <div id="previewToggle" style="display:flex;justify-content:center;gap:4px;margin-bottom:12px;">
+          <div id="previewColumn" style="flex:0 0 auto;">
+            <div id="previewToggle" style="display:flex;justify-content:center;gap:4px;margin-bottom:8px;">
               <button class="preview-toggle-btn active" onclick="setPreviewMode('invite')">Invite</button>
               <button class="preview-toggle-btn" onclick="setPreviewMode('thankyou')">Thank You</button>
+            </div>
+            <div id="themeRatingWidget" class="theme-rating" style="display:none;">
+              <span class="theme-rating-label">How does this look?</span>
+              <div class="theme-rating-stars" id="themeRatingStars"></div>
+              <span class="theme-rating-thanks" id="themeRatingThanks" style="display:none;"></span>
             </div>
             <div class="phone-mockup">
               <div class="phone-frame">
@@ -573,6 +614,13 @@
                   <iframe id="previewFrame"></iframe>
                 </div>
                 <div class="phone-home-bar"></div>
+              </div>
+            </div>
+            <!-- Mobile action buttons below preview -->
+            <div id="mobilePreviewActions" style="display:none;margin-top:16px;width:100%;max-width:360px;">
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="nextStep()" style="flex:1;font-size:14px;padding:12px;">Publish</button>
+                <button class="btn btn-secondary" onclick="retryGenerate()" style="flex:1;font-size:14px;padding:12px;">Regenerate</button>
               </div>
             </div>
           </div>
@@ -638,9 +686,9 @@
       if (isRefreshing) return refreshPromise;
       isRefreshing = true;
       refreshPromise = (async function() {
-        var rt = localStorage.getItem('sb_refresh_token');
-        if (!rt) { window.location.href = '/v2/login/'; return false; }
         try {
+          var rt = localStorage.getItem('sb_refresh_token');
+          if (!rt) { window.location.href = '/v2/login/'; return false; }
           var res = await fetch('/api/v2/auth?action=refresh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -653,11 +701,15 @@
             localStorage.setItem('sb_refresh_token', result.refreshToken);
             return true;
           }
-        } catch (e) {}
-        window.location.href = '/v2/login/';
-        return false;
+          window.location.href = '/v2/login/';
+          return false;
+        } catch (e) {
+          window.location.href = '/v2/login/';
+          return false;
+        } finally {
+          isRefreshing = false;
+        }
       })();
-      isRefreshing = false;
       return refreshPromise;
     }
 
@@ -729,7 +781,56 @@
       // Resume existing draft if ?eventId= is in the URL
       var resumeId = urlParams.get('eventId');
       if (resumeId) {
-        // Immediately show loading state instead of step 1 chat
+        // Fast path: if we have cached themes in sessionStorage, show them instantly
+        var cachedThemes = null;
+        try { cachedThemes = JSON.parse(sessionStorage.getItem('ryvite_theme_' + resumeId)); } catch(e) {}
+        if (cachedThemes && cachedThemes.length > 0) {
+          document.querySelector('.chat-container').style.display = 'none';
+          var resumeStep3 = document.querySelector('.container .step[data-step="2"]');
+          resumeStep3.classList.add('active');
+          currentEvent = { id: resumeId, slug: null }; // Minimal — background fetch fills in full data
+          themeVersions = cachedThemes;
+          activeVersionIndex = cachedThemes.findIndex(function(t) { return t.isActive; });
+          if (activeVersionIndex < 0) activeVersionIndex = cachedThemes.length - 1;
+          var genView = document.getElementById('generatingView');
+          genView.style.display = 'none';
+          document.getElementById('generatedView').style.display = 'block';
+          renderPreview(themeVersions[activeVersionIndex]);
+          renderVersionGallery();
+          goToStep(2);
+          // Still fetch fresh data in background to update event details
+          authFetch('/api/v2/events?action=get&eventId=' + encodeURIComponent(resumeId)).then(function(res) {
+            return res.json();
+          }).then(function(result) {
+            if (result.success && result.event) {
+              var ev = result.event;
+              currentEvent = { id: ev.id, slug: ev.slug };
+              extractedData = {
+                title: ev.title || '', eventType: ev.eventType || 'other',
+                startDate: ev.eventDate || '', endDate: ev.endDate || '',
+                locationName: ev.locationName || '', locationAddress: ev.locationAddress || '',
+                dressCode: ev.dressCode || '', description: ev.description || '', prompt: ''
+              };
+              if (ev.customFields && ev.customFields.length > 0) {
+                rsvpFields = ev.customFields.map(function(f) {
+                  return { field_key: f.key, label: f.label, field_type: f.type, is_required: f.required, options: f.options, placeholder: f.placeholder, enabled: true };
+                });
+              }
+              // Update themes if server has newer data
+              if (ev.themeVersions && ev.themeVersions.length > 0) {
+                themeVersions = ev.themeVersions;
+                activeVersionIndex = ev.themeVersions.findIndex(function(t) { return t.isActive; });
+                if (activeVersionIndex < 0) activeVersionIndex = ev.themeVersions.length - 1;
+                renderPreview(themeVersions[activeVersionIndex]);
+                renderVersionGallery();
+                sessionStorage.setItem('ryvite_theme_' + ev.id, JSON.stringify(themeVersions));
+              }
+              initDesignChatIfNeeded(false);
+            }
+          }).catch(function(e) { console.warn('Background refresh failed:', e); });
+          return;
+        }
+        // Slow path: no cache, show loading state
         document.querySelector('.chat-container').style.display = 'none';
         var resumeStep3 = document.querySelector('.container .step[data-step="2"]');
         resumeStep3.classList.add('active');
@@ -807,34 +908,30 @@
               renderVersionGallery();
               initDesignChatIfNeeded(false);
               goToStep(2);
+              // Cache themes for fast reload
+              try { sessionStorage.setItem('ryvite_theme_' + ev.id, JSON.stringify(themeVersions)); } catch(e2) {}
             } else {
-              // Has details but no theme — go back to chat
-              // Restore chat bubbles and show confirmation card
-              if (restoreDraft(false) && chatBubbles.length > 0) {
-                rebuildChatFromBubbles();
-                if (chatPhase === 'confirmed' || chatPhase === 'styling') {
-                  showConfirmationCard();
-                }
-                if (chatPhase === 'styling') {
-                  var proceedBtn = document.querySelector('#confirmationCard .chat-proceed');
-                  if (proceedBtn) proceedBtn.remove();
-                  document.querySelector('.chat-input-area').style.display = 'none';
-                  showStyleChoiceCard();
-                }
-              } else {
-                // No saved chat — show confirmation from extractedData
-                showConfirmationCard();
-              }
-              goToStep(1);
+              // Has details but no theme — go straight to generation (step 2)
+              // goToStep(2) auto-triggers generateTheme() when no themes exist
+              goToStep(2);
             }
             return;
           }
         } catch (e) {
           console.error('Failed to resume event:', e);
           clearInterval(resumePunInterval);
-          // Fall back to step 1
-          resumeStep3.classList.remove('active');
+          // Show error with debug info instead of blank screen
+          window._lastGenDebug = 'Resume error: ' + (e.message || '') + ' | Stack: ' + (e.stack || '').substring(0, 300);
+          var hideStyle = document.getElementById('resumeHideChat');
+          if (hideStyle) hideStyle.remove();
+          genView.innerHTML = '';
           document.querySelector('.chat-container').style.display = 'flex';
+          // Show error in chat area
+          var chatMsgs = document.getElementById('chatMessages');
+          if (chatMsgs) {
+            chatMsgs.innerHTML = '<div class="chat-bubble assistant" style="color:var(--party-coral);">Failed to load event: ' + escapeHtml(e.message || 'Unknown error') + '</div>'
+              + '<div class="chat-bubble assistant"><button class="btn btn-primary" onclick="location.reload()">Try Again</button> <button class="btn btn-secondary" onclick="location.href=\'/v2/create/?new=1\'">Start New Event</button></div>';
+          }
         }
       }
 
@@ -877,6 +974,11 @@
       addChatBubble(text, 'user');
       chatHistory.push({ role: 'user', content: text });
 
+      // Create draft event on first message so it shows in dashboard immediately
+      if (!currentEvent) {
+        createDraftEvent();
+      }
+
       var sendBtn = document.getElementById('chatSendBtn');
       sendBtn.disabled = true;
       input.disabled = true;
@@ -907,6 +1009,17 @@
           // Merge extracted data
           if (result.extracted) {
             Object.assign(extractedData, result.extracted);
+            // Update draft event in background when we have a title
+            if (currentEvent && result.extracted.title) {
+              updateDraftEvent();
+            }
+          }
+
+          // Store suggested RSVP fields when AI proposes them (awaiting confirmation)
+          if (result.suggestedRsvpFields && result.suggestedRsvpFields.length > 0) {
+            rsvpFields = result.suggestedRsvpFields.map(function(f) {
+              return Object.assign({}, f, { enabled: true });
+            });
           }
 
           // Always keep latest RSVP fields from the AI
@@ -1000,6 +1113,11 @@
                 + '<span style="color:#999;font-size:11px;">(' + escapeHtml(meta) + ')</span>'
                 + '</div>';
             }).join('')
+
+          + '<h4 style="font-size:14px;font-weight:600;margin-bottom:4px;">RSVP Fields</h4>'
+          + '<p style="font-size:12px;color:#888;margin-bottom:10px;">Here\'s what I\'d suggest — remove any you don\'t want, or just ask me to add more!</p>'
+          + '<div style="font-size:11px;color:#999;margin-bottom:10px;padding:6px 10px;background:#f9f9f9;border-radius:6px;">Always included: <strong>Name</strong>, <strong>RSVP Status</strong></div>'
+          + '<div id="rsvpFieldList">' + renderRsvpFields() + '</div>'
           + '</div>';
       }
 
@@ -1013,12 +1131,10 @@
     function renderRsvpFields() {
       if (rsvpFields.length === 0) return '<div style="font-size:13px;color:#999;padding:8px 0;">No additional fields suggested.</div>';
       return rsvpFields.map(function(f, i) {
-        var toggleClass = f.enabled ? 'rsvp-field-toggle on' : 'rsvp-field-toggle';
         var meta = (FIELD_TYPE_LABELS[f.field_type] || f.field_type);
         if (f.is_required) meta += ' · Required';
         if (f.options && f.options.length) meta += ' · ' + f.options.join(', ');
         return '<div class="rsvp-field-row">'
-          + '<button class="' + toggleClass + '" onclick="toggleRsvpField(' + i + ')" title="Toggle field"></button>'
           + '<div class="rsvp-field-info">'
           + '<div class="rsvp-field-label">' + escapeHtml(f.label) + '</div>'
           + '<div class="rsvp-field-meta">' + escapeHtml(meta) + '</div>'
@@ -1028,55 +1144,50 @@
       }).join('');
     }
 
-    function toggleRsvpField(idx) {
-      rsvpFields[idx].enabled = !rsvpFields[idx].enabled;
-      document.getElementById('rsvpFieldList').innerHTML = renderRsvpFields();
-    }
-
     function removeRsvpField(idx) {
       rsvpFields.splice(idx, 1);
       document.getElementById('rsvpFieldList').innerHTML = renderRsvpFields();
     }
 
-    function showAddFieldForm() {
+    function showAddFieldFormStep1() {
       var container = document.getElementById('addFieldContainer');
       if (container.querySelector('.rsvp-add-form')) return; // already open
       container.innerHTML = '<div class="rsvp-add-form">'
         + '<div class="form-row">'
-        + '<input type="text" id="newFieldLabel" placeholder="Field label (e.g. Song Request)">'
-        + '<select id="newFieldType"><option value="text">Text</option><option value="number">Number</option><option value="select">Dropdown</option><option value="checkbox">Checkbox</option><option value="textarea">Long text</option><option value="email">Email</option><option value="phone">Phone</option></select>'
+        + '<input type="text" id="newFieldLabelStep1" placeholder="Field label (e.g. Song Request)">'
+        + '<select id="newFieldTypeStep1"><option value="text">Text</option><option value="number">Number</option><option value="select">Dropdown</option><option value="checkbox">Checkbox</option><option value="textarea">Long text</option><option value="email">Email</option><option value="phone">Phone</option></select>'
         + '</div>'
-        + '<div class="form-row" id="newFieldOptionsRow" style="display:none;">'
-        + '<input type="text" id="newFieldOptions" placeholder="Options (comma-separated)" style="grid-column: 1/-1;">'
+        + '<div class="form-row" id="newFieldOptionsRowStep1" style="display:none;">'
+        + '<input type="text" id="newFieldOptionsStep1" placeholder="Options (comma-separated)" style="grid-column: 1/-1;">'
         + '</div>'
         + '<div class="form-row">'
-        + '<input type="text" id="newFieldPlaceholder" placeholder="Placeholder text (optional)">'
-        + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;"><input type="checkbox" id="newFieldRequired"> Required</label>'
+        + '<input type="text" id="newFieldPlaceholderStep1" placeholder="Placeholder text (optional)">'
+        + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;"><input type="checkbox" id="newFieldRequiredStep1"> Required</label>'
         + '</div>'
         + '<div class="form-actions">'
-        + '<button class="btn btn-secondary btn-sm" onclick="cancelAddField()">Cancel</button>'
-        + '<button class="btn btn-primary btn-sm" onclick="addCustomField()">Add Field</button>'
+        + '<button class="btn btn-secondary btn-sm" onclick="cancelAddFieldStep1()">Cancel</button>'
+        + '<button class="btn btn-primary btn-sm" onclick="addCustomFieldStep1()">Add Field</button>'
         + '</div>'
         + '</div>';
-      document.getElementById('newFieldType').addEventListener('change', function() {
-        document.getElementById('newFieldOptionsRow').style.display = this.value === 'select' ? 'grid' : 'none';
+      document.getElementById('newFieldTypeStep1').addEventListener('change', function() {
+        document.getElementById('newFieldOptionsRowStep1').style.display = this.value === 'select' ? 'grid' : 'none';
       });
     }
 
-    function cancelAddField() {
+    function cancelAddFieldStep1() {
       document.getElementById('addFieldContainer').innerHTML = '';
     }
 
-    function addCustomField() {
-      var label = document.getElementById('newFieldLabel').value.trim();
-      if (!label) { showMessage('Please enter a field label', 'error'); return; }
-      var fieldType = document.getElementById('newFieldType').value;
-      var placeholder = document.getElementById('newFieldPlaceholder').value.trim();
-      var isRequired = document.getElementById('newFieldRequired').checked;
+    function addCustomFieldStep1() {
+      var label = document.getElementById('newFieldLabelStep1').value.trim();
+      if (!label) { alert('Please enter a field label'); return; }
+      var fieldType = document.getElementById('newFieldTypeStep1').value;
+      var placeholder = document.getElementById('newFieldPlaceholderStep1').value.trim();
+      var isRequired = document.getElementById('newFieldRequiredStep1').checked;
       var options = null;
       if (fieldType === 'select') {
-        var optStr = document.getElementById('newFieldOptions').value.trim();
-        if (!optStr) { showMessage('Please enter options for the dropdown', 'error'); return; }
+        var optStr = document.getElementById('newFieldOptionsStep1').value.trim();
+        if (!optStr) { alert('Please enter options for the dropdown'); return; }
         options = optStr.split(',').map(function(o) { return o.trim(); }).filter(Boolean);
       }
       var fieldKey = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -1092,15 +1203,87 @@
       });
 
       document.getElementById('rsvpFieldList').innerHTML = renderRsvpFields();
-      cancelAddField();
+      cancelAddFieldStep1();
     }
 
     // ---- Style Selection Flow (in chat) ----
 
     var brainstormAnswers = {};
 
+    async function updateDraftEvent() {
+      if (!currentEvent) return;
+      try {
+        await authFetch('/api/v2/events?action=update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: currentEvent.id,
+            title: extractedData.title || 'Untitled Event',
+            description: extractedData.description || '',
+            eventDate: extractedData.startDate || '',
+            endDate: extractedData.endDate || '',
+            locationName: extractedData.locationName || '',
+            locationAddress: extractedData.locationAddress || '',
+            dressCode: extractedData.dressCode || '',
+            eventType: extractedData.eventType || 'other'
+          })
+        });
+      } catch (err) {
+        console.error('Draft event update failed:', err);
+      }
+    }
+
+    async function createDraftEvent() {
+      if (currentEvent) return;
+      try {
+        await authFetch('/api/v2/auth?action=profile');
+        var res = await authFetch('/api/v2/events?action=create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'Untitled Event',
+            eventType: 'other',
+            settings: { creation_step: 0 }
+          })
+        });
+        var result = await res.json();
+        if (result.success) {
+          currentEvent = { id: result.eventId, slug: result.slug };
+          window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
+        }
+      } catch (err) {
+        console.error('Draft event creation failed:', err);
+      }
+    }
+
     async function saveEventToDB() {
-      if (currentEvent) return true;
+      // If draft already exists, update it with extracted details
+      if (currentEvent) {
+        try {
+          await authFetch('/api/v2/events?action=update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventId: currentEvent.id,
+              title: extractedData.title || 'Untitled Event',
+              description: extractedData.description || '',
+              eventDate: extractedData.startDate || '',
+              endDate: extractedData.endDate || '',
+              locationName: extractedData.locationName || '',
+              locationAddress: extractedData.locationAddress || '',
+              dressCode: extractedData.dressCode || '',
+              eventType: extractedData.eventType || 'other',
+              settings: { creation_step: 1 }
+            })
+          });
+          await saveCustomFields();
+          return true;
+        } catch (err) {
+          showMessage('Error updating event. Please try again.', 'error');
+          return false;
+        }
+      }
+      // Fallback: create if draft wasn't created yet
       try {
         await authFetch('/api/v2/auth?action=profile');
         var res = await authFetch('/api/v2/events?action=create', {
@@ -1273,6 +1456,10 @@
         + '</div>';
       document.getElementById('chatMessages').appendChild(card);
       scrollChat();
+      // Scroll the style choice card into view so it's centered on screen
+      setTimeout(function() {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
     }
 
     // ---- "I have a style in mind" flow ----
@@ -1294,6 +1481,13 @@
           + '</div>';
       }
 
+      // Build a suggested style prompt from conversation context
+      var styleParts = [];
+      if (extractedData.prompt) styleParts.push(extractedData.prompt);
+      if (extractedData.tagline) styleParts.push('Tagline: "' + extractedData.tagline + '"');
+      if (extractedData.description && !extractedData.prompt) styleParts.push(extractedData.description);
+      var prefillStyle = styleParts.join('\n');
+
       var card = document.createElement('div');
       card.className = 'chat-bubble assistant';
       card.id = 'customStyleCard';
@@ -1302,6 +1496,9 @@
         : 'Describe the mood, colors, and style you\'re going for.';
       card.innerHTML = '<div style="margin-bottom:12px;">' + stylePromptLabel + '</div>'
         + '<textarea id="customStyleText" placeholder="e.g., Modern minimalist with gold accents and a warm, elegant feel..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:Inter,sans-serif;min-height:80px;resize:none;margin-bottom:10px;box-sizing:border-box;"></textarea>'
+
+      card.innerHTML = '<div style="margin-bottom:12px;">' + (prefillStyle ? 'Here\'s what I picked up from our chat — feel free to edit, add more detail, or upload inspiration images!' : 'Describe the mood, colors, and style you\'re going for. You can also upload photos and inspiration images!') + '</div>'
+        + '<textarea id="customStyleText" placeholder="e.g., Modern minimalist with gold accents and a warm, elegant feel..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:Inter,sans-serif;min-height:80px;resize:none;margin-bottom:10px;box-sizing:border-box;">' + escapeHtml(prefillStyle) + '</textarea>'
         + '<div style="margin-bottom:12px;">'
         + '<div class="example-chips" style="margin-top:0;">'
         + '<button class="chip" onclick="addToCustomStyle(\'Elegant and luxurious with gold accents\')">Elegant + Gold</button>'
@@ -2223,11 +2420,6 @@
       });
     }
 
-    // Keep old function name as alias for backward compat with resume flow
-    async function proceedToCreativeDirection() {
-      confirmDetailsAndAskStyle();
-    }
-
     // ---- Step Navigation ----
 
     function goToStep(step) {
@@ -2253,6 +2445,7 @@
         document.getElementById('generatedView').style.display = 'block';
         renderPreview(themeVersions[activeVersionIndex]);
         renderVersionGallery();
+        updateMobileLayout();
       }
       if (step === 3) {
         showSummary();
@@ -2265,14 +2458,46 @@
       }
     }
 
+    function updateMobileLayout() {
+      var isMobile = window.innerWidth <= 900;
+      var mobileActions = document.getElementById('mobilePreviewActions');
+      var editPanel = document.getElementById('editPanel');
+      var generatedView = document.getElementById('generatedView');
+      if (!mobileActions || !generatedView) return;
+      var isGenerated = generatedView.style.display !== 'none';
+      mobileActions.style.display = (isMobile && isGenerated) ? 'block' : 'none';
+      // On mobile, collapse edit panel by default so phone preview is hero
+      if (editPanel && isMobile && isGenerated) {
+        editPanel.style.display = editPanel.dataset.mobileCollapsed === 'false' ? '' : 'none';
+        // Show a toggle to expand/collapse
+        var toggle = document.getElementById('mobileEditToggle');
+        if (!toggle) {
+          toggle = document.createElement('button');
+          toggle.id = 'mobileEditToggle';
+          toggle.className = 'btn btn-secondary';
+          toggle.style.cssText = 'width:100%;max-width:360px;margin-top:8px;font-size:13px;padding:10px;';
+          toggle.textContent = 'Edit Details & Design';
+          toggle.onclick = function() {
+            var collapsed = editPanel.style.display === 'none';
+            editPanel.style.display = collapsed ? '' : 'none';
+            editPanel.dataset.mobileCollapsed = collapsed ? 'false' : 'true';
+            toggle.textContent = collapsed ? 'Hide Editor' : 'Edit Details & Design';
+            if (collapsed) editPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          };
+          mobileActions.appendChild(toggle);
+        }
+        toggle.style.display = isMobile ? 'block' : 'none';
+      } else if (editPanel && !isMobile) {
+        editPanel.style.display = '';
+        editPanel.dataset.mobileCollapsed = '';
+        var toggle = document.getElementById('mobileEditToggle');
+        if (toggle) toggle.style.display = 'none';
+      }
+    }
+    window.addEventListener('resize', updateMobileLayout);
+
     function nextStep() { if (currentStep < totalSteps) goToStep(currentStep + 1); }
     function previousStep() { if (currentStep > 1) goToStep(currentStep - 1); }
-
-    function validateStep(step) {
-      if (false) { // No longer needed — style prompt collected in chat
-      }
-      return true;
-    }
 
     // ---- Theme Generation ----
 
@@ -2436,6 +2661,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        window._lastGenDebug = 'Status: ' + res2.status + ' | CT: ' + res2.headers.get('content-type');
+        console.log('[generate-theme] Response status:', res2.status, 'Content-Type:', res2.headers.get('content-type'));
         if (res2.status === 413) {
           // Payload too large — retry without images
           console.warn('Payload too large, retrying without inspiration images');
@@ -2445,79 +2672,133 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
+          console.log('[generate-theme] Retry status:', res2.status);
         }
-        var result2 = await res2.json();
-        if (result2.success) {
-          var ver = {
-            id: result2.theme.id,
-            version: result2.theme.version,
-            html: result2.theme.html,
-            css: result2.theme.css,
-            config: result2.theme.config
-          };
-          themeVersions.push(ver);
-          activeVersionIndex = themeVersions.length - 1;
-          currentEvent.themeHtml = ver.html;
-          currentEvent.themeCss = ver.css;
-          currentEvent.themeConfig = ver.config;
+
+        if (!res2.ok) {
           stopGeneratingPuns();
-          document.getElementById('generatingView').style.display = 'none';
-          document.getElementById('generatedView').style.display = 'block';
-          renderPreview(ver);
-          renderVersionGallery();
-          initDesignChatIfNeeded();
-          // Persist creation_step so resume returns to preview
-          if (currentEvent) {
-            authFetch('/api/v2/events?action=update', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 2 } })
-            }).catch(function() {});
+          console.error('[generate-theme] HTTP error:', res2.status, res2.statusText);
+          // Try to parse error JSON from non-SSE error responses
+          var errText = '';
+          try {
+            var errBody = await res2.text();
+            console.error('[generate-theme] Error body:', errBody);
+            try { var errJson = JSON.parse(errBody); errText = errJson.error || errJson.message || ''; } catch(e) { errText = errBody; }
+          } catch(e) { console.error('[generate-theme] Could not read error body:', e); }
+          window._lastGenDebug = 'HTTP ' + res2.status + ' | ' + errText.substring(0, 500);
+          if (res2.status === 403 && errText) {
+            showAdditionalEventPurchase();
+          } else {
+            showGeneratingError(errText || 'Failed to generate theme (HTTP ' + res2.status + ')');
           }
-        } else if (result2.needsPlan || result2.limitReached) {
-          // Plan or limit issue — show purchase option instead of generic error
-          stopGeneratingPuns();
-          showAdditionalEventPurchase();
         } else {
-          stopGeneratingPuns();
-          var errMsg = result2.message || result2.error || 'Failed to generate theme';
-          // Show error on the generating screen with a retry button instead of going back
-          if (themeVersions.length > 0) {
-            showMessage(errMsg, 'error');
+          // Read full response as text (avoids ReadableStream which Safari kills on mobile)
+          console.log('[generate-theme] Reading full response text...');
+          var genStartTime = Date.now();
+          var fullText = await res2.text();
+          var elapsed = Math.round((Date.now() - genStartTime) / 1000);
+          console.log('[generate-theme] Response received in ' + elapsed + 's, ' + fullText.length + ' bytes');
+
+          // Parse SSE events from the full text
+          var genResult = null;
+          var genError = null;
+          var genEventType = null;
+          var genLines = fullText.split('\n');
+          for (var gi = 0; gi < genLines.length; gi++) {
+            var genLine = genLines[gi];
+            if (genLine.startsWith('event: ')) {
+              genEventType = genLine.substring(7).trim();
+            } else if (genLine.startsWith('data: ') && genEventType) {
+              try {
+                var genEventData = JSON.parse(genLine.substring(6));
+                if (genEventType === 'done') {
+                  genResult = genEventData;
+                } else if (genEventType === 'error') {
+                  genError = genEventData;
+                }
+              } catch(pe) { console.warn('[generate-theme] Failed to parse SSE data:', genLine.substring(0, 200), pe); }
+              genEventType = null;
+            }
+          }
+
+          console.log('[generate-theme] Parse complete. Result:', !!genResult, 'Error:', genError);
+          window._lastGenDebug = 'Status: ' + res2.status + ' | Bytes: ' + fullText.length + ' | Elapsed: ' + elapsed + 's | Result: ' + !!genResult + ' | Build: 2026-03-11e';
+
+          if (genResult && genResult.success) {
+            var ver = {
+              id: genResult.theme.id,
+              version: genResult.theme.version,
+              html: genResult.theme.html,
+              css: genResult.theme.css,
+              config: genResult.theme.config
+            };
+            themeVersions.push(ver);
+            activeVersionIndex = themeVersions.length - 1;
+            currentEvent.themeHtml = ver.html;
+            currentEvent.themeCss = ver.css;
+            currentEvent.themeConfig = ver.config;
+            stopGeneratingPuns();
             document.getElementById('generatingView').style.display = 'none';
             document.getElementById('generatedView').style.display = 'block';
-            renderPreview(themeVersions[activeVersionIndex]);
+            renderPreview(ver);
+            renderVersionGallery();
+            initDesignChatIfNeeded();
+            // Persist creation_step so resume returns to preview
+            if (currentEvent) {
+              authFetch('/api/v2/events?action=update', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 2 } })
+              }).catch(function() {});
+            }
+
+            showThemeRating(ver.id);
+            updateMobileLayout();
+            // Cache theme in sessionStorage for fast reload
+            try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
           } else {
+            stopGeneratingPuns();
+            console.error('[generate-theme] Generation failed. genError:', genError, 'genResult:', genResult ? JSON.stringify(genResult).substring(0, 500) : null);
+            var errMsg = (genError && (genError.message || genError.error)) || (genResult && !genResult.success ? 'Server returned failure' : 'No response received from server');
+            window._lastGenDebug = 'Bytes: ' + fullText.length + ' | Error: ' + JSON.stringify(genError) + ' | Result keys: ' + (genResult ? Object.keys(genResult).join(',') : 'null') + ' | Build: 2026-03-11e';
             showGeneratingError(errMsg);
           }
         }
       } catch (err) {
+        console.error('[generate-theme] CATCH error:', err, err.stack);
         stopGeneratingPuns();
         var catchMsg = err.message || 'Error generating theme';
-        if (themeVersions.length > 0) {
-          showMessage(catchMsg, 'error');
-          document.getElementById('generatingView').style.display = 'none';
-          document.getElementById('generatedView').style.display = 'block';
-          renderPreview(themeVersions[activeVersionIndex]);
-        } else {
-          showGeneratingError(catchMsg);
-        }
+        window._lastGenDebug = (window._lastGenDebug || '') + ' | CATCH: ' + catchMsg + ' | Stack: ' + (err.stack || '').substring(0, 300);
+        showGeneratingError(catchMsg);
       }
     }
 
     function showGeneratingError(msg) {
       var loadingState = document.getElementById('generatingLoadingState');
+      var hasExisting = themeVersions.length > 0;
+      var buttons = '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">';
+      if (hasExisting) {
+        buttons += '<button class="btn btn-secondary" onclick="document.getElementById(\'generatingView\').style.display=\'none\';document.getElementById(\'generatedView\').style.display=\'block\';renderPreview(themeVersions[activeVersionIndex]);updateMobileLayout();" style="font-size:13px;padding:10px 20px;">View Previous</button>';
+      } else {
+        buttons += '<button class="btn btn-secondary" onclick="var s=document.getElementById(\'resumeHideChat\');if(s)s.remove();goToStep(1)" style="font-size:13px;padding:10px 20px;">Back</button>';
+      }
+      buttons += '<button class="btn btn-primary" onclick="retryGenerate()" style="font-size:13px;padding:10px 20px;">Try Again</button></div>';
       loadingState.innerHTML = '<div class="gen-container">'
         + '<div style="font-size:48px;margin-bottom:12px;">😅</div>'
         + '<h3 class="gen-title" style="color:var(--party-coral);">Oops!</h3>'
-        + '<p style="margin-bottom:20px;font-size:14px;color:#888;">' + escapeHtml(msg) + '</p>'
-        + '<div style="display:flex;gap:8px;justify-content:center;">'
-        + '<button class="btn btn-secondary" onclick="goToStep(1)" style="font-size:13px;padding:10px 20px;">Back</button>'
-        + '<button class="btn btn-primary" onclick="retryGenerate()" style="font-size:13px;padding:10px 20px;">Try Again</button>'
-        + '</div></div>';
+        + '<p style="margin-bottom:12px;font-size:14px;color:#888;">' + escapeHtml(msg) + '</p>'
+        + '<details style="margin-bottom:20px;text-align:left;max-width:100%;"><summary style="font-size:11px;color:#aaa;cursor:pointer;">Debug info</summary>'
+        + '<pre style="font-size:10px;color:#999;background:#f5f5f5;padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:4px;">' + escapeHtml(window._lastGenDebug || 'No debug info') + '\nBuild: 2026-03-11e</pre></details>'
+        + buttons + '</div>';
     }
 
     function retryGenerate() {
+      // Clear cached themes so stale data doesn't persist
+      if (currentEvent && currentEvent.id) {
+        try { sessionStorage.removeItem('ryvite_theme_' + currentEvent.id); } catch(e) {}
+      }
       // Reset loading state HTML to the full generating experience
+      document.getElementById('generatedView').style.display = 'none';
+      document.getElementById('generatingView').style.display = 'block';
       var loadingState = document.getElementById('generatingLoadingState');
       loadingState.innerHTML = '<div class="gen-container">'
         + '<div class="gen-emoji-float" id="genEmoji">🎨</div>'
@@ -2616,6 +2897,10 @@
 
     function buildSrcdoc(ver) {
       var fontsImport = ver.config.googleFontsImport || '';
+      // Normalize: ensure it's a full @import statement, not just a URL
+      if (fontsImport && !fontsImport.startsWith('@import')) {
+        fontsImport = "@import url('" + fontsImport + "');";
+      }
       var themeHtml = ver.html;
       // Inject functional form inputs into rsvp-slot
       var rsvpFormHtml = buildRsvpFormHtml();
@@ -2642,15 +2927,32 @@
         + '  var overrides = ' + JSON.stringify(detailOverrides) + ';'
         + '  Object.keys(overrides).forEach(function(key) {'
         + '    var el = document.querySelector("[data-field=\\"" + key + "\\"]");'
-        + '    if (el) el.innerHTML = overrides[key];'
+        + '    if (!el) return;'
+        // Preserve text color: capture the computed color from the element or its first
+        // styled child before replacing innerHTML, then re-apply it. This prevents the
+        // "flash of wrong color" when AI puts color on child elements that get stripped.
+        + '    var cs = window.getComputedStyle(el);'
+        + '    var origColor = cs.color;'
+        // Also check first child — AI often puts color on a span/p inside the data-field container
+        + '    if (el.firstElementChild) {'
+        + '      var childColor = window.getComputedStyle(el.firstElementChild).color;'
+        + '      if (childColor !== origColor) origColor = childColor;'
+        + '    }'
+        + '    el.innerHTML = overrides[key];'
+        // Re-apply the color to the container so the new plain text inherits it
+        + '    if (origColor && !el.style.color) el.style.color = origColor;'
         + '  });'
         + '  var dc = document.querySelector("[data-field=\\"dresscode\\"]");'
         + '  if (dc && !overrides.dresscode) { dc.style.display = "none"; }'
         + '  else if (dc && overrides.dresscode) { dc.style.display = ""; }'
         + '});'
         + '<\/script>';
+      // Google Fonts @import MUST be the very first thing in the first <style> block —
+      // browsers silently ignore @import after any other CSS rules
+      var fontsStyle = fontsImport ? '<style>' + fontsImport + '</style>' : '';
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + fontsStyle
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
         + '<style>' + ver.css + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
     }
 
@@ -2700,6 +3002,7 @@
       currentEvent.themeConfig = ver.config;
       renderPreview(ver);
       renderVersionGallery();
+      showThemeRating(ver.id);
       // Activate this version in the DB
       authFetch('/api/v2/events?action=activateTheme', {
         method: 'POST',
@@ -2789,8 +3092,10 @@
           tyHtml += guaranteedCalendarHTML + guaranteedFooterHTML;
         }
 
+        var fontsStyle2 = fontsImport ? '<style>' + fontsImport + '</style>' : '';
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-          + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
+          + fontsStyle2
+          + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
           + '<style>' + guaranteedCSS + '</style>'
           + '<style>' + (ver.css || '') + '</style>'
           + '</head><body>' + tyHtml + calScript + '</body></html>';
@@ -2812,8 +3117,10 @@
         + guaranteedFooterHTML
         + '</div>';
 
+      var fontsStyle3 = fontsImport ? '<style>' + fontsImport + '</style>' : '';
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + fontsStyle3
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
         + '<style>' + guaranteedCSS + '</style>'
         + '</head><body>' + thankYouHtml + calScript + '</body></html>';
     }
@@ -2976,6 +3283,182 @@
 
       designChatHistory = [{ role: 'assistant', content: welcomeMsg }];
       renderDesignChat();
+    }
+
+    // ── Instant RSVP field change detection (no AI needed) ──
+    // Returns an array of actions detected (supports multi-action messages)
+    function tryInstantRsvpFieldChange(text, hasPhotos) {
+      if (!text || hasPhotos) return null;
+      var lower = text.toLowerCase().trim();
+      var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
+      var results = [];
+
+      // --- Split on "and" / "&" / "," to handle compound requests ---
+      // But only split on "and" that separates clauses (preceded by field/add/remove action words)
+      var parts = [lower];
+      var compoundSplit = lower.split(/\s+and\s+|\s*&\s*|\s*,\s*(?:also|then|and)?\s*/i);
+      if (compoundSplit.length > 1) parts = compoundSplit;
+
+      for (var pi = 0; pi < parts.length; pi++) {
+        var part = parts[pi].trim();
+        if (!part) continue;
+
+        // --- REMOVE field ---
+        var removeMatch = part.match(/(?:remove|delete|drop|get rid of|take off|take out|hide|no more)\s+(?:the\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)?$/i);
+        if (!removeMatch) removeMatch = part.match(/(?:remove|delete|drop|get rid of|take off|take out|hide|no more)\s+(?:the\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)?/i);
+        if (removeMatch) {
+          var searchTerm = (removeMatch[1] || removeMatch[2] || removeMatch[3] || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+          if (searchTerm) {
+            var matchedField = enabledFields.find(function(f) {
+              var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+              var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
+              return fKey === searchTerm || fLabel === searchTerm
+                || fKey.indexOf(searchTerm) !== -1 || fLabel.indexOf(searchTerm) !== -1
+                || searchTerm.indexOf(fKey) !== -1 || searchTerm.indexOf(fLabel) !== -1;
+            });
+            if (matchedField) {
+              results.push({ action: 'remove', field_key: matchedField.field_key, label: matchedField.label });
+              // Remove from enabledFields so subsequent parts don't see it
+              enabledFields = enabledFields.filter(function(f) { return f.field_key !== matchedField.field_key; });
+              continue;
+            }
+          }
+        }
+
+        // --- ADD field (detected client-side, interpreted by quick AI call) ---
+        var addDetected = /\b(?:add|include|put|create|insert)\b/i.test(part)
+          && (/\b(?:field|input|question|section|form field)\b/i.test(part)
+            || /\b(?:for|called|named|asking|about)\b/i.test(part));
+        if (!addDetected) addDetected = /\b(?:i want|i need|can you add|could you add|please add)\b/i.test(part)
+          && /\b(?:field|question|ask|input)\b/i.test(part);
+        if (addDetected) {
+          // Use the original text for the AI call (more context is better)
+          results.push({ action: 'add_async', userMessage: text });
+          continue;
+        }
+
+        // --- MAKE REQUIRED / OPTIONAL ---
+        var reqMatch = part.match(/(?:make|set)\s+(?:the\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field\s+)?(?:required|mandatory|optional)/i);
+        if (reqMatch) {
+          var reqTerm = (reqMatch[1] || reqMatch[2] || reqMatch[3] || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+          var isRequired = /required|mandatory/.test(part);
+          var reqField = enabledFields.find(function(f) {
+            var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+            var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
+            return fKey.indexOf(reqTerm) !== -1 || fLabel.indexOf(reqTerm) !== -1 || reqTerm.indexOf(fKey) !== -1 || reqTerm.indexOf(fLabel) !== -1;
+          });
+          if (reqField) {
+            results.push({ action: 'modify', field_key: reqField.field_key, is_required: isRequired });
+            continue;
+          }
+        }
+      }
+
+      if (results.length === 0) return null;
+
+      // Check if any of the results are add_async
+      var hasAddAsync = results.some(function(r) { return r.action === 'add_async'; });
+      var syncChanges = results.filter(function(r) { return r.action !== 'add_async'; });
+      var addAsyncResult = results.find(function(r) { return r.action === 'add_async'; });
+
+      // Build response messages for sync changes
+      var responseMessages = syncChanges.map(function(r) {
+        if (r.action === 'remove') return 'Removed the "' + r.label + '" field';
+        if (r.action === 'modify') return 'Made "' + (r.label || r.field_key) + '" ' + (r.is_required ? 'required' : 'optional');
+        return '';
+      }).filter(Boolean);
+
+      if (hasAddAsync && syncChanges.length > 0) {
+        // Mixed: sync changes + async add — return both
+        return {
+          action: 'mixed',
+          syncChanges: syncChanges,
+          syncResponse: responseMessages.join('. ') + '.',
+          addAsync: addAsyncResult
+        };
+      } else if (hasAddAsync) {
+        return { action: 'add_async', userMessage: addAsyncResult.userMessage };
+      } else {
+        return {
+          action: syncChanges[0].action,
+          changes: syncChanges,
+          chatResponse: 'Done! ' + responseMessages.join('. ') + '.'
+        };
+      }
+    }
+
+    // ── Apply RSVP field changes and save ──
+    function applyRsvpFieldChanges(changes) {
+      if (!changes || !Array.isArray(changes) || changes.length === 0) return;
+      console.log('[tweak] Applying RSVP field changes:', changes);
+      changes.forEach(function(change) {
+        if (change.action === 'remove') {
+          var removeKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+          rsvpFields = rsvpFields.filter(function(f) {
+            var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+            var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
+            return fKey !== removeKey && fLabel !== removeKey;
+          });
+        } else if (change.action === 'add') {
+          var addKey = change.field_key || change.label.toLowerCase().replace(/\s+/g, '_');
+          var exists = rsvpFields.some(function(f) { return f.field_key === addKey; });
+          if (!exists) {
+            rsvpFields.push({
+              field_key: addKey,
+              label: change.label,
+              field_type: change.field_type || 'text',
+              is_required: change.is_required || false,
+              options: change.options || null,
+              placeholder: change.placeholder || null,
+              enabled: true
+            });
+          }
+        } else if (change.action === 'modify') {
+          var modKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+          rsvpFields.forEach(function(f) {
+            var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+            if (fKey === modKey) {
+              if (change.label) f.label = change.label;
+              if (change.field_type) f.field_type = change.field_type;
+              if (change.is_required !== undefined) f.is_required = change.is_required;
+              if (change.placeholder) f.placeholder = change.placeholder;
+              if (change.options) f.options = change.options;
+            }
+          });
+        }
+      });
+      saveCustomFields();
+      if (typeof renderRsvpFields === 'function') renderRsvpFields();
+    }
+
+    // ── Instant text swap detection for "change X to Y" requests ──
+    function tryInstantTextSwap(text, hasPhotos) {
+      if (!text || hasPhotos) return null;
+      var lower = text.toLowerCase().trim();
+
+      // Match patterns like:
+      // "change X to Y", "replace X with Y", "swap X for Y", "update X to Y"
+      // "change 'send max birthday love' to 'send max birthday vibes'"
+      var patterns = [
+        /(?:change|replace|update|switch|swap)\s+(?:the\s+)?(?:text\s+)?(?:"([^"]+)"|'([^']+)'|(?:from\s+)?(.+?))\s+(?:to|with|for|into)\s+(?:"([^"]+)"|'([^']+)'|(.+?))\s*$/i,
+      ];
+
+      for (var i = 0; i < patterns.length; i++) {
+        var m = text.match(patterns[i]);
+        if (m) {
+          var oldText = (m[1] || m[2] || m[3] || '').trim();
+          var newText = (m[4] || m[5] || m[6] || '').trim();
+          if (!oldText || !newText || oldText.length < 2 || newText.length < 2) continue;
+          // Don't match if these look like design instructions (colors, fonts, styles)
+          var combined = (oldText + ' ' + newText).toLowerCase();
+          var designWords = ['color', 'colour', 'font', 'background', 'theme', 'style', 'layout', 'animation', 'dark', 'light', 'bold', 'italic', 'gradient', 'shadow', 'minimalist', 'maximalist', 'elegant', 'modern', 'vintage'];
+          var isDesign = designWords.some(function(w) { return combined.indexOf(w) !== -1; });
+          if (isDesign) continue;
+
+          return { oldText: oldText, newText: newText };
+        }
+      }
+      return null;
     }
 
     function renderDesignChat() {
@@ -3187,6 +3670,102 @@
       var sendBtn = document.getElementById('designChatSendBtn');
       sendBtn.disabled = true;
 
+      // ── TIER 1: Instant client-side RSVP field changes (no AI call) ──
+      var rsvpFieldResult = tryInstantRsvpFieldChange(text, hasPhotos);
+      if (rsvpFieldResult && rsvpFieldResult.action !== 'add_async' && rsvpFieldResult.action !== 'mixed') {
+        console.log('[tweak] INSTANT field change:', rsvpFieldResult.action);
+        applyRsvpFieldChanges(rsvpFieldResult.changes);
+        renderPreview(themeVersions[activeVersionIndex]);
+        designChatHistory.push({ role: 'assistant', content: rsvpFieldResult.chatResponse + '\n\nWant to make any more changes?' });
+        clearDesignChatPhoto();
+        sendBtn.disabled = false;
+        renderDesignChat();
+        return;
+      }
+
+      // ── TIER 1.5: Quick AI field interpretation for "add" requests (~1s) ──
+      // Also handles "mixed" (sync remove/modify + async add in same message)
+      if (rsvpFieldResult && (rsvpFieldResult.action === 'add_async' || rsvpFieldResult.action === 'mixed')) {
+        // Apply any sync changes first (e.g. removes)
+        if (rsvpFieldResult.action === 'mixed' && rsvpFieldResult.syncChanges) {
+          console.log('[tweak] Applying sync changes from mixed command:', rsvpFieldResult.syncChanges);
+          applyRsvpFieldChanges(rsvpFieldResult.syncChanges);
+          renderPreview(themeVersions[activeVersionIndex]);
+        }
+        var addMsg = rsvpFieldResult.action === 'mixed' ? rsvpFieldResult.addAsync.userMessage : rsvpFieldResult.userMessage;
+        var syncNote = rsvpFieldResult.action === 'mixed' ? rsvpFieldResult.syncResponse + ' ' : '';
+        console.log('[tweak] Quick AI field interpretation for:', addMsg);
+        try {
+          var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
+          var interpretRes = await authFetch('/api/v2/generate-theme?action=interpretField', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userMessage: addMsg,
+              existingFields: enabledFields.map(function(f) { return { label: f.label, field_key: f.field_key }; })
+            })
+          });
+          if (interpretRes.ok) {
+            var interpretData = await interpretRes.json();
+            if (interpretData.success && interpretData.field) {
+              var f = interpretData.field;
+              var exists = enabledFields.some(function(ef) {
+                return (ef.field_key || '').toLowerCase() === (f.field_key || '').toLowerCase();
+              });
+              if (!exists) {
+                applyRsvpFieldChanges([{ action: 'add', field_key: f.field_key, label: f.label, field_type: f.field_type || 'text', is_required: f.is_required || false, placeholder: f.placeholder || null }]);
+                renderPreview(themeVersions[activeVersionIndex]);
+                designChatHistory.push({ role: 'assistant', content: 'Done! ' + syncNote + 'Added a "' + f.label + '" field to your RSVP form.\n\nWant to make any more changes?' });
+              } else {
+                designChatHistory.push({ role: 'assistant', content: syncNote + 'That field already exists in your RSVP form!\n\nWant to make any other changes?' });
+              }
+              clearDesignChatPhoto();
+              sendBtn.disabled = false;
+              renderDesignChat();
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('[tweak] interpretField error:', err);
+        }
+        // If interpretation failed but we had sync changes, still report those
+        if (rsvpFieldResult.action === 'mixed' && syncNote) {
+          designChatHistory.push({ role: 'assistant', content: syncNote + 'I couldn\'t figure out the field to add though — could you try rephrasing that part?\n\nWant to make any more changes?' });
+          clearDesignChatPhoto();
+          sendBtn.disabled = false;
+          renderDesignChat();
+          return;
+        }
+        // Full fallthrough to AI tweak
+      }
+
+      // ── TIER 1.75: Instant text swap for "change X to Y" requests ──
+      var textSwap = tryInstantTextSwap(text, hasPhotos);
+      if (textSwap) {
+        var ver = themeVersions[activeVersionIndex];
+        if (ver && ver.html) {
+          // Case-insensitive search in the HTML
+          var htmlLower = ver.html.toLowerCase();
+          var searchLower = textSwap.oldText.toLowerCase();
+          var idx = htmlLower.indexOf(searchLower);
+          if (idx !== -1) {
+            // Preserve the case structure: replace the exact substring found
+            var originalSubstr = ver.html.substring(idx, idx + textSwap.oldText.length);
+            ver.html = ver.html.substring(0, idx) + textSwap.newText + ver.html.substring(idx + originalSubstr.length);
+            themeVersions[activeVersionIndex] = ver;
+            renderPreview(ver);
+            designChatHistory.push({ role: 'assistant', content: 'Done! Changed "' + originalSubstr + '" to "' + textSwap.newText + '".\n\nWant to make any more changes?' });
+            clearDesignChatPhoto();
+            sendBtn.disabled = false;
+            renderDesignChat();
+            return;
+          }
+          // Text not found — fall through to AI (it might be in CSS or need more context)
+          console.log('[tweak] Text swap: "' + textSwap.oldText + '" not found in HTML, falling through to AI');
+        }
+      }
+
+      // ── TIER 2 & 3: AI-powered tweaks (text-only via Haiku or design via Sonnet) ──
       // Add thinking message with cycling puns
       var tweakPuns = [
         "RSVPerfecting your design...",
@@ -3205,17 +3784,27 @@
       ];
       var shuffledTweakPuns = tweakPuns.sort(function() { return Math.random() - 0.5; });
       var tweakPunIdx = 0;
-      designChatHistory.push({ role: 'system', content: shuffledTweakPuns[0], progress: 5 });
+      var tweakProgress = 5;
+      designChatHistory.push({ role: 'system', content: shuffledTweakPuns[0], progress: tweakProgress });
       renderDesignChat();
       var tweakPunInterval = setInterval(function() {
         tweakPunIdx = (tweakPunIdx + 1) % shuffledTweakPuns.length;
+        // Increment progress bar — fast ramp then slow crawl, cap at 92%
+        if (tweakProgress < 40) tweakProgress += 12;
+        else if (tweakProgress < 70) tweakProgress += 8;
+        else if (tweakProgress < 92) tweakProgress += 3;
         var sysMsg = designChatHistory.find(function(m) { return m.role === 'system'; });
         if (sysMsg) {
           sysMsg.content = shuffledTweakPuns[tweakPunIdx];
+          sysMsg.progress = tweakProgress;
+          // Update pun text with fade
           var el = document.querySelector('.design-chat-loading span:last-child');
           if (el) { el.style.opacity = '0'; setTimeout(function() { el.textContent = shuffledTweakPuns[tweakPunIdx]; el.style.opacity = '1'; }, 200); }
+          // Update progress bar directly (avoid full re-render)
+          var bar = document.querySelector('.design-chat-progress-bar');
+          if (bar) bar.style.width = tweakProgress + '%';
         }
-      }, 3000);
+      }, 2000);
 
       var ver = themeVersions[activeVersionIndex];
       try {
@@ -3242,7 +3831,7 @@
             dressCode: extractedData.dressCode || '',
             eventType: extractedData.eventType || 'other'
           },
-          rsvpFields: enabledFields.map(function(f) { return { label: f.label, field_type: f.field_type, is_required: f.is_required }; })
+          rsvpFields: enabledFields.map(function(f) { return { field_key: f.field_key, label: f.label, field_type: f.field_type, is_required: f.is_required }; })
         };
 
         // Use streaming SSE to avoid timeouts
@@ -3263,63 +3852,37 @@
             designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change' + (errText ? ': ' + errText : '') + '. Could you try rephrasing?' });
           }
         } else {
-          // Read the SSE stream
-          var reader = sseRes.body.getReader();
-          var decoder = new TextDecoder();
-          var sseBuffer = '';
+          // Read full response as text (avoids ReadableStream which Safari kills on mobile)
+          console.log('[tweak] Reading full response text...');
+          var tweakFullText = await sseRes.text();
+          console.log('[tweak] Response received:', tweakFullText.length, 'bytes');
+
+          // Parse SSE events from the full text
           var tweakResult = null;
           var tweakError = null;
-
-          while (true) {
-            var chunk = await reader.read();
-            if (chunk.done) break;
-            sseBuffer += decoder.decode(chunk.value, { stream: true });
-
-            // Parse SSE events from buffer
-            var lines = sseBuffer.split('\n');
-            sseBuffer = lines.pop() || ''; // keep incomplete line in buffer
-            var sseEventType = null;
-            for (var li = 0; li < lines.length; li++) {
-              var line = lines[li];
-              if (line.startsWith('event: ')) sseEventType = line.substring(7).trim();
-              else if (line.startsWith('data: ') && sseEventType) {
-                try {
-                  var eventData = JSON.parse(line.substring(6));
-                  if (sseEventType === 'progress') {
-                    // Update progress bar based on bytes received (estimate ~15KB for a theme)
-                    var estimatedTotal = 15000;
-                    var pct = Math.min(90, Math.round((eventData.bytes / estimatedTotal) * 90));
-                    var sysMsg3 = designChatHistory.find(function(m) { return m.role === 'system'; });
-                    if (sysMsg3) {
-                      sysMsg3.progress = pct;
-                      var bar = document.querySelector('.design-chat-progress-bar');
-                      if (bar) bar.style.width = pct + '%';
-                    }
-                  } else if (sseEventType === 'status' && eventData.phase === 'saving') {
-                    // Update the loading message to show we're almost done
-                    var sysMsg2 = designChatHistory.find(function(m) { return m.role === 'system'; });
-                    if (sysMsg2) {
-                      sysMsg2.content = 'Almost done — saving your new design...';
-                      sysMsg2.progress = 95;
-                      var el2 = document.querySelector('.design-chat-loading span:last-child');
-                      if (el2) el2.textContent = 'Almost done — saving your new design...';
-                      var bar2 = document.querySelector('.design-chat-progress-bar');
-                      if (bar2) bar2.style.width = '95%';
-                    }
-                  } else if (sseEventType === 'done') {
-                    tweakResult = eventData;
-                  } else if (sseEventType === 'error') {
-                    tweakError = eventData;
-                  }
-                } catch(pe) {}
-                sseEventType = null;
-              }
+          var tweakEventType = null;
+          var tweakLines = tweakFullText.split('\n');
+          for (var li = 0; li < tweakLines.length; li++) {
+            var line = tweakLines[li];
+            if (line.startsWith('event: ')) tweakEventType = line.substring(7).trim();
+            else if (line.startsWith('data: ') && tweakEventType) {
+              try {
+                var eventData = JSON.parse(line.substring(6));
+                if (tweakEventType === 'done') {
+                  tweakResult = eventData;
+                } else if (tweakEventType === 'error') {
+                  tweakError = eventData;
+                }
+              } catch(pe) {}
+              tweakEventType = null;
             }
           }
 
           // Stop pun cycling and remove thinking message
           clearInterval(tweakPunInterval);
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
+
+          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11k');
 
           if (tweakResult && tweakResult.success) {
             var newVer = { id: tweakResult.theme.id, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
@@ -3328,20 +3891,47 @@
             currentEvent.themeHtml = newVer.html;
             currentEvent.themeCss = newVer.css;
             currentEvent.themeConfig = newVer.config;
+
+            // Apply RSVP field changes if the AI returned any
+            var fieldChanges = tweakResult.rsvpFieldChanges || tweakResult.rsvp_field_changes;
+            if (fieldChanges && Array.isArray(fieldChanges) && fieldChanges.length > 0) {
+              applyRsvpFieldChanges(fieldChanges);
+            }
+
             renderPreview(newVer);
             renderVersionGallery();
+            // Update sessionStorage cache
+            try { if (currentEvent) sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
             var chatMsg = (tweakResult.chatResponse || tweakResult.chat_response || 'Done! I\'ve updated the design. Take a look at the preview.') + '\n\nWant to make any more changes?';
             designChatHistory.push({ role: 'assistant', content: chatMsg });
           } else if (tweakError) {
             designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change: ' + (tweakError.message || tweakError.error || 'Unknown error') + '. Could you try rephrasing?' });
           } else {
-            designChatHistory.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
+            // Debug: show what we actually received so we can diagnose
+            var debugInfo = 'Status: ' + sseRes.status + ' | Bytes: ' + tweakFullText.length + ' | Lines: ' + tweakLines.length;
+            var hasEventLines = tweakLines.filter(function(l) { return l.startsWith('event:'); }).length;
+            var hasDataLines = tweakLines.filter(function(l) { return l.startsWith('data:'); }).length;
+            debugInfo += ' | Events: ' + hasEventLines + ' | Data: ' + hasDataLines;
+            // Check if we got a JSON error response instead of SSE
+            if (tweakFullText.startsWith('{')) {
+              try {
+                var jsonResp = JSON.parse(tweakFullText);
+                var jsonErr = jsonResp.error || jsonResp.message || JSON.stringify(jsonResp).substring(0, 200);
+                designChatHistory.push({ role: 'assistant', content: 'Error: ' + jsonErr });
+              } catch(e) {
+                designChatHistory.push({ role: 'assistant', content: 'Something went wrong (no result in response).\n\nDebug: ' + debugInfo + '\nFirst 200 chars: ' + tweakFullText.substring(0, 200) });
+              }
+            } else {
+              designChatHistory.push({ role: 'assistant', content: 'Something went wrong (no result in response).\n\nDebug: ' + debugInfo + '\nFirst 200 chars: ' + tweakFullText.substring(0, 200) });
+            }
+            console.error('[tweak] No result found. Debug:', debugInfo, 'Full text:', tweakFullText.substring(0, 1000));
           }
         }
       } catch (err) {
+        console.error('[tweak] CATCH error:', err, err.stack);
         clearInterval(tweakPunInterval);
         designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
-        designChatHistory.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
+        designChatHistory.push({ role: 'assistant', content: 'Connection error: ' + (err.message || 'Unknown') + '. This usually means the request timed out or was interrupted. Try again!' });
       }
 
       clearDesignChatPhoto();
@@ -3782,6 +4372,178 @@
     function formatEventType(type) {
       var map = { birthday: 'Birthday', wedding: 'Wedding', babyShower: 'Baby Shower', graduation: 'Graduation', dinnerParty: 'Dinner Party', holiday: 'Holiday Party', corporate: 'Corporate Event', other: 'Other' };
       return map[type] || type;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // HOST THEME RATING
+    // ════════════════════════════════════════════════════════════
+    var hostRatingsByTheme = {}; // themeId → {rating, feedback}
+    var hostFingerprint = 'fp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+    function starSvg() {
+      return '<svg viewBox="0 0 24 24"><path class="star-fill" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
+    }
+
+    function showThemeRating(themeId) {
+      var widget = document.getElementById('themeRatingWidget');
+      var starsContainer = document.getElementById('themeRatingStars');
+      var thanks = document.getElementById('themeRatingThanks');
+
+      widget.style.display = 'flex';
+      thanks.style.display = 'none';
+
+      var existing = hostRatingsByTheme[themeId];
+      var currentRating = existing ? existing.rating : 0;
+
+      starsContainer.innerHTML = '';
+      for (var i = 1; i <= 5; i++) {
+        var btn = document.createElement('button');
+        btn.className = 'star' + (i <= currentRating ? ' active' : '');
+        btn.innerHTML = starSvg();
+        btn.dataset.value = i;
+        btn.dataset.themeId = themeId;
+        btn.onclick = function() { handleStarClick(this.dataset.themeId, parseInt(this.dataset.value)); };
+        btn.onmouseenter = function() { previewStars(starsContainer, parseInt(this.dataset.value)); }.bind(btn);
+        btn.onmouseleave = function() { clearStarPreview(starsContainer, currentRating); };
+        starsContainer.appendChild(btn);
+      }
+
+      if (existing) {
+        thanks.textContent = existing.rating === 5 ? 'Thanks!' : 'Rated ' + existing.rating + '/5';
+        thanks.style.display = 'inline';
+      }
+    }
+
+    function previewStars(container, upTo) {
+      container.querySelectorAll('.star').forEach(function(s) {
+        var val = parseInt(s.dataset.value);
+        s.classList.toggle('hover-preview', val <= upTo && !s.classList.contains('active'));
+      });
+    }
+
+    function clearStarPreview(container) {
+      container.querySelectorAll('.star').forEach(function(s) { s.classList.remove('hover-preview'); });
+    }
+
+    function handleStarClick(themeId, rating) {
+      hostRatingsByTheme[themeId] = { rating: rating, feedback: '' };
+
+      // Update stars UI immediately
+      var starsContainer = document.getElementById('themeRatingStars');
+      starsContainer.querySelectorAll('.star').forEach(function(s) {
+        s.classList.toggle('active', parseInt(s.dataset.value) <= rating);
+        s.classList.remove('hover-preview');
+      });
+
+      if (rating < 5) {
+        showRatingFeedbackModal(themeId, rating);
+      } else {
+        // 5 stars — just save it with a thanks
+        submitHostRating(themeId, rating, '');
+        var thanks = document.getElementById('themeRatingThanks');
+        thanks.textContent = 'Thanks! Glad you love it!';
+        thanks.style.display = 'inline';
+      }
+    }
+
+    function showRatingFeedbackModal(themeId, rating) {
+      var ratingLabels = { 1: 'Not great', 2: 'Needs work', 3: 'Decent', 4: 'Almost there' };
+      var label = ratingLabels[rating] || '';
+
+      // Quick-tap feedback chips based on rating
+      var chips = [];
+      if (rating <= 2) {
+        chips = ['Text too large', 'Wrong colors', 'Looks broken', 'Not my style', 'Hard to read', 'Too plain'];
+      } else {
+        chips = ['Colors off', 'Layout tweaks', 'Font change', 'More detail', 'Different vibe', 'Almost perfect'];
+      }
+
+      var starsHtml = '';
+      for (var i = 1; i <= 5; i++) {
+        starsHtml += '<button class="star' + (i <= rating ? ' active' : '') + '" style="pointer-events:none;">' + starSvg() + '</button>';
+      }
+
+      var chipsHtml = chips.map(function(c) {
+        return '<button class="chip" onclick="toggleFeedbackChip(this)">' + c + '</button>';
+      }).join('');
+
+      var overlay = document.createElement('div');
+      overlay.className = 'rating-feedback-overlay';
+      overlay.id = 'ratingFeedbackOverlay';
+      overlay.innerHTML = '<div class="rating-feedback-modal">'
+        + '<h3>' + label + '</h3>'
+        + '<div class="feedback-stars">' + starsHtml + '</div>'
+        + '<p class="rating-subtitle">What could be better?</p>'
+        + '<div class="rating-feedback-chips" id="feedbackChips">' + chipsHtml + '</div>'
+        + '<textarea id="ratingFeedbackText" placeholder="Tell us more (optional)..."></textarea>'
+        + '<div class="tweak-hint">'
+        + '<p>You can <strong>tweak this design</strong> using the Design chat! Just describe what you want changed and we\'ll update it instantly.</p>'
+        + '</div>'
+        + '<div class="rating-feedback-actions">'
+        + '<button class="btn btn-secondary btn-sm" onclick="closeRatingFeedback(\'' + themeId + '\', ' + rating + ', false)">Skip</button>'
+        + '<button class="btn btn-primary btn-sm" onclick="closeRatingFeedback(\'' + themeId + '\', ' + rating + ', true)">Submit & Tweak</button>'
+        + '</div>'
+        + '</div>';
+      document.body.appendChild(overlay);
+
+      // Click outside to close
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeRatingFeedback(themeId, rating, false);
+      });
+    }
+
+    function toggleFeedbackChip(el) {
+      el.classList.toggle('selected');
+    }
+
+    function closeRatingFeedback(themeId, rating, focusChat) {
+      var overlay = document.getElementById('ratingFeedbackOverlay');
+      if (!overlay) return;
+
+      // Collect feedback from chips + textarea
+      var selectedChips = [];
+      overlay.querySelectorAll('.chip.selected').forEach(function(c) { selectedChips.push(c.textContent); });
+      var textFeedback = (document.getElementById('ratingFeedbackText')?.value || '').trim();
+      var fullFeedback = selectedChips.concat(textFeedback ? [textFeedback] : []).join('; ');
+
+      hostRatingsByTheme[themeId] = { rating: rating, feedback: fullFeedback };
+      submitHostRating(themeId, rating, fullFeedback);
+
+      overlay.remove();
+
+      var thanks = document.getElementById('themeRatingThanks');
+      thanks.textContent = 'Feedback saved! Try the Design chat to tweak it.';
+      thanks.style.display = 'inline';
+
+      // Focus the design chat input if user clicked "Submit & Tweak"
+      if (focusChat) {
+        switchTab('design');
+        var chatInput = document.getElementById('designChatInput');
+        if (chatInput) {
+          chatInput.focus();
+          // Pre-fill with their feedback as a starting point
+          if (fullFeedback && !chatInput.value) {
+            chatInput.value = 'Can you fix: ' + fullFeedback.toLowerCase();
+            autoResizeTextarea(chatInput);
+          }
+        }
+      }
+    }
+
+    function submitHostRating(themeId, rating, feedback) {
+      if (!currentEvent) return;
+      fetch('/api/v2/ratings?action=submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: currentEvent.id,
+          eventThemeId: themeId,
+          rating: rating,
+          feedback: feedback,
+          raterType: 'host',
+          fingerprint: hostFingerprint
+        })
+      }).catch(function() {});
     }
 
     function showMessage(text, type) {
