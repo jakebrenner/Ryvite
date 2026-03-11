@@ -2330,13 +2330,29 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       // Style library rating
       var styleId = ratingEl.dataset.styleId;
       if (styleId) {
-        var label = document.getElementById('styleStarLabel_' + styleId);
-        if (label) label.textContent = STAR_LABELS[score] || '';
+        // Update grid card label
+        var gridLabel = document.getElementById('styleStarLabel_' + styleId);
+        if (gridLabel) gridLabel.textContent = STAR_LABELS[score] || '';
+        // Update detail modal label if this is the detail modal's stars
+        if (ratingEl.dataset.detailModal) {
+          var detailLabel = document.getElementById('styleDetailStarLabel');
+          if (detailLabel) detailLabel.textContent = STAR_LABELS[score] || '';
+        }
         // Update local data
         var item = styleLibrary.find(function(s) { return s.id === styleId; });
-        if (item) item.adminRating = score;
+        if (item) {
+          item.adminRating = score;
+          item.ratedBy = (user && user.email) || '';
+          item.ratedAt = new Date().toISOString();
+        }
         // Save to API
-        adminFetch('rateStyle', { method: 'POST', body: { styleId: styleId, rating: score } }).catch(function(err) {
+        adminFetch('rateStyle', { method: 'POST', body: { styleId: styleId, rating: score } }).then(function() {
+          // Lock stars after saving and update grid
+          ratingEl.classList.add('locked');
+          var detailLabel = document.getElementById('styleDetailStarLabel');
+          if (detailLabel) detailLabel.textContent = STAR_LABELS[score] + ' (yours)';
+          renderStyleGrid();
+        }).catch(function(err) {
           console.error('Failed to save style rating:', err);
         });
         return;
@@ -2701,13 +2717,13 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       var starsEl = document.getElementById('styleDetailStars');
       starsEl.innerHTML = buildStarHtml(rating);
       starsEl.dataset.styleId = styleId;
+      starsEl.dataset.detailModal = 'true';
       if (userAlreadyRated) {
         starsEl.classList.add('locked');
         document.getElementById('styleDetailStarLabel').textContent = STAR_LABELS[rating] + ' (yours)';
       } else {
         starsEl.classList.remove('locked');
         document.getElementById('styleDetailStarLabel').textContent = rating ? STAR_LABELS[rating] : 'Not yet rated';
-        document.getElementById('styleDetailStarLabel').id = 'styleStarLabel_' + styleId;
       }
 
       // Detail rows
@@ -2750,6 +2766,10 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         archBtn.style.color = '';
       }
 
+      // Reset edit mode
+      document.getElementById('styleDetailEditForm').style.display = 'none';
+      document.getElementById('styleDetailActions').style.display = 'flex';
+
       // Show overlay
       document.getElementById('styleDetailOverlay').classList.add('open');
 
@@ -2766,7 +2786,70 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
     function closeStyleDetailView() {
       document.getElementById('styleDetailOverlay').classList.remove('open');
+      // Reset edit mode if open
+      document.getElementById('styleDetailEditForm').style.display = 'none';
+      document.getElementById('styleDetailActions').style.display = 'flex';
       styleDetailCurrentId = null;
+    }
+
+    function toggleDetailEditMode() {
+      var form = document.getElementById('styleDetailEditForm');
+      var actions = document.getElementById('styleDetailActions');
+      var isEditing = form.style.display !== 'none';
+      if (isEditing) {
+        form.style.display = 'none';
+        actions.style.display = 'flex';
+        return;
+      }
+      // Populate form fields from current item
+      var item = styleLibrary.find(function(s) { return s.id === styleDetailCurrentId; });
+      if (!item) return;
+      document.getElementById('styleDetailEditName').value = item.name || '';
+      document.getElementById('styleDetailEditDescription').value = item.description || '';
+      document.getElementById('styleDetailEditDesignNotes').value = item.designNotes || '';
+      document.getElementById('styleDetailEditTags').value = (item.tags || []).join(', ');
+      // Render event type checkboxes
+      var etContainer = document.getElementById('styleDetailEditEventTypes');
+      var selectedTypes = item.eventTypes || [];
+      etContainer.innerHTML = ALL_EVENT_TYPES.map(function(et) {
+        var checked = selectedTypes.indexOf(et.value) !== -1 ? 'checked' : '';
+        return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;background:#f5f5f5;border-radius:4px;cursor:pointer;"><input type="checkbox" value="' + et.value + '" ' + checked + ' class="detail-edit-et-cb"> ' + et.label + '</label>';
+      }).join('');
+      form.style.display = 'block';
+      actions.style.display = 'none';
+    }
+
+    async function saveDetailEdit() {
+      var item = styleLibrary.find(function(s) { return s.id === styleDetailCurrentId; });
+      if (!item) return;
+      var name = document.getElementById('styleDetailEditName').value.trim();
+      if (!name) { alert('Name is required.'); return; }
+      var selectedEts = [];
+      document.querySelectorAll('#styleDetailEditEventTypes .detail-edit-et-cb:checked').forEach(function(cb) { selectedEts.push(cb.value); });
+      var tags = document.getElementById('styleDetailEditTags').value.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+      try {
+        var res = await adminFetch('saveStyleItem', {
+          method: 'POST',
+          body: {
+            id: styleDetailCurrentId,
+            name: name,
+            description: document.getElementById('styleDetailEditDescription').value.trim(),
+            html: item.html,
+            tags: tags,
+            eventTypes: selectedEts,
+            designNotes: document.getElementById('styleDetailEditDesignNotes').value.trim()
+          }
+        });
+        styleLibrary = res.library || [];
+        renderStyleGrid();
+        renderStyleCheckboxes();
+        updateStyleCount();
+        updateFilterUI();
+        // Re-open detail view with updated data
+        openStyleDetailView(styleDetailCurrentId);
+      } catch (err) {
+        alert('Failed to save: ' + err.message);
+      }
     }
 
     async function archiveStyleItem(styleId) {
@@ -3669,10 +3752,42 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           <div id="styleDetailTags" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
         </div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-secondary" onclick="editStyleItem(styleDetailCurrentId); closeStyleDetailView();">Edit</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="styleDetailActions">
+          <button class="btn btn-secondary" onclick="toggleDetailEditMode()">Edit</button>
           <button class="btn btn-secondary" id="styleDetailArchiveBtn" onclick="archiveStyleItem(styleDetailCurrentId)">Archive</button>
           <button class="btn btn-secondary" style="color:var(--party-coral);" onclick="if(confirm('Delete this style?')){deleteStyleItem(styleDetailCurrentId);closeStyleDetailView();}">Delete</button>
+        </div>
+
+        <div id="styleDetailEditForm" style="display:none;">
+          <div class="detail-section">
+            <h4>Edit Style</h4>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px;">Name</label>
+                <input type="text" id="styleDetailEditName" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px;">Description</label>
+                <input type="text" id="styleDetailEditDescription" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px;">Event Types</label>
+                <div id="styleDetailEditEventTypes" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px;">Design Notes</label>
+                <textarea id="styleDetailEditDesignNotes" rows="4" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;resize:vertical;"></textarea>
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px;">Tags (comma-separated)</label>
+                <input type="text" id="styleDetailEditTags" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="saveDetailEdit()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="toggleDetailEditMode()">Cancel</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
