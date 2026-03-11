@@ -669,7 +669,7 @@ export default async function handler(req, res) {
     ];
     const isLightTweak = !hasPhotos && !designKeywords.some(kw => lowerInstructions.includes(kw));
     const tweakModel = isLightTweak ? 'claude-haiku-4-5-20251001' : themeModel;
-    const tweakMaxTokens = isLightTweak ? 8192 : 16384;
+    const tweakMaxTokens = isLightTweak ? 4096 : 16384;
     console.log(`[tweak] Classified as ${isLightTweak ? 'LIGHT' : 'DESIGN'} tweak, using model: ${tweakModel}`);
 
     // Set up SSE headers
@@ -698,7 +698,36 @@ export default async function handler(req, res) {
         eventContext += `\n**Current RSVP Fields (these are rendered dynamically by the platform, NOT in the HTML):**\n${rsvpFields.map(f => `- "${f.label}" (key: ${f.field_key || f.label.toLowerCase().replace(/\s+/g, '_')}, type: ${f.field_type}${f.is_required ? ', required' : ''})`).join('\n')}\n`;
       }
 
-      let tweakMessage = `Here is an existing invite theme. The user is using the chat designer to modify their invite.
+      let tweakMessage;
+
+      if (isLightTweak) {
+        // ── LIGHT TWEAK: diff-based approach (much smaller output) ──
+        tweakMessage = `Here is an invite theme. The user wants a small text/content change.
+${eventContext}
+**Current HTML:**
+\`\`\`html
+${currentHtml}
+\`\`\`
+
+**User's request:** ${tweakInstructions}
+
+Return a JSON object with ONLY the changes needed:
+{
+  "html_replacements": [{"old": "exact text to find", "new": "replacement text"}],
+  "rsvp_field_changes": [...] or null,
+  "chat_response": "Brief friendly message about what you changed"
+}
+
+Rules:
+- "old" must be an EXACT substring from the current HTML (copy-paste it precisely, including tags)
+- "new" is the replacement string
+- For RSVP field changes: { "action": "remove"|"add"|"modify", "field_key": "...", "label": "...", "field_type": "text"|"number"|"select"|"checkbox"|"textarea", "is_required": false }
+- RSVP fields are rendered by the platform, NOT in the HTML. Do NOT add form inputs to html_replacements.
+- .rsvp-slot MUST contain ONLY a <button class="rsvp-button">
+- Preserve all data-field attributes`;
+      } else {
+        // ── DESIGN TWEAK: full regeneration ──
+        tweakMessage = `Here is an existing invite theme. The user is using the chat designer to modify their invite.
 ${eventContext}
 **Current HTML:**
 \`\`\`html
@@ -720,20 +749,20 @@ ${tweakInstructions}
 
 IMPORTANT: The .rsvp-slot div must contain ONLY a <button class="rsvp-button"> — the platform injects the real RSVP form at runtime. Do NOT add any form inputs, selects, textareas, or labels inside .rsvp-slot.`;
 
-      // Handle multiple photos (new) or single photo (legacy)
-      const allPhotoUrls = photoUrls?.length > 0 ? photoUrls : (photoUrl ? [photoUrl] : []);
-      if (allPhotoUrls.length > 0) {
-        tweakMessage += `\n\nThe user has uploaded ${allPhotoUrls.length} photo(s) they want incorporated into the design. Use these EXACT URLs in <img> tags:\n${allPhotoUrls.map((url, i) => `Photo ${i + 1}: ${url}`).join('\n')}\nPlace the photos prominently in the design where they make sense. Style with appropriate sizing (max-width: 100%), border-radius, and any CSS that fits the theme. For multiple photos, consider a creative layout (row, grid, overlapping, staggered).`;
-      } else if (photoBase64) {
-        tweakMessage += `\n\nThe user has also provided a photo they want incorporated into the design. Use this image as an inline base64 data URI in an <img> tag where it makes sense for the design.`;
-      }
+        // Handle multiple photos (new) or single photo (legacy)
+        const allPhotoUrls = photoUrls?.length > 0 ? photoUrls : (photoUrl ? [photoUrl] : []);
+        if (allPhotoUrls.length > 0) {
+          tweakMessage += `\n\nThe user has uploaded ${allPhotoUrls.length} photo(s) they want incorporated into the design. Use these EXACT URLs in <img> tags:\n${allPhotoUrls.map((url, i) => `Photo ${i + 1}: ${url}`).join('\n')}\nPlace the photos prominently in the design where they make sense. Style with appropriate sizing (max-width: 100%), border-radius, and any CSS that fits the theme. For multiple photos, consider a creative layout (row, grid, overlapping, staggered).`;
+        } else if (photoBase64) {
+          tweakMessage += `\n\nThe user has also provided a photo they want incorporated into the design. Use this image as an inline base64 data URI in an <img> tag where it makes sense for the design.`;
+        }
 
-      const existingThankyou = currentConfig?.thankyouHtml || '';
-      if (existingThankyou) {
-        tweakMessage += `\n\n**Current Thank You Page HTML:**\n\`\`\`html\n${existingThankyou}\n\`\`\`\nIf your changes affect the visual style (colors, fonts, spacing, backgrounds), update the thank you page to match. If the change is content-only (e.g., changing text, adding an element to the invite), you may set theme_thankyou_html to null to keep it unchanged.`;
-      }
+        const existingThankyou = currentConfig?.thankyouHtml || '';
+        if (existingThankyou) {
+          tweakMessage += `\n\n**Current Thank You Page HTML:**\n\`\`\`html\n${existingThankyou}\n\`\`\`\nIf your changes affect the visual style (colors, fonts, spacing, backgrounds), update the thank you page to match. If the change is content-only (e.g., changing text, adding an element to the invite), you may set theme_thankyou_html to null to keep it unchanged.`;
+        }
 
-      tweakMessage += `\n\nReturn the updated theme as a JSON object: { "theme_html": "...", "theme_css": "...", "theme_thankyou_html": "..." or null if unchanged, "theme_config": { ... }, "chat_response": "Brief friendly message about what you changed", "rsvp_field_changes": [...] or null if no RSVP field changes }. Make ONLY the changes the user requested — keep everything else exactly the same. If the thank you page doesn't need changes, set theme_thankyou_html to null.
+        tweakMessage += `\n\nReturn the updated theme as a JSON object: { "theme_html": "...", "theme_css": "...", "theme_thankyou_html": "..." or null if unchanged, "theme_config": { ... }, "chat_response": "Brief friendly message about what you changed", "rsvp_field_changes": [...] or null if no RSVP field changes }. Make ONLY the changes the user requested — keep everything else exactly the same. If the thank you page doesn't need changes, set theme_thankyou_html to null.
 
 ### RSVP Field Changes
 If the user asks to add, remove, or modify RSVP fields, include "rsvp_field_changes" — an array of operations:
@@ -745,6 +774,7 @@ If the user is NOT requesting RSVP field changes, set rsvp_field_changes to null
 Remember: RSVP fields are rendered by the platform, NOT in theme HTML. Do NOT add form inputs to the HTML — use rsvp_field_changes instead.
 
 ⚠️ CONTRAST CHECK: After making changes, verify ALL text is readable. Dark/colored backgrounds → white text (#FFFFFF). Light backgrounds → dark text (#1A1A1A). Never use accent colors as text on dark backgrounds.`;
+      }
 
       const messageContent = photoBase64 && !photoUrl
         ? [
@@ -757,18 +787,22 @@ Remember: RSVP fields are rendered by the platform, NOT in theme HTML. Do NOT ad
       sendSSE('status', { phase: 'generating', isLightTweak });
 
       const tweakSystemPrompt = isLightTweak
-        ? `You are modifying an event invite. Make ONLY the specific text, wording, or RSVP field changes requested. Keep ALL HTML structure, CSS, animations, and styling EXACTLY the same.
+        ? `You are modifying an event invite. Make ONLY the specific text, wording, or content changes requested. Do NOT change design, layout, colors, fonts, or CSS.
 
 ## OUTPUT FORMAT
 Return ONLY a valid JSON object:
-{ "theme_html": "...", "theme_css": "...", "theme_thankyou_html": null, "theme_config": { ... }, "chat_response": "Brief friendly message about what you changed.", "rsvp_field_changes": [...] or null }
+{
+  "html_replacements": [{"old": "exact text from HTML to find", "new": "replacement text"}],
+  "rsvp_field_changes": [...] or null,
+  "chat_response": "Brief friendly message about what you changed."
+}
 
 ## RULES
-- Preserve ALL data-field attributes (data-field="title", "datetime", "location", "dresscode", "host")
-- .rsvp-slot MUST contain ONLY a <button class="rsvp-button"> — NO form inputs
-- To add/remove/modify RSVP fields, use rsvp_field_changes array: { "action": "remove"|"add"|"modify", "field_key": "...", "label": "...", "field_type": "text"|"number"|"select"|"checkbox"|"textarea", "is_required": false, "placeholder": "..." }
-- Keep theme_css EXACTLY the same unless the text change requires it
-- Set theme_thankyou_html to null (no changes needed for text-only tweaks)`
+- html_replacements: each "old" must be an exact substring copied from the current HTML. "new" is its replacement. Include enough surrounding HTML context (tags, attributes) to make matches unique.
+- If only RSVP field changes are needed and no HTML text changes, return an empty html_replacements array.
+- RSVP fields: { "action": "remove"|"add"|"modify", "field_key": "...", "label": "...", "field_type": "text"|"number"|"select"|"checkbox"|"textarea", "is_required": false }
+- .rsvp-slot MUST contain ONLY a <button class="rsvp-button"> — fields are rendered by the platform, NOT in HTML
+- Keep changes minimal — only what the user asked for`
         : `You are an elite invite designer modifying event invites via a conversational chat interface. Your modifications should maintain the extraordinary quality standard — better than Evite, Paperless Post, or Canva.
 
 ## YOUR ROLE
@@ -919,24 +953,49 @@ Return ONLY a valid JSON object with these keys:
         }
       }
 
-      // Accept both snake_case and camelCase keys from Claude
-      if (!theme.theme_html && theme.html) { theme.theme_html = theme.html; }
-      if (!theme.theme_css && theme.css) { theme.theme_css = theme.css; }
-      if (!theme.theme_config && theme.config) { theme.theme_config = theme.config; }
-      if (!theme.theme_thankyou_html && theme.thankyou_html) { theme.theme_thankyou_html = theme.thankyou_html; }
-
-      // Extract embedded CSS from HTML if missing
-      if (theme.theme_html && !theme.theme_css) {
-        const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-        if (styleMatch) {
-          theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
-          theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+      // ── Light tweak: apply diff-based html_replacements ──
+      if (isLightTweak && theme.html_replacements && Array.isArray(theme.html_replacements)) {
+        console.log(`[tweak] Applying ${theme.html_replacements.length} HTML replacement(s)`);
+        let patchedHtml = currentHtml;
+        let appliedCount = 0;
+        for (const rep of theme.html_replacements) {
+          if (rep.old && rep.new !== undefined && patchedHtml.includes(rep.old)) {
+            patchedHtml = patchedHtml.replace(rep.old, rep.new);
+            appliedCount++;
+          } else if (rep.old) {
+            console.warn('[tweak] Replacement not found in HTML:', rep.old.substring(0, 100));
+          }
         }
-      }
+        console.log(`[tweak] Applied ${appliedCount}/${theme.html_replacements.length} replacements`);
+        theme.theme_html = patchedHtml;
+        theme.theme_css = currentCss;
+        theme.theme_config = currentConfig || {};
+      } else if (isLightTweak && !theme.theme_html && !theme.html) {
+        // Light tweak with only rsvp_field_changes, no HTML changes needed
+        console.log('[tweak] Light tweak with no HTML changes (field-only)');
+        theme.theme_html = currentHtml;
+        theme.theme_css = currentCss;
+        theme.theme_config = currentConfig || {};
+      } else {
+        // ── Full tweak: accept both snake_case and camelCase keys from Claude ──
+        if (!theme.theme_html && theme.html) { theme.theme_html = theme.html; }
+        if (!theme.theme_css && theme.css) { theme.theme_css = theme.css; }
+        if (!theme.theme_config && theme.config) { theme.theme_config = theme.config; }
+        if (!theme.theme_thankyou_html && theme.thankyou_html) { theme.theme_thankyou_html = theme.thankyou_html; }
 
-      if (!theme.theme_html || !theme.theme_css) {
-        const keys = Object.keys(theme).join(', ');
-        throw new Error('Invalid tweak response — got keys: [' + keys + ']');
+        // Extract embedded CSS from HTML if missing
+        if (theme.theme_html && !theme.theme_css) {
+          const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+          if (styleMatch) {
+            theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+            theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+          }
+        }
+
+        if (!theme.theme_html || !theme.theme_css) {
+          const keys = Object.keys(theme).join(', ');
+          throw new Error('Invalid tweak response — got keys: [' + keys + ']');
+        }
       }
 
       // Merge config — use null for unchanged thank you page

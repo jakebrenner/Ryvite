@@ -3285,6 +3285,131 @@
       renderDesignChat();
     }
 
+    // ── Instant RSVP field change detection (no AI needed) ──
+    function tryInstantRsvpFieldChange(text, hasPhotos) {
+      if (!text || hasPhotos) return null;
+      var lower = text.toLowerCase().trim();
+      var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
+
+      // --- REMOVE field ---
+      var removeMatch = lower.match(/(?:remove|delete|drop|get rid of|take off|take out|hide|no more)\s+(?:the\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)?$/i);
+      if (!removeMatch) removeMatch = lower.match(/(?:remove|delete|drop|get rid of|take off|take out|hide|no more)\s+(?:the\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)?/i);
+      if (removeMatch) {
+        var searchTerm = (removeMatch[1] || removeMatch[2] || removeMatch[3] || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+        if (searchTerm) {
+          var matchedField = enabledFields.find(function(f) {
+            var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+            var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
+            return fKey === searchTerm || fLabel === searchTerm
+              || fKey.indexOf(searchTerm) !== -1 || fLabel.indexOf(searchTerm) !== -1
+              || searchTerm.indexOf(fKey) !== -1 || searchTerm.indexOf(fLabel) !== -1;
+          });
+          if (matchedField) {
+            return {
+              action: 'remove',
+              changes: [{ action: 'remove', field_key: matchedField.field_key, label: matchedField.label }],
+              chatResponse: 'Done! The "' + matchedField.label + '" field has been removed from the RSVP form.'
+            };
+          }
+        }
+      }
+
+      // --- ADD field ---
+      var addMatch = lower.match(/(?:add|include|put|create|insert)\s+(?:a\s+|an\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)\s*$/i);
+      if (!addMatch) addMatch = lower.match(/(?:add|include|put|create|insert)\s+(?:a\s+|an\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field|input|question|section|form field)/i);
+      if (addMatch) {
+        var fieldLabel = (addMatch[1] || addMatch[2] || addMatch[3] || '').trim();
+        if (fieldLabel && fieldLabel.length < 60) {
+          // Infer field type from common patterns
+          var fieldType = 'text';
+          var fieldLower = fieldLabel.toLowerCase();
+          if (/number|count|how many|quantity|amount|adults|children|kids|guests/.test(fieldLower)) fieldType = 'number';
+          else if (/message|note|comment|special request|additional info|details/.test(fieldLower)) fieldType = 'textarea';
+          else if (/email|e-mail/.test(fieldLower)) fieldType = 'email';
+          else if (/phone|mobile|cell/.test(fieldLower)) fieldType = 'phone';
+
+          var fieldKey = fieldLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+          var exists = enabledFields.some(function(f) {
+            return (f.field_key || '').toLowerCase() === fieldKey || (f.label || '').toLowerCase() === fieldLabel.toLowerCase();
+          });
+          if (!exists) {
+            // Capitalize label nicely
+            var niceLabel = fieldLabel.replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+            return {
+              action: 'add',
+              changes: [{ action: 'add', field_key: fieldKey, label: niceLabel, field_type: fieldType, is_required: false, placeholder: null }],
+              chatResponse: 'Done! I\'ve added a "' + niceLabel + '" field to your RSVP form.'
+            };
+          }
+        }
+      }
+
+      // --- MAKE REQUIRED / OPTIONAL ---
+      var reqMatch = lower.match(/(?:make|set)\s+(?:the\s+)?(?:"([^"]+)"|'([^']+)'|(.+?))\s*(?:field\s+)?(?:required|mandatory|optional)/i);
+      if (reqMatch) {
+        var reqTerm = (reqMatch[1] || reqMatch[2] || reqMatch[3] || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+        var isRequired = /required|mandatory/.test(lower);
+        var reqField = enabledFields.find(function(f) {
+          var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+          var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
+          return fKey.indexOf(reqTerm) !== -1 || fLabel.indexOf(reqTerm) !== -1 || reqTerm.indexOf(fKey) !== -1 || reqTerm.indexOf(fLabel) !== -1;
+        });
+        if (reqField) {
+          return {
+            action: 'modify',
+            changes: [{ action: 'modify', field_key: reqField.field_key, is_required: isRequired }],
+            chatResponse: 'Done! The "' + reqField.label + '" field is now ' + (isRequired ? 'required' : 'optional') + '.'
+          };
+        }
+      }
+
+      return null; // Not a pure field change — fall through to AI
+    }
+
+    // ── Apply RSVP field changes and save ──
+    function applyRsvpFieldChanges(changes) {
+      if (!changes || !Array.isArray(changes) || changes.length === 0) return;
+      console.log('[tweak] Applying RSVP field changes:', changes);
+      changes.forEach(function(change) {
+        if (change.action === 'remove') {
+          var removeKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+          rsvpFields = rsvpFields.filter(function(f) {
+            var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+            var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
+            return fKey !== removeKey && fLabel !== removeKey;
+          });
+        } else if (change.action === 'add') {
+          var addKey = change.field_key || change.label.toLowerCase().replace(/\s+/g, '_');
+          var exists = rsvpFields.some(function(f) { return f.field_key === addKey; });
+          if (!exists) {
+            rsvpFields.push({
+              field_key: addKey,
+              label: change.label,
+              field_type: change.field_type || 'text',
+              is_required: change.is_required || false,
+              options: change.options || null,
+              placeholder: change.placeholder || null,
+              enabled: true
+            });
+          }
+        } else if (change.action === 'modify') {
+          var modKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+          rsvpFields.forEach(function(f) {
+            var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
+            if (fKey === modKey) {
+              if (change.label) f.label = change.label;
+              if (change.field_type) f.field_type = change.field_type;
+              if (change.is_required !== undefined) f.is_required = change.is_required;
+              if (change.placeholder) f.placeholder = change.placeholder;
+              if (change.options) f.options = change.options;
+            }
+          });
+        }
+      });
+      saveCustomFields();
+      if (typeof renderRsvpFields === 'function') renderRsvpFields();
+    }
+
     function renderDesignChat() {
       var container = document.getElementById('designChatMessages');
       container.innerHTML = designChatHistory.map(function(msg) {
@@ -3494,6 +3619,20 @@
       var sendBtn = document.getElementById('designChatSendBtn');
       sendBtn.disabled = true;
 
+      // ── TIER 1: Instant client-side RSVP field changes (no AI call) ──
+      var rsvpFieldResult = tryInstantRsvpFieldChange(text, hasPhotos);
+      if (rsvpFieldResult) {
+        console.log('[tweak] INSTANT field change:', rsvpFieldResult.action);
+        applyRsvpFieldChanges(rsvpFieldResult.changes);
+        renderPreview(themeVersions[activeVersionIndex]);
+        designChatHistory.push({ role: 'assistant', content: rsvpFieldResult.chatResponse + '\n\nWant to make any more changes?' });
+        clearDesignChatPhoto();
+        sendBtn.disabled = false;
+        renderDesignChat();
+        return;
+      }
+
+      // ── TIER 2 & 3: AI-powered tweaks (text-only via Haiku or design via Sonnet) ──
       // Add thinking message with cycling puns
       var tweakPuns = [
         "RSVPerfecting your design...",
@@ -3559,7 +3698,7 @@
             dressCode: extractedData.dressCode || '',
             eventType: extractedData.eventType || 'other'
           },
-          rsvpFields: enabledFields.map(function(f) { return { label: f.label, field_type: f.field_type, is_required: f.is_required }; })
+          rsvpFields: enabledFields.map(function(f) { return { field_key: f.field_key, label: f.label, field_type: f.field_type, is_required: f.is_required }; })
         };
 
         // Use streaming SSE to avoid timeouts
@@ -3610,7 +3749,7 @@
           clearInterval(tweakPunInterval);
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
 
-          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11h');
+          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11i');
 
           if (tweakResult && tweakResult.success) {
             var newVer = { id: tweakResult.theme.id, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
@@ -3623,49 +3762,7 @@
             // Apply RSVP field changes if the AI returned any
             var fieldChanges = tweakResult.rsvpFieldChanges || tweakResult.rsvp_field_changes;
             if (fieldChanges && Array.isArray(fieldChanges) && fieldChanges.length > 0) {
-              console.log('[tweak] Applying RSVP field changes:', fieldChanges);
-              fieldChanges.forEach(function(change) {
-                if (change.action === 'remove') {
-                  // Remove field by field_key (fuzzy match: lowercase, strip spaces/underscores)
-                  var removeKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
-                  rsvpFields = rsvpFields.filter(function(f) {
-                    var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
-                    var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
-                    return fKey !== removeKey && fLabel !== removeKey;
-                  });
-                } else if (change.action === 'add') {
-                  // Add new field — avoid duplicates
-                  var addKey = change.field_key || change.label.toLowerCase().replace(/\s+/g, '_');
-                  var exists = rsvpFields.some(function(f) { return f.field_key === addKey; });
-                  if (!exists) {
-                    rsvpFields.push({
-                      field_key: addKey,
-                      label: change.label,
-                      field_type: change.field_type || 'text',
-                      is_required: change.is_required || false,
-                      options: change.options || null,
-                      placeholder: change.placeholder || null,
-                      enabled: true
-                    });
-                  }
-                } else if (change.action === 'modify') {
-                  // Modify existing field
-                  var modKey = (change.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
-                  rsvpFields.forEach(function(f) {
-                    var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
-                    if (fKey === modKey) {
-                      if (change.label) f.label = change.label;
-                      if (change.field_type) f.field_type = change.field_type;
-                      if (change.is_required !== undefined) f.is_required = change.is_required;
-                      if (change.placeholder) f.placeholder = change.placeholder;
-                      if (change.options) f.options = change.options;
-                    }
-                  });
-                }
-              });
-              // Save updated fields to DB and re-render the RSVP field editor UI
-              saveCustomFields();
-              if (typeof renderRsvpFields === 'function') renderRsvpFields();
+              applyRsvpFieldChanges(fieldChanges);
             }
 
             renderPreview(newVer);
