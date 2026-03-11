@@ -238,7 +238,11 @@
     .matrix-card-header { padding: 10px 14px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     .matrix-card-header h4 { font-size: 13px; font-weight: 700; }
     .matrix-card-preview { padding: 12px; display: flex; justify-content: center; }
-    .matrix-card-rating { padding: 10px 14px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+    .matrix-card-rating { padding: 10px 14px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .save-to-library-btn { background: none; border: 1px solid #ddd; border-radius: 6px; padding: 4px 10px; font-size: 11px; color: #666; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+    .save-to-library-btn:hover { border-color: var(--party-coral); color: var(--party-coral); }
+    .save-to-library-btn.saving { opacity: 0.6; pointer-events: none; }
+    .save-to-library-btn.saved { border-color: var(--mint-fizz); color: var(--mint-fizz); pointer-events: none; }
     .matrix-card-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 14px; background: #f9f9f9; font-size: 11px; }
     .matrix-card-stats .stat .lbl { color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
     .matrix-card-stats .stat .val { font-weight: 700; color: var(--midnight); font-size: 13px; }
@@ -946,6 +950,9 @@
               </div>
             </div>
             <div class="test-meta" id="testMeta" style="margin-top:16px;"></div>
+            <div style="margin-top:10px;">
+              <button class="save-to-library-btn" id="singleSaveToLibraryBtn" onclick="saveToStyleLibrary(0, this)" title="Save to Style Library" style="padding:6px 14px;font-size:12px;">&#128230; Save to Style Library</button>
+            </div>
             <div style="display:flex;gap:6px;margin-top:12px;">
               <button class="btn btn-secondary btn-sm" onclick="showTestView('preview')" id="btnPreview" style="background:var(--midnight);color:white;">Preview</button>
               <button class="btn btn-secondary btn-sm" onclick="showTestView('html')" id="btnHtml">HTML</button>
@@ -2273,6 +2280,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         + buildStarHtml(0)
         + '</div>'
         + '<span class="star-label" id="starLabel' + idx + '">Rate this</span>'
+        + '<button class="save-to-library-btn" onclick="saveToStyleLibrary(' + idx + ', this)" title="Save to Style Library">&#128230; Save</button>'
         + '</div>'
         + '<div class="matrix-card-stats">'
         + '<div class="stat"><div class="val">' + (meta.latencyMs / 1000).toFixed(1) + 's</div><div class="lbl">Latency</div></div>'
@@ -2355,6 +2363,80 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       });
       document.getElementById('matrixResultTitle').textContent =
         successCount + '/' + matrixResults.length + ' succeeded — Total cost: ' + fmtCost(totalCost);
+    }
+
+    // ── Save a generation to the Style Library ──
+    async function saveToStyleLibrary(idx, btn) {
+      var result = matrixResults[idx];
+      if (!result || !result.success || !result.theme) {
+        alert('No valid generation to save.');
+        return;
+      }
+
+      btn.classList.add('saving');
+      var origText = btn.innerHTML;
+      btn.innerHTML = '&#9203; Analyzing...';
+
+      try {
+        // Build full HTML combining theme HTML + CSS + fonts
+        var theme = result.theme;
+        var fontsImport = (theme.config && theme.config.googleFontsImport) || '';
+        var fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+          + '<style>' + fontsImport + '</style>'
+          + '<style>' + (theme.css || '') + '</style></head><body>' + (theme.html || '') + '</body></html>';
+
+        // Step 1: Auto-tag with AI
+        var tagRes = await fetch('/api/v2/prompt-test?action=autoTag', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ html: fullHtml })
+        });
+        var tagData = await tagRes.json();
+        var autoTag;
+        if (tagData.success && tagData.autoTag) {
+          autoTag = tagData.autoTag;
+        } else {
+          // Fallback: use model name + timestamp as name
+          autoTag = {
+            name: (result.modelLabel || 'Generated') + ' — ' + new Date().toLocaleDateString(),
+            description: 'Generated in Prompt Lab',
+            eventTypes: [],
+            tags: [],
+            designNotes: ''
+          };
+        }
+
+        // Step 2: Save to style library
+        btn.innerHTML = '&#9203; Saving...';
+        var saveRes = await adminFetch('saveStyleItem', {
+          method: 'POST',
+          body: {
+            name: autoTag.name,
+            description: autoTag.description,
+            html: fullHtml,
+            tags: autoTag.tags,
+            eventTypes: autoTag.eventTypes,
+            designNotes: autoTag.designNotes
+          }
+        });
+
+        // Update local style library cache
+        styleLibrary = saveRes.library || [];
+        renderStyleGrid();
+        renderStyleCheckboxes();
+        updateStyleCount();
+        updateFilterUI();
+
+        // Show success
+        btn.classList.remove('saving');
+        btn.classList.add('saved');
+        btn.innerHTML = '&#10003; Saved';
+      } catch (err) {
+        console.error('Save to style library failed:', err);
+        btn.classList.remove('saving');
+        btn.innerHTML = origText;
+        alert('Failed to save: ' + (err.message || 'Unknown error'));
+      }
     }
 
     // ── Render single model result into phone sidebar ──
