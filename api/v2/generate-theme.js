@@ -370,13 +370,15 @@ Rules:
 - NO calendar buttons, NO footer — the platform handles these
 - NO extra sections (dress code, bullet lists, event details)
 - The subtitle must include \`<span class="thankyou-guest">Guest</span>\` placeholder
-- Style .thankyou-page with same background treatment as the invite
+- **BRANDED BACKGROUND — CRITICAL**: The thank-you page must feel like a continuation of the invite, NOT a plain white page. Use the same background color, gradient, pattern, or texture from the invite. Carry over the theme's color palette, decorative elements (subtle SVG ornaments, floating particles, gradients, etc.) so the experience feels cohesive and polished.
+- Use the same fonts and color palette as the invite for the title and subtitle
 - Include these CSS rules in theme_css:
 \`\`\`css
 .thankyou-page {
   max-width: 393px; margin: 0 auto; padding: 60px 32px 40px;
   min-height: 100vh; display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center;
+  /* MUST have the same background treatment as the invite — color, gradient, pattern, or texture */
 }
 .thankyou-hero { margin-bottom: 32px; }
 .thankyou-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; }

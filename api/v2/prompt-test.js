@@ -232,6 +232,7 @@ Return a JSON object with exactly these keys:
 
 ## THANK YOU PAGE (theme_thankyou_html)
 Provide ONLY .thankyou-page > .thankyou-hero. NO calendar buttons, NO footer. Include \`<span class="thankyou-guest">Guest</span>\` in subtitle.
+**BRANDED BACKGROUND — CRITICAL**: Use the SAME background (color, gradient, pattern, texture) and fonts as the invite. The thank-you page must feel like a cohesive continuation of the invite design, NOT a plain white page. Carry over decorative elements (subtle SVG ornaments, floating particles, gradients) for a polished experience.
 
 ## TEXT CONTRAST — CRITICAL, NEVER VIOLATE
 - EVERY piece of text must have sufficient contrast against its background (WCAG AA minimum)

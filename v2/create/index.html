@@ -542,9 +542,8 @@
                   <span class="cost-tracker-value" id="costTrackerTotal">$0.50</span>
                 </div>
               </div>
-              <div style="display:flex;gap:8px;margin-bottom:16px;">
-                <button class="btn btn-secondary" onclick="openLivePreview()" style="flex:1;font-size:13px;padding:10px 12px;">View Live Preview</button>
-                <button class="btn btn-primary" onclick="nextStep()" style="flex:1;font-size:13px;padding:10px 12px;">Publish</button>
+              <div style="margin-bottom:16px;">
+                <button class="btn" onclick="nextStep()" style="width:100%;font-size:14px;padding:12px;background:var(--mint-fizz);color:white;font-weight:600;border-radius:10px;">Publish</button>
               </div>
               <div class="panel-tabs">
                 <button class="panel-tab active" onclick="switchTab('design')">Design</button>
@@ -3213,7 +3212,7 @@
         + '.cal-apple { background:' + pc + '; color:#fff; }'
         + '.cal-google { background:' + sc + '; color:#fff; }'
         + '.cal-outlook { background:' + ac + '; color:#fff; }'
-        + '.thankyou-footer { font-size:12px; opacity:0.5; margin-top:40px; text-align:center; }'
+        + '.thankyou-footer { font-size:15px; opacity:0.6; margin-top:40px; text-align:center; }'
         + '.thankyou-footer a { color:inherit; text-decoration:none; }';
 
       // Guaranteed calendar + footer HTML — never left to the AI
@@ -3315,11 +3314,6 @@
         }
       }
     });
-
-    function openLivePreview() {
-      if (!currentEvent) { showMessage('Event not saved yet', 'error'); return; }
-      window.open('/v2/preview/?eventId=' + encodeURIComponent(currentEvent.id), '_blank');
-    }
 
     // Profile dropdown
     function toggleProfileMenu() {
