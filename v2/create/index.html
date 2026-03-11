@@ -2817,7 +2817,7 @@
         + '<h3 class="gen-title" style="color:var(--party-coral);">Oops!</h3>'
         + '<p style="margin-bottom:12px;font-size:14px;color:#888;">' + escapeHtml(msg) + '</p>'
         + '<details style="margin-bottom:20px;text-align:left;max-width:100%;"><summary style="font-size:11px;color:#aaa;cursor:pointer;">Debug info</summary>'
-        + '<pre style="font-size:10px;color:#999;background:#f5f5f5;padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:4px;">' + escapeHtml(window._lastGenDebug || 'No debug info') + '\nBuild: 2026-03-11d</pre></details>'
+        + '<pre style="font-size:10px;color:#999;background:#f5f5f5;padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:4px;">' + escapeHtml(window._lastGenDebug || 'No debug info') + '\nBuild: 2026-03-11e</pre></details>'
         + buttons + '</div>';
     }
 
@@ -2927,6 +2927,10 @@
 
     function buildSrcdoc(ver) {
       var fontsImport = ver.config.googleFontsImport || '';
+      // Normalize: ensure it's a full @import statement, not just a URL
+      if (fontsImport && !fontsImport.startsWith('@import')) {
+        fontsImport = "@import url('" + fontsImport + "');";
+      }
       var themeHtml = ver.html;
       // Inject functional form inputs into rsvp-slot
       var rsvpFormHtml = buildRsvpFormHtml();
@@ -2960,8 +2964,12 @@
         + '  else if (dc && overrides.dresscode) { dc.style.display = ""; }'
         + '});'
         + '<\/script>';
+      // Google Fonts @import MUST be the very first thing in the first <style> block —
+      // browsers silently ignore @import after any other CSS rules
+      var fontsStyle = fontsImport ? '<style>' + fontsImport + '</style>' : '';
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + fontsStyle
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
         + '<style>' + ver.css + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
     }
 
@@ -3101,8 +3109,10 @@
           tyHtml += guaranteedCalendarHTML + guaranteedFooterHTML;
         }
 
+        var fontsStyle2 = fontsImport ? '<style>' + fontsImport + '</style>' : '';
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-          + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
+          + fontsStyle2
+          + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
           + '<style>' + guaranteedCSS + '</style>'
           + '<style>' + (ver.css || '') + '</style>'
           + '</head><body>' + tyHtml + calScript + '</body></html>';
@@ -3124,8 +3134,10 @@
         + guaranteedFooterHTML
         + '</div>';
 
+      var fontsStyle3 = fontsImport ? '<style>' + fontsImport + '</style>' : '';
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
-        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; } ' + fontsImport + '</style>'
+        + fontsStyle3
+        + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
         + '<style>' + guaranteedCSS + '</style>'
         + '</head><body>' + thankYouHtml + calScript + '</body></html>';
     }

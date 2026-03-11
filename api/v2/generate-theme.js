@@ -1237,9 +1237,14 @@ ${rsvpFieldsDesc}`;
     if (!theme.theme_config.googleFontsImport) {
       const fontImportMatch = (theme.theme_css || '').match(/@import\s+url\(['"]?(https:\/\/fonts\.googleapis\.com[^'"\)]+)['"]?\)/);
       if (fontImportMatch) {
-        theme.theme_config.googleFontsImport = fontImportMatch[1];
+        // Store full @import statement so client can inject it directly into <style>
+        theme.theme_config.googleFontsImport = "@import url('" + fontImportMatch[1] + "');";
         theme.theme_css = theme.theme_css.replace(/@import\s+url\([^)]+\);?\s*/g, '');
       }
+    }
+    // Normalize: ensure googleFontsImport is always a full @import statement
+    if (theme.theme_config.googleFontsImport && !theme.theme_config.googleFontsImport.startsWith('@import')) {
+      theme.theme_config.googleFontsImport = "@import url('" + theme.theme_config.googleFontsImport + "');";
     }
 
     if (!theme.theme_html) {
