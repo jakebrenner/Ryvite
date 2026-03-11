@@ -224,8 +224,17 @@ Return a JSON object with exactly these keys:
 ## THANK YOU PAGE (theme_thankyou_html)
 Provide ONLY .thankyou-page > .thankyou-hero. NO calendar buttons, NO footer. Include \`<span class="thankyou-guest">Guest</span>\` in subtitle.
 
-## TEXT CONTRAST — NEVER VIOLATE
-- WCAG AA minimum on ALL text. Never light-on-light or dark-on-dark.`;
+## TEXT CONTRAST — CRITICAL, NEVER VIOLATE
+- EVERY piece of text must have sufficient contrast against its background (WCAG AA minimum)
+- NEVER put light text on light backgrounds or dark text on dark backgrounds
+- When using background images or gradients, add a semi-transparent overlay or text-shadow
+- Button text MUST contrast against the button background color
+
+### CONCRETE CONTRAST RULES FOR EACH SECTION:
+- **Event details band** (date, time, location): If the band background is dark (green, navy, black, charcoal, etc.), the text color MUST be white or very light. If the band is light, text MUST be dark. NEVER use a warm/muted color like coral, salmon, or rose on a dark background — it will be unreadable.
+- **Hero section**: If the background is dark or uses a dark gradient, title and subtitle text MUST be white/cream/very light.
+- **RSVP section**: Button text must be white on dark buttons or dark on light buttons. No exceptions.
+- **SIMPLE RULE**: For ANY section with a colored/dark background, set the text color to #FFFFFF or #FAFAFA. For any section with a light/white background, set text to #1A1A1A or darker. Do NOT try to match text color to theme accent colors on dark backgrounds — it almost always fails contrast.`;
 
 // Default creative direction — the editable layer
 const DEFAULT_CREATIVE_DIRECTION = `You are a world-class invite designer. Create a single-file HTML invite page that feels like it was made by a boutique design studio — not a template generator.
@@ -462,7 +471,18 @@ You MUST only place a styled \`<button class="rsvp-button">\` inside \`.rsvp-slo
 Make the button text fun and on-theme.
 
 Fields that will be injected (for awareness only — do NOT render):
-Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}`;
+Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}
+
+══════════════════════
+⚠️ FINAL CHECK — TEXT CONTRAST (NON-NEGOTIABLE)
+══════════════════════
+Before outputting, mentally walk through EVERY text element and verify:
+1. Dark/colored background sections (navy, green, black, charcoal, etc.) → text MUST be #FFFFFF or #FAFAFA
+2. Light background sections → text MUST be #1A1A1A or darker
+3. Buttons → text color must contrast against the button's background color
+4. NEVER use accent colors (coral, salmon, rose, gold, etc.) as text on dark backgrounds — they FAIL contrast
+5. The "Party Details" / event info band is the #1 failure point — if its background is dark, ALL text inside MUST be white
+This is the most common failure mode. Double-check it.`;
 
     return userMessage;
   }
@@ -555,7 +575,7 @@ Fix visual issues and polish the design. Focus on:
 
 2. **Layout & spacing**: Fix any elements that overlap, clip, or overflow the 393px container. Ensure generous padding (20-24px sides).
 
-3. **Typography**: Ensure all text is readable (min 14px body, WCAG AA contrast). Fix any text that blends into the background.
+3. **Typography & Contrast** (critical): Ensure all text is readable (min 14px body, WCAG AA contrast). Fix any text that blends into the background. CONCRETE RULE: dark/colored background sections → text MUST be #FFFFFF or #FAFAFA. Light backgrounds → text MUST be #1A1A1A or darker. The event details band (date/time/location) is the #1 failure point — check it first. NEVER use accent colors (coral, salmon, rose) as text on dark backgrounds.
 
 4. **Overall polish**: Smooth any rough edges — inconsistent border-radius, misaligned elements, awkward spacing.
 

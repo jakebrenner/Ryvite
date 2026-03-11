@@ -714,7 +714,9 @@ IMPORTANT: The .rsvp-slot div must contain ONLY a <button class="rsvp-button"> �
         tweakMessage += `\n\n**Current Thank You Page HTML:**\n\`\`\`html\n${existingThankyou}\n\`\`\`\nIf your changes affect the visual style (colors, fonts, spacing, backgrounds), update the thank you page to match. If the change is content-only (e.g., changing text, adding an element to the invite), you may set theme_thankyou_html to null to keep it unchanged.`;
       }
 
-      tweakMessage += `\n\nReturn the updated theme as a JSON object: { "theme_html": "...", "theme_css": "...", "theme_thankyou_html": "..." or null if unchanged, "theme_config": { ... }, "chat_response": "Brief friendly message about what you changed" }. Make ONLY the changes the user requested — keep everything else exactly the same. If the thank you page doesn't need changes, set theme_thankyou_html to null.`;
+      tweakMessage += `\n\nReturn the updated theme as a JSON object: { "theme_html": "...", "theme_css": "...", "theme_thankyou_html": "..." or null if unchanged, "theme_config": { ... }, "chat_response": "Brief friendly message about what you changed" }. Make ONLY the changes the user requested — keep everything else exactly the same. If the thank you page doesn't need changes, set theme_thankyou_html to null.
+
+⚠️ CONTRAST CHECK: After making changes, verify ALL text is readable. Dark/colored backgrounds → white text (#FFFFFF). Light backgrounds → dark text (#1A1A1A). Never use accent colors as text on dark backgrounds.`;
 
       const messageContent = photoBase64 && !photoUrl
         ? [
@@ -1061,6 +1063,18 @@ ${rsvpFieldsDesc}`;
     if (feedback) {
       userMessage += `\n\n**Feedback on previous version (incorporate this):**\n${feedback}`;
     }
+
+    // Final contrast reminder (recency bias — model pays most attention to end of prompt)
+    userMessage += `\n\n══════════════════════
+⚠️ FINAL CHECK — TEXT CONTRAST (NON-NEGOTIABLE)
+══════════════════════
+Before outputting, mentally walk through EVERY text element and verify:
+1. Dark/colored background sections (navy, green, black, charcoal, etc.) → text MUST be #FFFFFF or #FAFAFA
+2. Light background sections → text MUST be #1A1A1A or darker
+3. Buttons → text color must contrast against the button's background color
+4. NEVER use accent colors (coral, salmon, rose, gold, etc.) as text on dark backgrounds — they FAIL contrast
+5. The "Party Details" / event info band is the #1 failure point — if its background is dark, ALL text inside MUST be white
+This is the most common failure mode. Double-check it.`;
 
     // Resolve inspiration images: use base64 if provided, otherwise fetch from URLs
     let resolvedInspirationImages = inspirationImages?.length > 0 ? inspirationImages : [];
