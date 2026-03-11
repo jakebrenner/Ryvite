@@ -13,11 +13,7 @@ async function verifyAdmin(req) {
   if (!authHeader?.startsWith('Bearer ')) return { error: 'no_token' };
 
   const token = authHeader.slice(7);
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${token}` } }
-  });
-
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !user) return { error: 'invalid_token' };
 
   const email = user.email.toLowerCase();
@@ -47,18 +43,18 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const authResult = await verifyAdmin(req);
-  if (authResult.error === 'no_token' || authResult.error === 'invalid_token') {
-    return res.status(401).json({ error: 'Unauthorized — invalid or expired token' });
-  }
-  if (authResult.error === 'not_admin') {
-    return res.status(403).json({ error: 'Forbidden — admin access required' });
-  }
-  const admin = authResult.user;
-
-  const action = req.query.action || req.body?.action;
-
   try {
+    const authResult = await verifyAdmin(req);
+    if (authResult.error === 'no_token' || authResult.error === 'invalid_token') {
+      return res.status(401).json({ error: 'Unauthorized — invalid or expired token' });
+    }
+    if (authResult.error === 'not_admin') {
+      return res.status(403).json({ error: 'Forbidden — admin access required' });
+    }
+    const admin = authResult.user;
+
+    const action = req.query.action || req.body?.action;
+
     // ---- LIST ALL USERS ----
     if (action === 'users') {
       const { data: profiles, error } = await supabaseAdmin

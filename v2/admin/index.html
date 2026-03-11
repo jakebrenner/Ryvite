@@ -1166,7 +1166,11 @@
         loadAdmins();
         loadStyleLibrary();
       } catch (err) {
-        document.getElementById('accessDenied').style.display = 'block';
+        var denied = document.getElementById('accessDenied');
+        if (err.message && err.message.indexOf('Server error') !== -1) {
+          denied.innerHTML = '<h2>Server Error</h2><p>The admin API returned an error. Please try again or check the server logs.</p><a href="/v2/admin/" class="btn btn-primary">Retry</a>';
+        }
+        denied.style.display = 'block';
       }
     }
 
@@ -1194,7 +1198,8 @@
         }
       }
       if (r.status === 403) throw new Error('Forbidden');
-      return await r.json();
+      var text = await r.text();
+      try { return JSON.parse(text); } catch (e) { throw new Error('Server error: ' + r.status); }
     }
 
     // ---- Tabs ----
