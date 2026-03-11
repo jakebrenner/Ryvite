@@ -780,18 +780,25 @@ Return ONLY a valid JSON object with these keys:
       // Accumulate the full response while streaming progress
       let fullText = '';
       let chunkCount = 0;
+      let inputTokens = 0;
+      let outputTokens = 0;
 
-      stream.on('text', (text) => {
-        fullText += text;
-        chunkCount++;
-        // Send progress every 20 chunks to keep connection alive without flooding
-        if (chunkCount % 10 === 0) {
-          sendSSE('progress', { chunks: chunkCount, bytes: fullText.length });
+      // Use for-await to iterate raw stream events instead of stream.finalMessage()
+      // which blocks waiting for SDK message assembly and causes Vercel 60s timeout
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          fullText += event.delta.text;
+          chunkCount++;
+          if (chunkCount % 10 === 0) {
+            sendSSE('progress', { chunks: chunkCount, bytes: fullText.length });
+          }
+        } else if (event.type === 'message_start' && event.message?.usage) {
+          inputTokens = event.message.usage.input_tokens || 0;
+        } else if (event.type === 'message_delta' && event.usage) {
+          outputTokens = event.usage.output_tokens || 0;
         }
-      });
+      }
 
-      // Wait for stream to complete
-      const finalMessage = await stream.finalMessage();
       const latency = Date.now() - startTime;
 
       sendSSE('status', { phase: 'saving' });
@@ -878,8 +885,8 @@ Return ONLY a valid JSON object with these keys:
           event_id: eventId, version: nextVersion, is_active: true,
           prompt: 'Tweak: ' + tweakInstructions.substring(0, 200),
           html: theme.theme_html, css: theme.theme_css, config: tweakConfig,
-          model: themeModel, input_tokens: finalMessage.usage?.input_tokens || 0,
-          output_tokens: finalMessage.usage?.output_tokens || 0, latency_ms: latency
+          model: themeModel, input_tokens: inputTokens,
+          output_tokens: outputTokens, latency_ms: latency
         };
         let { error: tweakThemeError } = await supabase
           .from('event_themes').insert(tweakInsert).select().single();
@@ -888,8 +895,8 @@ Return ONLY a valid JSON object with these keys:
         const tweakMeta = getClientMeta(req);
         supabase.from('generation_log').insert({
           event_id: eventId, user_id: user.id, prompt: 'Tweak: ' + tweakInstructions.substring(0, 200),
-          model: themeModel, input_tokens: finalMessage.usage?.input_tokens || 0,
-          output_tokens: finalMessage.usage?.output_tokens || 0, latency_ms: latency, status: 'success',
+          model: themeModel, input_tokens: inputTokens,
+          output_tokens: outputTokens, latency_ms: latency, status: 'success',
           is_tweak: true, event_type: eventDetails?.eventType || '',
           client_ip: tweakMeta.ip, client_geo: tweakMeta.geo, user_agent: tweakMeta.userAgent
         }).catch(() => {});
@@ -1042,16 +1049,25 @@ ${rsvpFieldsDesc}`;
 
     let fullText = '';
     let chunkCount = 0;
+    let inputTokens = 0;
+    let outputTokens = 0;
 
-    stream.on('text', (text) => {
-      fullText += text;
-      chunkCount++;
-      if (chunkCount % 10 === 0) {
-        sendSSE('progress', { chunks: chunkCount, bytes: fullText.length });
+    // Use for-await to iterate raw stream events instead of stream.finalMessage()
+    // which blocks waiting for SDK message assembly and causes Vercel 60s timeout
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        fullText += event.delta.text;
+        chunkCount++;
+        if (chunkCount % 10 === 0) {
+          sendSSE('progress', { chunks: chunkCount, bytes: fullText.length });
+        }
+      } else if (event.type === 'message_start' && event.message?.usage) {
+        inputTokens = event.message.usage.input_tokens || 0;
+      } else if (event.type === 'message_delta' && event.usage) {
+        outputTokens = event.usage.output_tokens || 0;
       }
-    });
+    }
 
-    const finalMessage = await stream.finalMessage();
     const latency = Date.now() - startTime;
 
     sendSSE('status', { phase: 'saving' });
@@ -1113,7 +1129,7 @@ ${rsvpFieldsDesc}`;
     sendSSE('done', {
       success: true,
       theme: {
-        id: 'pending', // Will be updated by DB save, but client doesn't need it yet
+        id: 'pending',
         version: 1,
         html: theme.theme_html,
         css: theme.theme_css,
@@ -1123,8 +1139,8 @@ ${rsvpFieldsDesc}`;
         model: themeModel,
         latencyMs: latency,
         tokens: {
-          input: finalMessage.usage?.input_tokens || 0,
-          output: finalMessage.usage?.output_tokens || 0
+          input: inputTokens,
+          output: outputTokens
         }
       }
     });
@@ -1155,8 +1171,8 @@ ${rsvpFieldsDesc}`;
         css: theme.theme_css,
         config: theme.theme_config,
         model: themeModel,
-        input_tokens: finalMessage.usage?.input_tokens || 0,
-        output_tokens: finalMessage.usage?.output_tokens || 0,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
         latency_ms: latency,
         prompt_version_id: activePrompt.promptVersionId || null
       };
@@ -1173,8 +1189,8 @@ ${rsvpFieldsDesc}`;
       const genMeta = getClientMeta(req);
       supabase.from('generation_log').insert({
         event_id: eventId, user_id: user.id, prompt: effectivePrompt,
-        model: themeModel, input_tokens: finalMessage.usage?.input_tokens || 0,
-        output_tokens: finalMessage.usage?.output_tokens || 0, latency_ms: latency,
+        model: themeModel, input_tokens: inputTokens,
+        output_tokens: outputTokens, latency_ms: latency,
         status: 'success', event_type: eventType, style_library_ids: usedStyleIds,
         prompt_version_id: activePrompt.promptVersionId || null,
         client_ip: genMeta.ip, client_geo: genMeta.geo, user_agent: genMeta.userAgent
