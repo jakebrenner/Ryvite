@@ -298,7 +298,7 @@
     var allEvents = [];
 
     if (!token || !user) {
-      window.location.href = '/v2/login/';
+      window.location.href = '/v2/login/?redirect=/v2/dashboard/';
     } else {
       document.getElementById('profileName').textContent = user.displayName || user.email?.split('@')[0] || '';
       document.getElementById('profileEmail').textContent = user.email || '';

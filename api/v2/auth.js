@@ -24,7 +24,12 @@ export default async function handler(req, res) {
 
   // Use origin from frontend so magic links work on preview deploys
   const clientOrigin = req.body?.origin || req.headers.origin || PROD_URL;
-  const redirectTo = `${clientOrigin}/v2/login/`;
+  // Include the intended post-login redirect path in the magic link URL
+  // so it survives cross-browser/device magic link clicks
+  const redirectPath = req.body?.redirectPath || '';
+  const redirectTo = redirectPath
+    ? `${clientOrigin}/v2/login/?redirect=${encodeURIComponent(redirectPath)}`
+    : `${clientOrigin}/v2/login/`;
 
   try {
     if (action === 'signup') {
