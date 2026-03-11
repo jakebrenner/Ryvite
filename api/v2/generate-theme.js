@@ -309,6 +309,13 @@ Build the page with these sections (creative freedom on visual execution):
 - NEVER overflow, clip, or break layout at 393px viewport width
 - NEVER put form inputs/selects/labels inside \`.rsvp-slot\` — ONLY the button
 
+## RSVP FORM LAYOUT — CRITICAL (platform injects form at runtime)
+- The platform replaces the \`.rsvp-slot\` contents with form fields (name, status, custom fields) + the button
+- The injected form MUST render as a **single column** — NEVER two-column, grid, or side-by-side inputs
+- Style \`.rsvp-slot\` with: \`display: flex; flex-direction: column; width: 100%;\`
+- NEVER set \`.rsvp-slot\` to \`display: grid\`, \`flex-direction: row\`, or \`flex-wrap: wrap\` with side-by-side children
+- All inputs inside \`.rsvp-slot\` must be full-width (width: 100%) — no 50% widths, no multi-column layouts
+
 ## REQUIRED DATA ATTRIBUTES (for platform dynamic content updates)
 - \`data-field="title"\` — on the element containing the event title text
 - \`data-field="datetime"\` — on the container with date/time information
@@ -318,6 +325,7 @@ Build the page with these sections (creative freedom on visual execution):
 
 ## TECHNICAL CONSTRAINTS — NON-NEGOTIABLE
 - Max-width 393px (iPhone), centered, mobile-first
+- **TOP SAFE AREA**: The page MUST have at least 48px of padding-top on the outermost container to clear the iPhone notch/Dynamic Island. Content behind the notch is invisible — never place text, logos, or illustrations in the top 48px.
 - Text must be readable: min 14px body, WCAG AA contrast ratios (4.5:1 body, 3:1 headings)
 - Generous padding (20-24px sides)
 - CSS custom properties for all theme colors

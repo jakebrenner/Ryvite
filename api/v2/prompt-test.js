@@ -212,11 +212,19 @@ Return a JSON object with exactly these keys:
 - Centered text via flexbox, 16-18px bold, appearance:none, explicit styling
 - NEVER put form inputs/selects/labels inside \`.rsvp-slot\` — ONLY the button
 
+## RSVP FORM LAYOUT — CRITICAL (platform injects form at runtime)
+- The platform replaces the \`.rsvp-slot\` contents with form fields (name, status, custom fields) + the button
+- The injected form MUST render as a **single column** — NEVER two-column, grid, or side-by-side inputs
+- Style \`.rsvp-slot\` with: \`display: flex; flex-direction: column; width: 100%;\`
+- NEVER set \`.rsvp-slot\` to \`display: grid\`, \`flex-direction: row\`, or \`flex-wrap: wrap\` with side-by-side children
+- All inputs inside \`.rsvp-slot\` must be full-width (width: 100%) — no 50% widths, no multi-column layouts
+
 ## REQUIRED DATA ATTRIBUTES
 - \`data-field="title"\` \`data-field="datetime"\` \`data-field="location"\` \`data-field="dresscode"\` \`data-field="host"\`
 
 ## TECHNICAL CONSTRAINTS — NON-NEGOTIABLE
 - Max-width 393px, centered, mobile-first. Min 14px body, WCAG AA contrast.
+- **TOP SAFE AREA**: The page MUST have at least 48px of padding-top on the outermost container to clear the iPhone notch/Dynamic Island. Content behind the notch is invisible — never place text, logos, or illustrations in the top 48px.
 - Generous padding (20-24px sides). CSS custom properties for theme colors.
 - No JavaScript. No fixed positioning. No iframes. Google Fonts only.
 - Keep height reasonable — 3-5 phone screen scrolls.
