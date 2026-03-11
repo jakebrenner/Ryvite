@@ -315,7 +315,8 @@ Build the page with these sections (creative freedom on visual execution):
 
 ## RSVP BUTTON — CRITICAL PLATFORM RULES
 - Full-width within its container (width: 100% or at least 280px) — NEVER shrink to fit text
-- Min-height: 56px with generous padding (16px 32px minimum)
+- Min-height: 56px, max-height: 72px — NEVER make the button taller than 72px. It should be a normal button, NOT a giant vertical element.
+- Generous padding (16px 32px minimum)
 - Border-radius matching the design language (8-16px modern, 28px+ pill)
 - Clear, high-contrast centered text — use flexbox (display:flex; align-items:center; justify-content:center)
 - Font-size: 16-18px, bold/semibold
@@ -323,6 +324,7 @@ Build the page with these sections (creative freedom on visual execution):
 - Smooth hover transition (transform scale 1.02-1.05, subtle shadow lift, or color shift)
 - NEVER overflow, clip, or break layout at 393px viewport width
 - NEVER put form inputs/selects/labels inside \`.rsvp-slot\` — ONLY the button
+- The RSVP button must NOT overlap or cover other content. It should sit naturally in the page flow, NOT be position:absolute or position:fixed.
 - RSVP fields and buttons MUST ALWAYS be single-column (stacked vertically, full-width). NEVER use two-column grid, flex-row, or side-by-side layouts for form fields or the RSVP button — the platform injects form fields that break when laid out in columns on mobile. This is a 393px viewport.
 
 ## RSVP FORM LAYOUT — CRITICAL (platform injects form at runtime)
