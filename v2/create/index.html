@@ -2867,7 +2867,7 @@
               }).catch(function() {});
             }
 
-            showThemeRating(ver.id);
+            pendingRatingThemeId = ver.id;
             updateMobileLayout();
             // Cache theme in sessionStorage for fast reload
             try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
@@ -3163,7 +3163,6 @@
       currentEvent.themeConfig = ver.config;
       renderPreview(ver);
       renderVersionGallery();
-      showThemeRating(ver.id);
       // Activate this version in the DB
       authFetch('/api/v2/events?action=activateTheme', {
         method: 'POST',
@@ -3334,6 +3333,7 @@
 
     // ---- Tab switching & edit panel ----
     var designChatHistory = [];
+    var pendingRatingThemeId = null;
     var designChatPhotoBase64 = null;
     var designChatPhotoUrl = null;
     var designChatPhotoUrls = []; // Support multiple photo uploads
@@ -3443,6 +3443,11 @@
         + "\"Switch to a gold and black color scheme\"";
 
       designChatHistory = [{ role: 'assistant', content: welcomeMsg }];
+      // If a generation just completed, show its rating prompt
+      if (pendingRatingThemeId) {
+        showThemeRating(pendingRatingThemeId);
+        pendingRatingThemeId = null;
+      }
       renderDesignChat();
     }
 
@@ -3635,6 +3640,9 @@
             + '</div>'
             + '<div class="design-chat-progress"><div class="design-chat-progress-bar" style="width:' + progressPct + '%"></div></div>'
             + '</div></div>';
+        }
+        if (msg.role === 'rating') {
+          return renderRatingWidget(msg.themeId);
         }
         var cls = msg.role === 'user' ? 'user' : 'assistant';
         var html = '<div class="design-chat-msg ' + cls + '">' + escapeHtml(msg.content).replace(/\n/g, '<br>');
@@ -4556,82 +4564,123 @@
     }
 
     function showThemeRating(themeId) {
-      // Add inline rating prompt to design chat
+      // Add rating entry to chat history — renderDesignChat() will render it
       var existing = hostRatingsByTheme[themeId];
       if (existing) return; // Already rated this version
 
-      var ratingEl = document.createElement('div');
-      ratingEl.className = 'chat-rating';
-      ratingEl.id = 'chatRating-' + themeId;
+      // Check if there's already a rating entry for this theme in history
+      var alreadyInHistory = designChatHistory.some(function(m) { return m.role === 'rating' && m.themeId === themeId; });
+      if (alreadyInHistory) return;
 
-      var labelDiv = document.createElement('div');
-      labelDiv.className = 'chat-rating-label';
-      labelDiv.textContent = 'How does this design look?';
-      ratingEl.appendChild(labelDiv);
-
-      var starsDiv = document.createElement('div');
-      starsDiv.className = 'chat-rating-stars';
-      for (var i = 1; i <= 5; i++) {
-        var btn = document.createElement('button');
-        btn.className = 'star';
-        btn.innerHTML = starSvg();
-        btn.dataset.value = i;
-        btn.dataset.themeId = themeId;
-        btn.onclick = function() { handleStarClick(this.dataset.themeId, parseInt(this.dataset.value)); };
-        (function(starBtn, starsContainer) {
-          starBtn.onmouseenter = function() { previewStars(starsContainer, parseInt(starBtn.dataset.value)); };
-          starBtn.onmouseleave = function() { clearStarPreview(starsContainer); };
-        })(btn, starsDiv);
-        starsDiv.appendChild(btn);
-      }
-      ratingEl.appendChild(starsDiv);
-
-      var msgContainer = document.getElementById('designChatMessages');
-      msgContainer.appendChild(ratingEl);
-      scrollDesignChat();
+      designChatHistory.push({ role: 'rating', themeId: themeId });
     }
 
-    function previewStars(container, upTo) {
-      container.querySelectorAll('.star').forEach(function(s) {
+    function renderRatingWidget(themeId) {
+      var existing = hostRatingsByTheme[themeId];
+
+      if (existing && !existing.pendingFeedback) {
+        // Fully rated — show completed state
+        var starsHtml = '';
+        for (var s = 1; s <= 5; s++) {
+          starsHtml += '<button class="star' + (s <= existing.rating ? ' active' : '') + '" style="pointer-events:none;">' + starSvg() + '</button>';
+        }
+        var thanksText = existing.rating === 5 ? 'Thanks! Glad you love it!' : 'Feedback saved!';
+        var extraHtml = '';
+        if (existing.creditMessage) {
+          extraHtml += '<div style="font-size:12px;color:var(--party-coral);font-weight:600;margin-top:6px;">' + escapeHtml(existing.creditMessage) + '</div>';
+        }
+        if (existing.supportMessage) {
+          extraHtml += '<div style="font-size:12px;color:var(--party-coral);font-weight:500;margin-top:8px;line-height:1.5;">' + escapeHtml(existing.supportMessage) + '</div>';
+        }
+        return '<div class="chat-rating" id="chatRating-' + themeId + '">'
+          + '<div class="chat-rating-label">How does this design look?</div>'
+          + '<div class="chat-rating-stars">' + starsHtml + '</div>'
+          + '<div class="chat-rating-thanks">' + thanksText + '</div>'
+          + extraHtml
+          + '</div>';
+      }
+
+      if (existing && existing.pendingFeedback) {
+        // Stars selected but feedback chips still pending — render locked stars + credit/support messages
+        var starsHtml = '';
+        for (var s = 1; s <= 5; s++) {
+          starsHtml += '<button class="star' + (s <= existing.rating ? ' active' : '') + '" style="pointer-events:none;">' + starSvg() + '</button>';
+        }
+        var extraHtml = '';
+        if (existing.creditMessage) {
+          extraHtml += '<div style="font-size:12px;color:var(--party-coral);font-weight:600;margin-top:6px;">' + escapeHtml(existing.creditMessage) + '</div>';
+        }
+        if (existing.supportMessage) {
+          extraHtml += '<div style="font-size:12px;color:var(--party-coral);font-weight:500;margin-top:8px;line-height:1.5;">' + escapeHtml(existing.supportMessage) + '</div>';
+        }
+        return '<div class="chat-rating" id="chatRating-' + themeId + '">'
+          + '<div class="chat-rating-label">How does this design look?</div>'
+          + '<div class="chat-rating-stars">' + starsHtml + '</div>'
+          + extraHtml
+          + '</div>';
+      }
+
+      // Not yet rated — show interactive stars
+      var starsHtml = '';
+      for (var i = 1; i <= 5; i++) {
+        starsHtml += '<button class="star" data-value="' + i + '" data-theme-id="' + themeId + '"'
+          + ' onclick="handleStarClick(this.dataset.themeId, parseInt(this.dataset.value))"'
+          + ' onmouseenter="previewStarsById(\'chatRating-' + themeId + '\', ' + i + ')"'
+          + ' onmouseleave="clearStarPreviewById(\'chatRating-' + themeId + '\')">'
+          + starSvg() + '</button>';
+      }
+      return '<div class="chat-rating" id="chatRating-' + themeId + '">'
+        + '<div class="chat-rating-label">How does this design look?</div>'
+        + '<div class="chat-rating-stars">' + starsHtml + '</div>'
+        + '</div>';
+    }
+
+    function previewStarsById(ratingElId, upTo) {
+      var el = document.getElementById(ratingElId);
+      if (!el) return;
+      el.querySelectorAll('.star').forEach(function(s) {
         var val = parseInt(s.dataset.value);
         s.classList.toggle('hover-preview', val <= upTo && !s.classList.contains('active'));
       });
     }
 
-    function clearStarPreview(container) {
-      container.querySelectorAll('.star').forEach(function(s) { s.classList.remove('hover-preview'); });
+    function clearStarPreviewById(ratingElId) {
+      var el = document.getElementById(ratingElId);
+      if (!el) return;
+      el.querySelectorAll('.star').forEach(function(s) { s.classList.remove('hover-preview'); });
     }
 
     async function handleStarClick(themeId, rating) {
-      hostRatingsByTheme[themeId] = { rating: rating, feedback: '' };
-
-      var ratingEl = document.getElementById('chatRating-' + themeId);
-      if (!ratingEl) return;
-
-      // Update stars
-      ratingEl.querySelectorAll('.star').forEach(function(s) {
-        s.classList.toggle('active', parseInt(s.dataset.value) <= rating);
-        s.classList.remove('hover-preview');
-        s.style.pointerEvents = 'none';
-      });
-
       if (rating === 5) {
+        hostRatingsByTheme[themeId] = { rating: rating, feedback: '' };
         submitHostRating(themeId, rating, '');
-        var thanks = document.createElement('div');
-        thanks.className = 'chat-rating-thanks';
-        thanks.textContent = 'Thanks! Glad you love it!';
-        ratingEl.appendChild(thanks);
+        renderDesignChat();
         scrollDesignChat();
       } else if (rating === 1) {
         // 1-star: submit immediately, handle credit-back
+        hostRatingsByTheme[themeId] = { rating: rating, feedback: '', pendingFeedback: true };
         hostOneStarCount++;
         var result = await submitHostRating(themeId, rating, '');
-        handleOneStarResponse(ratingEl, result);
-        // Still show feedback chips so they can describe the issue
-        showInlineRatingFeedback(ratingEl, themeId, rating);
+        if (result && result.oneStarCredit) {
+          var creditCents = result.creditCents || 0;
+          eventCostCents = Math.max(0, eventCostCents - creditCents);
+          updateCostTrackerUI();
+          hostRatingsByTheme[themeId].creditMessage = 'Sorry about that! We won\'t charge you for this generation' + (creditCents > 0 ? ' (' + formatCents(creditCents) + ' credited)' : '') + '.';
+        } else if (result && result.supportRequired) {
+          hostRatingsByTheme[themeId].supportMessage = 'Dang it, maybe something is wrong if we keep getting this wrong. Please contact support at support@ryvite.com and provide them ' + (currentEvent ? currentEvent.id : 'your event ID') + ' so they can investigate.';
+        }
+        renderDesignChat();
+        // Append feedback chips to the rendered widget
+        var ratingEl = document.getElementById('chatRating-' + themeId);
+        if (ratingEl) showInlineRatingFeedback(ratingEl, themeId, rating);
+        scrollDesignChat();
       } else {
-        // 2-4 stars: show feedback chips inline
-        showInlineRatingFeedback(ratingEl, themeId, rating);
+        // 2-4 stars: show feedback chips
+        hostRatingsByTheme[themeId] = { rating: rating, feedback: '', pendingFeedback: true };
+        renderDesignChat();
+        var ratingEl = document.getElementById('chatRating-' + themeId);
+        if (ratingEl) showInlineRatingFeedback(ratingEl, themeId, rating);
+        scrollDesignChat();
       }
     }
 
@@ -4670,7 +4719,9 @@
       ratingEl.querySelectorAll('.chip.selected').forEach(function(c) { selectedChips.push(c.textContent); });
       var fullFeedback = selectedChips.join('; ');
 
-      hostRatingsByTheme[themeId] = { rating: rating, feedback: fullFeedback };
+      // Preserve credit/support messages, clear pendingFeedback
+      var prev = hostRatingsByTheme[themeId] || {};
+      hostRatingsByTheme[themeId] = { rating: rating, feedback: fullFeedback, creditMessage: prev.creditMessage, supportMessage: prev.supportMessage };
       // For 1-star, the credit was already handled on star click — this just updates feedback
       submitHostRating(themeId, rating, fullFeedback);
 
@@ -4718,29 +4769,6 @@
         });
         return await resp.json();
       } catch(e) { return null; }
-    }
-
-    function handleOneStarResponse(ratingEl, result) {
-      if (!result) return;
-
-      if (result.oneStarCredit) {
-        // Credit was issued — deduct from displayed cost
-        var creditCents = result.creditCents || 0;
-        eventCostCents = Math.max(0, eventCostCents - creditCents);
-        updateCostTrackerUI();
-
-        var apology = document.createElement('div');
-        apology.style.cssText = 'font-size:12px;color:var(--party-coral);font-weight:600;margin-top:6px;';
-        apology.textContent = 'Sorry about that! We won\'t charge you for this generation' + (creditCents > 0 ? ' (' + formatCents(creditCents) + ' credited)' : '') + '.';
-        ratingEl.appendChild(apology);
-      } else if (result.supportRequired) {
-        // Too many 1-star ratings — suggest support
-        var supportMsg = document.createElement('div');
-        supportMsg.style.cssText = 'font-size:12px;color:var(--party-coral);font-weight:500;margin-top:8px;line-height:1.5;';
-        supportMsg.textContent = 'Dang it, maybe something is wrong if we keep getting this wrong. Please contact support at support@ryvite.com and provide them ' + (currentEvent ? currentEvent.id : 'your event ID') + ' so they can investigate.';
-        ratingEl.appendChild(supportMsg);
-      }
-      scrollDesignChat();
     }
 
     function showMessage(text, type) {
