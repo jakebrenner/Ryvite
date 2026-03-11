@@ -296,35 +296,36 @@ function parseThemeResponse(rawText) {
   const jsonBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
   if (jsonBlockMatch) text = jsonBlockMatch[1].trim();
 
-  // Step 3: If still not starting with {, look for the JSON object start
-  // IMPORTANT: Find {"theme_ or {"html or {"css — not just any { (which could be CSS)
+  // Step 3: If still not starting with {, or starts with CSS variables, look for actual JSON
   if (!text.startsWith('{') || text.match(/^\{\s*--/)) {
     // Look for JSON-like object start patterns
     const jsonStart = text.match(/\{\s*"(?:theme_|html|css|config)/);
     if (jsonStart) {
       const startIdx = text.indexOf(jsonStart[0]);
-      // Find the matching closing brace by counting depth
-      let depth = 0;
-      let inStr = false;
-      let lastBrace = -1;
+      let depth = 0, inStr = false, lastBrace = -1;
       for (let i = startIdx; i < text.length; i++) {
         const ch = text[i];
         if (ch === '"' && (i === 0 || text[i-1] !== '\\')) inStr = !inStr;
-        if (!inStr) {
-          if (ch === '{') depth++;
-          else if (ch === '}') { depth--; if (depth === 0) { lastBrace = i; break; } }
-        }
+        if (!inStr) { if (ch === '{') depth++; else if (ch === '}') { depth--; if (depth === 0) { lastBrace = i; break; } } }
       }
-      if (lastBrace !== -1) {
-        text = text.substring(startIdx, lastBrace + 1);
-      } else {
-        // Truncated — take from start to end
-        text = text.substring(startIdx);
-      }
+      text = lastBrace !== -1 ? text.substring(startIdx, lastBrace + 1) : text.substring(startIdx);
     } else if (text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('<body')) {
-      // Model wrapped its response in text but the actual content is HTML
       const htmlMatch = text.match(/<(!DOCTYPE[\s\S]*|html[\s\S]*)<\/html>/i);
       if (htmlMatch) return extractThemeFromHtmlDoc(htmlMatch[0]);
+    } else if (text.match(/^\{\s*--/) || text.match(/^\s*:root\s*\{/)) {
+      // Model returned raw CSS (possibly followed by HTML). Try to assemble a theme.
+      // Look for HTML content after the CSS
+      const htmlStart = text.match(/<(div|section|main|header|article)\b/i);
+      if (htmlStart) {
+        const htmlIdx = text.indexOf(htmlStart[0]);
+        const cssBlock = text.substring(0, htmlIdx).trim();
+        const htmlBlock = text.substring(htmlIdx).trim();
+        return { theme_html: htmlBlock, theme_css: cssBlock, theme_config: {}, theme_thankyou_html: '' };
+      }
+      // Pure CSS with no HTML — wrap in a style tag and try extractThemeFromHtmlDoc
+      if (text.includes('.') && text.includes('{')) {
+        return { theme_html: '', theme_css: text, theme_config: {}, theme_thankyou_html: '' };
+      }
     }
   }
 
@@ -357,9 +358,19 @@ function parseThemeResponse(rawText) {
     try {
       theme = JSON.parse(repaired);
     } catch (e2) {
-      // Step 6: Last resort — try to extract HTML from the raw text
+      // Step 6: Last resort — try to extract HTML/CSS from the raw text
       if (rawText.includes('<div') || rawText.includes('<section') || rawText.includes('<style')) {
         return extractThemeFromHtmlDoc(rawText);
+      }
+      // If the raw text contains CSS selectors and HTML elements, try to split them
+      const htmlTag = rawText.match(/<(div|section|main|header|article)\b/i);
+      if (htmlTag) {
+        const idx = rawText.indexOf(htmlTag[0]);
+        const css = rawText.substring(0, idx).trim();
+        const html = rawText.substring(idx).trim();
+        if (html.length > 100) {
+          return { theme_html: html, theme_css: css, theme_config: {}, theme_thankyou_html: '' };
+        }
       }
       throw new Error('Failed to parse theme JSON: ' + parseErr.message + ' | First 300 chars: ' + text.substring(0, 300));
     }

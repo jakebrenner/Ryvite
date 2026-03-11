@@ -934,7 +934,7 @@
                 <div class="phone-frame">
                   <div class="phone-notch"></div>
                   <div class="phone-screen">
-                    <iframe id="testPreviewFrame" sandbox="allow-same-origin"></iframe>
+                    <iframe id="testPreviewFrame" sandbox="allow-scripts"></iframe>
                   </div>
                   <div class="phone-home-bar"></div>
                 </div>
@@ -1092,7 +1092,7 @@
         <textarea id="styleHtml" rows="15" placeholder="Paste complete HTML of an invite sample here..." style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.5;resize:vertical;"></textarea>
         <div id="stylePreviewContainer" style="display:none;margin-top:8px;">
           <div class="preview-frame">
-            <iframe id="stylePreviewFrame" sandbox="allow-same-origin" style="width:393px;height:700px;border:none;display:block;margin:0 auto;"></iframe>
+            <iframe id="stylePreviewFrame" sandbox="allow-scripts" style="width:393px;height:700px;border:none;display:block;margin:0 auto;"></iframe>
           </div>
         </div>
       </div>
@@ -1872,36 +1872,29 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       var dc = document.getElementById('testDressCode').value;
       if (dc) detailOverrides.dresscode = dc;
 
-      // Inject RSVP form and data-field overrides directly into HTML (no script needed)
-      // Use a temporary DOM element to manipulate the HTML string
-      var tempDiv = document.createElement('div');
-      tempDiv.innerHTML = themeHtml;
-
-      // Replace RSVP slot content (keep the button)
-      var slot = tempDiv.querySelector('.rsvp-slot');
-      if (slot) {
-        var btn = slot.querySelector('.rsvp-button');
-        var btnHtml = btn ? btn.outerHTML : '';
-        slot.innerHTML = rsvpFormHtml + btnHtml;
-      }
-
-      // Override data-field values
-      Object.keys(detailOverrides).forEach(function(key) {
-        var el = tempDiv.querySelector('[data-field="' + key + '"]');
-        if (el) el.innerHTML = detailOverrides[key];
-      });
-
-      // Hide dresscode field if no value
-      var dcEl = tempDiv.querySelector('[data-field="dresscode"]');
-      if (dcEl && !detailOverrides.dresscode) { dcEl.style.display = 'none'; }
-      else if (dcEl && detailOverrides.dresscode) { dcEl.style.display = ''; }
-
-      themeHtml = tempDiv.innerHTML;
+      var rsvpScript = '<script>'
+        + 'document.addEventListener("DOMContentLoaded", function() {'
+        + '  var slot = document.querySelector(".rsvp-slot");'
+        + '  if (slot) {'
+        + '    var btn = slot.querySelector(".rsvp-button");'
+        + '    var btnHtml = btn ? btn.outerHTML : "";'
+        + '    slot.innerHTML = ' + JSON.stringify(rsvpFormHtml) + ' + btnHtml;'
+        + '  }'
+        + '  var overrides = ' + JSON.stringify(detailOverrides) + ';'
+        + '  Object.keys(overrides).forEach(function(key) {'
+        + '    var el = document.querySelector("[data-field=\\"" + key + "\\"]");'
+        + '    if (el) el.innerHTML = overrides[key];'
+        + '  });'
+        + '  var dc = document.querySelector("[data-field=\\"dresscode\\"]");'
+        + '  if (dc && !overrides.dresscode) { dc.style.display = "none"; }'
+        + '  else if (dc && overrides.dresscode) { dc.style.display = ""; }'
+        + '});'
+        + '<\/script>';
 
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
         + (fontsImport ? '<style>' + fontsImport + '</style>' : '')
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
-        + '<style>' + themeCss + '</style></head><body>' + themeHtml + '</body></html>';
+        + '<style>' + themeCss + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
     }
 
     function buildTestThankYouSrcdoc(theme) {
@@ -2288,7 +2281,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       var card = document.getElementById('matrixCard' + idx);
       card.innerHTML = '<div class="matrix-card-header"><h4>' + escapeHtml(combo.modelLabel) + '</h4><span class="model-badge ' + combo.modelBadge + '">' + combo.modelBadge + '</span></div>'
         + '<div class="matrix-card-preview">'
-        + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
+        + '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>'
         + '</div>'
         + '<div class="matrix-card-rating">'
         + '<div class="star-rating" data-idx="' + idx + '">'
@@ -2624,7 +2617,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         var previewDiv = document.createElement('div');
         previewDiv.className = 'style-card-preview';
         previewDiv.appendChild(detailsBtn);
-        var phoneHtml = '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-same-origin" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>';
+        var phoneHtml = '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>';
         var phoneWrapper = document.createElement('div');
         phoneWrapper.innerHTML = phoneHtml;
         previewDiv.appendChild(phoneWrapper.firstChild);
@@ -3641,7 +3634,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           <div class="phone-frame">
             <div class="phone-notch"></div>
             <div class="phone-screen">
-              <iframe id="styleDetailPreviewFrame" sandbox="allow-same-origin" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe>
+              <iframe id="styleDetailPreviewFrame" sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe>
             </div>
             <div class="phone-home-bar"></div>
           </div>
