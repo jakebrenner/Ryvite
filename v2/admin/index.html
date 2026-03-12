@@ -5115,6 +5115,9 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
     }
 
+    // Build a lab generation run lookup by ID for iframe scaling
+    var labGenMap = {};
+
     function renderLabGrid() {
       var grid = document.getElementById('labGrid');
       if (labGenerations.length === 0) {
@@ -5122,9 +5125,12 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         return;
       }
       grid.innerHTML = '';
+      labGenMap = {};
       labGenerations.forEach(function(run) {
+        labGenMap[run.id] = run;
         var card = document.createElement('div');
         card.className = 'style-card';
+        card.dataset.labRunId = run.id;
 
         // Details button
         var detailsBtn = document.createElement('button');
@@ -5133,12 +5139,13 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         detailsBtn.title = 'View details';
         detailsBtn.onclick = function() { openGenDetailView('lab', run); };
 
-        // Phone preview
+        // Phone preview — use phone-sm class to match Templates view
         var previewDiv = document.createElement('div');
         previewDiv.className = 'style-card-preview';
         previewDiv.appendChild(detailsBtn);
+        var phoneHtml = '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>';
         var phoneWrapper = document.createElement('div');
-        phoneWrapper.innerHTML = '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>';
+        phoneWrapper.innerHTML = phoneHtml;
         previewDiv.appendChild(phoneWrapper.firstChild);
         card.appendChild(previewDiv);
 
@@ -5176,12 +5183,22 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         grid.appendChild(card);
       });
 
-      // Scale iframes
+      // Scale iframes — match the Templates pattern exactly (find item via dataset)
       requestAnimationFrame(function() {
-        grid.querySelectorAll('.phone-screen iframe').forEach(function(iframe, i) {
+        grid.querySelectorAll('.style-card .phone-screen iframe').forEach(function(iframe) {
           var screen = iframe.closest('.phone-screen');
-          if (screen) iframe.style.transform = 'scale(' + (screen.offsetWidth / 393) + ')';
-          if (labGenerations[i]) iframe.srcdoc = wrapForPreview(labGenerations[i].result_html || '', false);
+          if (screen) {
+            var screenWidth = screen.offsetWidth || 220;
+            iframe.style.transform = 'scale(' + (screenWidth / 393) + ')';
+          }
+          var run = labGenMap[iframe.closest('.style-card').dataset.labRunId];
+          if (run) {
+            var fontsImport = (run.result_config && run.result_config.googleFontsImport) || '';
+            var fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+              + '<style>' + fontsImport + '</style>'
+              + '<style>' + (run.result_css || '') + '</style></head><body>' + (run.result_html || '') + '</body></html>';
+            iframe.srcdoc = fullHtml;
+          }
         });
       });
     }
@@ -5235,6 +5252,9 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       }
     }
 
+    // Build a user generation lookup by ID for iframe scaling
+    var userGenMap = {};
+
     function renderUserGenGrid() {
       var grid = document.getElementById('userGenGrid');
       if (userGenerations.length === 0) {
@@ -5242,11 +5262,14 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         return;
       }
       grid.innerHTML = '';
+      userGenMap = {};
       var currentUserEmail = (user && user.email) ? user.email.toLowerCase() : '';
 
       userGenerations.forEach(function(theme) {
+        userGenMap[theme.id] = theme;
         var card = document.createElement('div');
         card.className = 'style-card';
+        card.dataset.themeId = theme.id;
 
         // Details button
         var detailsBtn = document.createElement('button');
@@ -5255,12 +5278,13 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         detailsBtn.title = 'View details';
         detailsBtn.onclick = function() { openGenDetailView('user', theme); };
 
-        // Phone preview
+        // Phone preview — use phone-sm class to match Templates view
         var previewDiv = document.createElement('div');
         previewDiv.className = 'style-card-preview';
         previewDiv.appendChild(detailsBtn);
+        var phoneHtml = '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>';
         var phoneWrapper = document.createElement('div');
-        phoneWrapper.innerHTML = '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>';
+        phoneWrapper.innerHTML = phoneHtml;
         previewDiv.appendChild(phoneWrapper.firstChild);
         card.appendChild(previewDiv);
 
@@ -5306,12 +5330,22 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         grid.appendChild(card);
       });
 
-      // Scale iframes
+      // Scale iframes — match the Templates pattern exactly (find item via dataset)
       requestAnimationFrame(function() {
-        grid.querySelectorAll('.phone-screen iframe').forEach(function(iframe, i) {
+        grid.querySelectorAll('.style-card .phone-screen iframe').forEach(function(iframe) {
           var screen = iframe.closest('.phone-screen');
-          if (screen) iframe.style.transform = 'scale(' + (screen.offsetWidth / 393) + ')';
-          if (userGenerations[i]) iframe.srcdoc = wrapForPreview(userGenerations[i].html || '', false);
+          if (screen) {
+            var screenWidth = screen.offsetWidth || 220;
+            iframe.style.transform = 'scale(' + (screenWidth / 393) + ')';
+          }
+          var theme = userGenMap[iframe.closest('.style-card').dataset.themeId];
+          if (theme) {
+            var fontsImport = (theme.config && theme.config.googleFontsImport) || '';
+            var fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+              + '<style>' + fontsImport + '</style>'
+              + '<style>' + (theme.css || '') + '</style></head><body>' + (theme.html || '') + '</body></html>';
+            iframe.srcdoc = fullHtml;
+          }
         });
       });
     }
@@ -5456,13 +5490,26 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       info.innerHTML = html;
       overlay.classList.add('open');
 
-      // Render preview
+      // Render preview — combine CSS + HTML like the Prompt Lab does
       requestAnimationFrame(function() {
         var iframe = document.getElementById('genDetailPreviewFrame');
         var screen = iframe.closest('.phone-screen');
         if (screen) iframe.style.transform = 'scale(' + (screen.offsetWidth / 393) + ')';
-        var previewHtml = source === 'user' ? (item.html || '') : (item.result_html || '');
-        iframe.srcdoc = wrapForPreview(previewHtml, false);
+        var css, html, config;
+        if (source === 'user') {
+          css = item.css || '';
+          html = item.html || '';
+          config = item.config;
+        } else {
+          css = item.result_css || '';
+          html = item.result_html || '';
+          config = item.result_config;
+        }
+        var fontsImport = (config && config.googleFontsImport) || '';
+        var fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+          + '<style>' + fontsImport + '</style>'
+          + '<style>' + css + '</style></head><body>' + html + '</body></html>';
+        iframe.srcdoc = fullHtml;
       });
     }
 
