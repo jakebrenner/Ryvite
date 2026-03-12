@@ -1095,7 +1095,7 @@ Return ONLY a valid JSON object with these keys:
           }
         });
         stream.on('finalMessage', (msg) => { tweakFinalMessage = msg; done(); });
-        stream.on('end', done);
+        stream.on('end', () => { setTimeout(() => { if (!tweakFinalMessage) { console.warn('[tweak stream] end fired without finalMessage, resolving'); } done(); }, 3000); });
         stream.on('error', (err) => { if (!resolved) { resolved = true; clearInterval(idleCheck); clearInterval(keepalive); reject(err); } });
 
         // Safety: if text was flowing but stopped for 15s AND we have substantial content, assume done
@@ -1198,7 +1198,7 @@ Return ONLY a valid JSON object with these keys:
         tweakConfig.thankyouHtml = currentConfig.thankyouHtml;
       }
 
-      // Send result to client FIRST — Vercel may kill us before DB saves complete
+      // Send result to client and close connection IMMEDIATELY — unblock res.text()
       const tweakCost = calcGenerationCost(tweakModel, tweakInputTokens, tweakOutputTokens);
       sendSSE('done', {
         success: true,
@@ -1213,6 +1213,7 @@ Return ONLY a valid JSON object with these keys:
           cost: tweakCost
         }
       });
+      res.end(); // Unblock client NOW — DB saves continue in background
 
       // Save as new version (best-effort — client already has the theme)
       try {
@@ -1268,7 +1269,7 @@ Return ONLY a valid JSON object with these keys:
         console.error('Tweak DB save error (theme already sent to client):', saveErr);
       }
 
-      return res.end();
+      return;
     } catch (err) {
       console.error('Theme tweak error:', err);
       const tweakErrMeta = getClientMeta(req);
@@ -1436,8 +1437,7 @@ This is the most common failure mode. Double-check it.`;
       try { res.write(': keepalive\n\n'); } catch (e) { /* connection already closed */ }
     }, 3000);
 
-    // Use .on('text') (proven to work) + resolve on 'finalMessage' event
-    // Capture finalMessage to get token usage for cost tracking
+    // Accumulate text chunks; resolve on 'finalMessage' (has usage data) not 'end'
     let genFinalMessage = null;
     await new Promise((resolve, reject) => {
       let resolved = false;
@@ -1453,7 +1453,8 @@ This is the most common failure mode. Double-check it.`;
         }
       });
       stream.on('finalMessage', (msg) => { genFinalMessage = msg; done(); });
-      stream.on('end', done);
+      // 'end' fires before 'finalMessage' — give finalMessage 3s to arrive before resolving
+      stream.on('end', () => { setTimeout(() => { if (!genFinalMessage) { console.warn('[stream] end fired without finalMessage, resolving'); } done(); }, 3000); });
       stream.on('error', (err) => { if (!resolved) { resolved = true; clearInterval(idleCheck); clearInterval(keepalive); reject(err); } });
 
       // Safety: if text was flowing but stopped for 15s AND we have substantial content, assume done
@@ -1512,9 +1513,8 @@ This is the most common failure mode. Double-check it.`;
       theme.theme_config.thankyouHtml = theme.theme_thankyou_html;
     }
 
-    // CRITICAL: Send theme to client IMMEDIATELY before DB saves.
-    // Vercel may kill the function at 60s — the user must have their invite first.
-    // DB saves happen after; if they fail, the user still sees the invite (it just won't be persisted).
+    // CRITICAL: Send theme to client and close connection IMMEDIATELY.
+    // res.text() on client buffers until res.end(), so DB saves MUST happen after.
     const genCost = calcGenerationCost(themeModel, genInputTokens, genOutputTokens);
     sendSSE('done', {
       success: true,
@@ -1535,8 +1535,9 @@ This is the most common failure mode. Double-check it.`;
         cost: genCost
       }
     });
+    res.end(); // Unblock the client NOW — DB saves continue in background
 
-    // Now save to DB — if Vercel kills us here, the user already has their invite
+    // Background DB saves — client already has the theme
     try {
       const { data: existingThemes } = await supabase
         .from('event_themes')
@@ -1609,7 +1610,7 @@ This is the most common failure mode. Double-check it.`;
       console.error('DB save error (theme already sent to client):', saveErr);
     }
 
-    return res.end();
+    return;
   } catch (err) {
     console.error('Theme generation error:', err);
 
