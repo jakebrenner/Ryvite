@@ -71,6 +71,14 @@
   <script>
     let currentEventData = null;
 
+    // Fix double-escaped whitespace from AI model output (pre-fix DB themes)
+    function sanitizeThemeText(str) {
+      if (!str) return str;
+      if (str.indexOf('\\n') !== -1) str = str.replace(/\\n/g, '\n');
+      if (str.indexOf('\\t') !== -1) str = str.replace(/\\t/g, '\t');
+      return str;
+    }
+
     function buildEventDetailsHtml(event) {
       var items = [];
       if (event.event_date || event.eventDate) {
@@ -135,7 +143,7 @@
           var fontsImport = config.googleFontsImport || '';
           var fontsTag = fontsImport ? '<style>' + fontsImport + '</style>' : '';
           var iframe = document.getElementById('themeFrame');
-          iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' + fontsTag + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; }</style><style>' + result.event.themeCss + '</style></head><body>' + result.event.themeHtml + '</body></html>';
+          iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' + fontsTag + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; }</style><style>' + sanitizeThemeText(result.event.themeCss) + '</style></head><body>' + sanitizeThemeText(result.event.themeHtml) + '</body></html>';
           iframe.style.display = 'block';
           iframe.onload = function() {
             try {

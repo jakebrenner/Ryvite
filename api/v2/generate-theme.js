@@ -551,6 +551,13 @@ function normalizeThemeKeys(theme) {
   if (theme.theme_html && theme.theme_html.includes('\\"')) theme.theme_html = theme.theme_html.replace(/\\"/g, '"');
   if (theme.theme_css && theme.theme_css.includes('\\"')) theme.theme_css = theme.theme_css.replace(/\\"/g, '"');
   if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\"')) theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\"/g, '"');
+  // Fix double-escaped whitespace (models sometimes output \\n inside JSON string values)
+  // After JSON.parse, \\n becomes literal backslash-n text — convert to real whitespace
+  if (theme.theme_html && theme.theme_html.includes('\\n')) theme.theme_html = theme.theme_html.replace(/\\n/g, '\n');
+  if (theme.theme_css && theme.theme_css.includes('\\n')) theme.theme_css = theme.theme_css.replace(/\\n/g, '\n');
+  if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\n')) theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\n/g, '\n');
+  if (theme.theme_html && theme.theme_html.includes('\\t')) theme.theme_html = theme.theme_html.replace(/\\t/g, '\t');
+  if (theme.theme_css && theme.theme_css.includes('\\t')) theme.theme_css = theme.theme_css.replace(/\\t/g, '\t');
   if (theme.theme_html && !theme.theme_css) {
     const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
     if (styleMatch) { theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n'); theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ''); }

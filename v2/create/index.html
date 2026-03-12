@@ -3211,6 +3211,14 @@
       return result;
     }
 
+    // Fix double-escaped whitespace from AI model output (cached themes or pre-fix DB themes)
+    function sanitizeThemeText(str) {
+      if (!str) return str;
+      if (str.indexOf('\\n') !== -1) str = str.replace(/\\n/g, '\n');
+      if (str.indexOf('\\t') !== -1) str = str.replace(/\\t/g, '\t');
+      return str;
+    }
+
     function buildSrcdoc(ver) {
       var fontsImport = ver.config.googleFontsImport || '';
       // Normalize: ensure it's a full @import statement, not just a URL
@@ -3235,7 +3243,7 @@
 
       // Strip document-level tags — our template provides these
       // IMPORTANT: use <head> or <head\s not <head[^>]* which would also match <header>
-      var themeHtml = ver.html
+      var themeHtml = sanitizeThemeText(ver.html)
         .replace(/<!DOCTYPE[^>]*>/gi, '')
         .replace(/<html\b[^>]*>/gi, '')
         .replace(/<\/html\s*>/gi, '')
@@ -3251,7 +3259,7 @@
         + fontsStyle
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
         + (headStyles || '')
-        + '<style>' + (ver.css || '').replace(/<\/style/gi, '<\\/style') + '</style>'
+        + '<style>' + sanitizeThemeText(ver.css || '').replace(/<\/style/gi, '<\\/style') + '</style>'
         + '</head><body' + (bodyAttrs ? ' ' + bodyAttrs : '') + '>' + themeHtml + '</body></html>';
     }
 
@@ -3574,7 +3582,7 @@
       // (see injectCalendarHandlers) — no script injection in srcdoc.
 
       if (ver.config.thankyouHtml) {
-        var tyHtml = ver.config.thankyouHtml;
+        var tyHtml = sanitizeThemeText(ver.config.thankyouHtml);
 
         // New simplified format: AI provides empty .thankyou-hero — platform fills it
         var heroContent = '<h1 class="thankyou-title">Thank You!</h1>'
@@ -3609,7 +3617,7 @@
           + fontsStyle2
           + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
           + '<style>' + guaranteedCSS + '</style>'
-          + '<style>' + (ver.css || '') + '</style>'
+          + '<style>' + sanitizeThemeText(ver.css || '') + '</style>'
           + '</head><body>' + tyHtml + '</body></html>';
       }
 

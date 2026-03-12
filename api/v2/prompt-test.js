@@ -479,6 +479,13 @@ function normalizeThemeKeys(theme) {
   if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\"')) {
     theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\"/g, '"');
   }
+  // Fix double-escaped whitespace (models sometimes output \\n inside JSON string values)
+  // After JSON.parse, \\n becomes literal backslash-n text — convert to real whitespace
+  if (theme.theme_html && theme.theme_html.includes('\\n')) theme.theme_html = theme.theme_html.replace(/\\n/g, '\n');
+  if (theme.theme_css && theme.theme_css.includes('\\n')) theme.theme_css = theme.theme_css.replace(/\\n/g, '\n');
+  if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\n')) theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\n/g, '\n');
+  if (theme.theme_html && theme.theme_html.includes('\\t')) theme.theme_html = theme.theme_html.replace(/\\t/g, '\t');
+  if (theme.theme_css && theme.theme_css.includes('\\t')) theme.theme_css = theme.theme_css.replace(/\\t/g, '\t');
 
   // If CSS is missing but embedded in HTML <style> tags, extract it
   if (theme.theme_html && !theme.theme_css) {
