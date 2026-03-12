@@ -394,6 +394,67 @@
     .access-denied { text-align: center; padding: 80px 20px; }
     .access-denied h2 { font-family: 'Playfair Display', serif; margin-bottom: 12px; }
     .access-denied p { color: #666; margin-bottom: 24px; }
+
+    /* ── Mobile Responsive ── */
+    @media (max-width: 768px) {
+      /* Header */
+      .header { padding: 12px 14px; }
+      .header h1 { font-size: 18px; }
+      .header-left { gap: 10px; }
+      .header-left a svg { height: 26px !important; }
+      .header-actions { gap: 8px; }
+      .header-actions a { font-size: 12px; }
+
+      /* Container */
+      .container { padding: 16px 12px; }
+
+      /* Tabs — horizontal scroll */
+      .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 2px; padding: 3px; scrollbar-width: none; }
+      .tabs::-webkit-scrollbar { display: none; }
+      .tab { flex: 0 0 auto; padding: 8px 14px; font-size: 12px; white-space: nowrap; }
+
+      /* Stat grid — 2 columns */
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+      .stat-card { padding: 14px; }
+      .stat-card .stat-value { font-size: 24px; }
+      .stat-card .stat-label { font-size: 10px; }
+
+      /* Tables — horizontal scroll */
+      .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .table-container table { min-width: 600px; }
+
+      /* Config sections */
+      .config-section { padding: 16px; }
+      .config-row { grid-template-columns: 1fr; gap: 16px; }
+
+      /* Style / Generation grid */
+      .style-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+
+      /* Archive sub-nav */
+      .archive-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .archive-nav::-webkit-scrollbar { display: none; }
+      .archive-nav-btn { flex: 0 0 auto; padding: 8px 10px; font-size: 11px; white-space: nowrap; }
+
+      /* Modals */
+      .modal { width: 95%; max-height: 90vh; padding: 16px; }
+
+      /* Filter rows — stack vertically */
+      #styleFilters > div, #labFilters > div, #userGenFilters > div { flex-direction: column; }
+      #styleFilters select, #labFilters select, #userGenFilters select,
+      #styleFilters input, #labFilters input, #userGenFilters input { width: 100%; }
+
+      /* Generation detail overlay */
+      .gen-detail-body { padding: 16px; gap: 20px; }
+      .gen-detail-header { padding: 12px 16px; }
+      .gen-detail-header h2 { font-size: 16px; }
+
+      /* Style detail overlay */
+      .style-detail-header { padding: 12px 16px; }
+      .style-detail-header h2 { font-size: 16px; }
+
+      /* Usage grid */
+      .usage-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
