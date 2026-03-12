@@ -1116,8 +1116,20 @@ Return ONLY a valid JSON object with these keys:
         }, 120000);
       });
 
-      const tweakInputTokens = tweakFinalMessage?.usage?.input_tokens || 0;
-      const tweakOutputTokens = tweakFinalMessage?.usage?.output_tokens || 0;
+      // Get token usage — finalMessage may be null if stream resolved via 'end' or idle timeout
+      let tweakInputTokens = tweakFinalMessage?.usage?.input_tokens || 0;
+      let tweakOutputTokens = tweakFinalMessage?.usage?.output_tokens || 0;
+      if (tweakInputTokens === 0 && tweakOutputTokens === 0) {
+        try {
+          const finalMsg = await stream.finalMessage();
+          tweakInputTokens = finalMsg?.usage?.input_tokens || 0;
+          tweakOutputTokens = finalMsg?.usage?.output_tokens || 0;
+        } catch (e) {
+          tweakOutputTokens = Math.round(fullText.length / 4);
+          tweakInputTokens = Math.round(fullText.length / 3);
+          console.warn('[tweak] Could not get token usage, estimating:', tweakInputTokens, 'in /', tweakOutputTokens, 'out');
+        }
+      }
       const latency = Date.now() - startTime;
 
       sendSSE('status', { phase: 'saving' });
@@ -1469,8 +1481,23 @@ This is the most common failure mode. Double-check it.`;
       }, 120000);
     });
 
-    const genInputTokens = genFinalMessage?.usage?.input_tokens || 0;
-    const genOutputTokens = genFinalMessage?.usage?.output_tokens || 0;
+    // Get token usage — finalMessage may be null if stream resolved via 'end' or idle timeout
+    // Fallback: query the stream object directly for accumulated usage
+    let genInputTokens = genFinalMessage?.usage?.input_tokens || 0;
+    let genOutputTokens = genFinalMessage?.usage?.output_tokens || 0;
+    if (genInputTokens === 0 && genOutputTokens === 0) {
+      try {
+        const finalMsg = await stream.finalMessage();
+        genInputTokens = finalMsg?.usage?.input_tokens || 0;
+        genOutputTokens = finalMsg?.usage?.output_tokens || 0;
+      } catch (e) {
+        // Estimate from content length if usage unavailable
+        // Rough heuristic: 1 token ≈ 4 chars output, input from prompt length
+        genOutputTokens = Math.round(fullText.length / 4);
+        genInputTokens = Math.round((activePrompt.systemPrompt?.length || 8000) / 4);
+        console.warn('[generate-theme] Could not get token usage, estimating:', genInputTokens, 'in /', genOutputTokens, 'out');
+      }
+    }
     const latency = Date.now() - startTime;
 
     sendSSE('status', { phase: 'saving' });
