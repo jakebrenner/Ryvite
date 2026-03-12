@@ -1213,14 +1213,7 @@ Return ONLY a valid JSON object with these keys:
 
       // Save as new version (best-effort — client already has the theme)
       try {
-        // Wait up to 5s for accurate token usage from finalMessage event
-        try {
-          await Promise.race([tweakFinalPromise, new Promise(r => setTimeout(r, 5000))]);
-        } catch (e) { /* timeout is fine — use estimates */ }
-        const finalTweakInputTokens = tweakFinalMessage?.usage?.input_tokens || tweakInputTokens;
-        const finalTweakOutputTokens = tweakFinalMessage?.usage?.output_tokens || tweakOutputTokens;
-        const finalTweakCost = calcGenerationCost(tweakModel, finalTweakInputTokens, finalTweakOutputTokens);
-
+        // Save tweak theme to DB IMMEDIATELY so resume works if user navigates away
         const { data: existingThemes } = await supabase
           .from('event_themes')
           .select('id, version')
@@ -1240,12 +1233,29 @@ Return ONLY a valid JSON object with these keys:
           event_id: eventId, version: nextVersion, is_active: true,
           prompt: 'Tweak: ' + tweakInstructions.substring(0, 200),
           html: theme.theme_html, css: theme.theme_css, config: tweakConfig,
-          model: tweakModel, input_tokens: finalTweakInputTokens,
-          output_tokens: finalTweakOutputTokens, latency_ms: latency
+          model: tweakModel, input_tokens: tweakInputTokens,
+          output_tokens: tweakOutputTokens, latency_ms: latency
         };
-        let { error: tweakThemeError } = await supabase
+        let { data: newTweakTheme, error: tweakThemeError } = await supabase
           .from('event_themes').insert(tweakInsert).select().single();
         if (tweakThemeError) console.error('Failed to save tweak theme:', tweakThemeError.message);
+
+        // Now wait for accurate token usage (up to 5s) for cost logging
+        try {
+          await Promise.race([tweakFinalPromise, new Promise(r => setTimeout(r, 5000))]);
+        } catch (e) { /* timeout is fine — use estimates */ }
+        const finalTweakInputTokens = tweakFinalMessage?.usage?.input_tokens || tweakInputTokens;
+        const finalTweakOutputTokens = tweakFinalMessage?.usage?.output_tokens || tweakOutputTokens;
+        const finalTweakCost = calcGenerationCost(tweakModel, finalTweakInputTokens, finalTweakOutputTokens);
+
+        // Update theme with accurate tokens if they differ
+        if (finalTweakInputTokens !== tweakInputTokens || finalTweakOutputTokens !== tweakOutputTokens) {
+          if (newTweakTheme?.id) {
+            supabase.from('event_themes')
+              .update({ input_tokens: finalTweakInputTokens, output_tokens: finalTweakOutputTokens })
+              .eq('id', newTweakTheme.id).catch(() => {});
+          }
+        }
 
         const tweakMeta = getClientMeta(req);
         supabase.from('generation_log').insert({
@@ -1542,6 +1552,8 @@ This is the most common failure mode. Double-check it.`;
     res.end(); // Unblock the client NOW — DB saves continue in background
 
     // Background DB saves — client already has the theme and connection is closed
+    // CRITICAL: Save theme to DB IMMEDIATELY so resume works if user navigates away.
+    // Accurate token counts are updated asynchronously after finalMessage arrives.
     try {
       const { data: existingThemes } = await supabase
         .from('event_themes')
@@ -1558,16 +1570,7 @@ This is the most common failure mode. Double-check it.`;
         .eq('event_id', eventId)
         .eq('is_active', true);
 
-      // Wait for accurate token usage (up to 5s) before DB inserts
-      // Client already has the invite — this only affects cost accuracy in DB
-      try {
-        await Promise.race([finalMessagePromise, new Promise(r => setTimeout(r, 5000))]);
-      } catch (e) { /* timeout is fine — use estimates */ }
-      const finalInputTokens = genFinalMessage?.usage?.input_tokens || genInputTokens;
-      const finalOutputTokens = genFinalMessage?.usage?.output_tokens || genOutputTokens;
-      const finalCost = calcGenerationCost(themeModel, finalInputTokens, finalOutputTokens);
-      console.log('[cost] Background save tokens:', { finalInputTokens, finalOutputTokens, cost: finalCost, hadFinalMsg: !!genFinalMessage, usage: genFinalMessage?.usage });
-
+      // Save theme immediately with estimated tokens — don't block on finalMessage
       const genInsert = {
         event_id: eventId,
         version: nextVersion,
@@ -1577,8 +1580,8 @@ This is the most common failure mode. Double-check it.`;
         css: theme.theme_css,
         config: theme.theme_config,
         model: themeModel,
-        input_tokens: finalInputTokens,
-        output_tokens: finalOutputTokens,
+        input_tokens: genInputTokens,
+        output_tokens: genOutputTokens,
         latency_ms: latency,
         prompt_version_id: activePrompt.promptVersionId || null
       };
@@ -1591,6 +1594,29 @@ This is the most common failure mode. Double-check it.`;
       }
       if (themeError) console.error('Failed to save theme:', themeError.message);
 
+      supabase.from('events')
+        .update({ first_generation_at: new Date().toISOString() })
+        .eq('id', eventId).is('first_generation_at', null)
+        .then(() => {}).catch(() => {});
+
+      // Now wait for accurate token usage (up to 5s) for cost logging
+      try {
+        await Promise.race([finalMessagePromise, new Promise(r => setTimeout(r, 5000))]);
+      } catch (e) { /* timeout is fine — use estimates */ }
+      const finalInputTokens = genFinalMessage?.usage?.input_tokens || genInputTokens;
+      const finalOutputTokens = genFinalMessage?.usage?.output_tokens || genOutputTokens;
+      const finalCost = calcGenerationCost(themeModel, finalInputTokens, finalOutputTokens);
+      console.log('[cost] Background save tokens:', { finalInputTokens, finalOutputTokens, cost: finalCost, hadFinalMsg: !!genFinalMessage, usage: genFinalMessage?.usage });
+
+      // Update theme with accurate tokens if they differ from estimates
+      if (finalInputTokens !== genInputTokens || finalOutputTokens !== genOutputTokens) {
+        if (newTheme?.id) {
+          supabase.from('event_themes')
+            .update({ input_tokens: finalInputTokens, output_tokens: finalOutputTokens })
+            .eq('id', newTheme.id).catch(() => {});
+        }
+      }
+
       // Log generation with accurate tokens + increment cost
       const genMeta = getClientMeta(req);
       supabase.from('generation_log').insert({
@@ -1601,10 +1627,6 @@ This is the most common failure mode. Double-check it.`;
         prompt_version_id: activePrompt.promptVersionId || null,
         client_ip: genMeta.ip, client_geo: genMeta.geo, user_agent: genMeta.userAgent
       }).catch(() => {});
-      supabase.from('events')
-        .update({ first_generation_at: new Date().toISOString() })
-        .eq('id', eventId).is('first_generation_at', null)
-        .then(() => {}).catch(() => {});
       // Atomically increment persistent event cost with accurate amount
       supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: finalCost.totalCostCents })
         .catch(() => {
