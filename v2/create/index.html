@@ -3182,7 +3182,17 @@
       if (fontsImport && !fontsImport.startsWith('@import')) {
         fontsImport = "@import url('" + fontsImport + "');";
       }
-      var themeHtml = ver.html;
+      // Strip document-level tags AI may include — our template provides these
+      // Also strip <script> tags — structural rules say no-JS, and they break our injection script
+      var themeHtml = ver.html
+        .replace(/<\/body\s*>/gi, '')
+        .replace(/<\/html\s*>/gi, '')
+        .replace(/<html[^>]*>/gi, '')
+        .replace(/<\/head\s*>/gi, '')
+        .replace(/<head[^>]*>/gi, '')
+        .replace(/<!DOCTYPE[^>]*>/gi, '')
+        .replace(/<body[^>]*>/gi, '')
+        .replace(/<script[\s\S]*?<\/script\s*>/gi, '');
       // Inject functional form inputs into rsvp-slot
       var rsvpFormHtml = buildRsvpFormHtml();
 
@@ -3197,15 +3207,17 @@
       if (extractedData.dressCode) detailOverrides.dresscode = extractedData.dressCode;
 
       // Script that injects RSVP form and updates data-field elements
+      // safeJson: prevent </script> inside JSON from breaking the enclosing script tag
+      function safeJson(val) { return JSON.stringify(val).replace(/<\//g, '<\\/'); }
       var rsvpScript = '<script>'
         + 'document.addEventListener("DOMContentLoaded", function() {'
         + '  var slot = document.querySelector(".rsvp-slot");'
         + '  if (slot) {'
         + '    var btn = slot.querySelector(".rsvp-button");'
         + '    var btnHtml = btn ? btn.outerHTML : "";'
-        + '    slot.innerHTML = ' + JSON.stringify(rsvpFormHtml) + ' + btnHtml;'
+        + '    slot.innerHTML = ' + safeJson(rsvpFormHtml) + ' + btnHtml;'
         + '  }'
-        + '  var overrides = ' + JSON.stringify(detailOverrides) + ';'
+        + '  var overrides = ' + safeJson(detailOverrides) + ';'
         + '  Object.keys(overrides).forEach(function(key) {'
         + '    var el = document.querySelector("[data-field=\\"" + key + "\\"]");'
         + '    if (!el) return;'
@@ -3234,7 +3246,7 @@
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
         + fontsStyle
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
-        + '<style>' + ver.css + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
+        + '<style>' + (ver.css || '').replace(/<\/style/gi, '<\\/style') + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
     }
 
     function renderPreview(ver) {
@@ -3425,7 +3437,7 @@
           + fontsStyle2
           + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
           + '<style>' + guaranteedCSS + '</style>'
-          + '<style>' + (ver.css || '') + '</style>'
+          + '<style>' + (ver.css || '').replace(/<\/style/gi, '<\\/style') + '</style>'
           + '</head><body>' + tyHtml + calScript + '</body></html>';
       }
 
