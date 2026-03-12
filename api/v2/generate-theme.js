@@ -13,11 +13,14 @@ const DEFAULT_THEME_MODEL = process.env.THEME_MODEL || 'claude-sonnet-4-6';
 // Allow up to 300s on Vercel Pro (caps at 60s on Hobby)
 export const config = { maxDuration: 300 };
 
-// AI model pricing per 1M tokens (must match billing.js)
+// AI model pricing per 1M tokens — must match billing.js, chat.js, ratings.js, admin.js
+// Source: https://docs.anthropic.com/en/docs/about-claude/models#model-comparison-table
 const AI_MODEL_PRICING = {
-  'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
-  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
-  'claude-opus-4-6': { input: 15.00, output: 75.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-6':         { input: 3.00, output: 15.00 },
+  'claude-opus-4-20250514':    { input: 15.00, output: 75.00 },
+  'claude-opus-4-6':           { input: 15.00, output: 75.00 },
 };
 
 function calcGenerationCost(model, inputTokens, outputTokens, markupPct = 50) {

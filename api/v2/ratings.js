@@ -5,11 +5,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Pricing per 1M tokens (must match generate-theme.js and billing.js)
+// AI model pricing per 1M tokens — must match billing.js, generate-theme.js, chat.js, admin.js
 const AI_MODEL_PRICING = {
-  'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
-  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
-  'claude-opus-4-6': { input: 15.00, output: 75.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-6':         { input: 3.00, output: 15.00 },
+  'claude-opus-4-20250514':    { input: 15.00, output: 75.00 },
+  'claude-opus-4-6':           { input: 15.00, output: 75.00 },
 };
 
 // Max 1-star ratings per event that qualify for a credit-back

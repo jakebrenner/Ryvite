@@ -206,11 +206,13 @@ export default async function handler(req, res) {
         if (t.is_active) eventThemeMap[t.event_id].hasTheme = true;
       });
 
-      // Cost calculations
+      // Cost calculations — must match generate-theme.js, chat.js, billing.js, ratings.js
       const MODEL_PRICING = {
-        'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
-        'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
-        'claude-opus-4-6': { input: 15.00, output: 75.00 },
+        'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+        'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00 },
+        'claude-sonnet-4-6':         { input: 3.00, output: 15.00 },
+        'claude-opus-4-20250514':    { input: 15.00, output: 75.00 },
+        'claude-opus-4-6':           { input: 15.00, output: 75.00 },
       };
 
       const markupRes = await supabaseAdmin.from('app_config').select('value').eq('key', 'cost_markup_pct').single();
@@ -496,7 +498,7 @@ export default async function handler(req, res) {
         supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }),
         supabaseAdmin.from('events').select('id, status', { count: 'exact' }),
         supabaseAdmin.from('guests').select('id', { count: 'exact', head: true }),
-        supabaseAdmin.from('generation_log').select('id, event_id, model, input_tokens, output_tokens, created_at', { count: 'exact' }),
+        supabaseAdmin.from('generation_log').select('id, event_id, model, input_tokens, output_tokens, created_at, prompt', { count: 'exact' }),
         supabaseAdmin.from('app_config').select('value').eq('key', 'cost_markup_pct').single()
       ]);
 
@@ -504,11 +506,13 @@ export default async function handler(req, res) {
       const published = events.filter(e => e.status === 'published').length;
       const markupPct = parseFloat(markupRes.data?.value) || 100; // default 100% markup
 
-      // Pricing per 1M tokens (input / output) by model
+      // AI model pricing per 1M tokens — must match generate-theme.js, chat.js, billing.js, ratings.js
       const MODEL_PRICING = {
-        'claude-haiku-4-5-20251001':  { input: 0.80, output: 4.00 },
-        'claude-sonnet-4-6':   { input: 3.00, output: 15.00 },
-        'claude-opus-4-6':     { input: 15.00, output: 75.00 },
+        'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+        'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00 },
+        'claude-sonnet-4-6':         { input: 3.00, output: 15.00 },
+        'claude-opus-4-20250514':    { input: 15.00, output: 75.00 },
+        'claude-opus-4-6':           { input: 15.00, output: 75.00 },
       };
 
       // Token usage + costs by model
@@ -516,8 +520,10 @@ export default async function handler(req, res) {
       let totalApiCost = 0;
       let chatApiCost = 0;
       let themeApiCost = 0;
+      let testApiCost = 0;
       let chatCount = 0;
       let themeCount = 0;
+      let testCount = 0;
 
       // Cost by time period (last 7 days, last 30 days, all time)
       const now = Date.now();
@@ -527,7 +533,7 @@ export default async function handler(req, res) {
 
       (logsRes.data || []).forEach(l => {
         const model = l.model || 'unknown';
-        if (!tokensByModel[model]) tokensByModel[model] = { generations: 0, inputTokens: 0, outputTokens: 0, cost: 0, chatCount: 0, themeCount: 0 };
+        if (!tokensByModel[model]) tokensByModel[model] = { generations: 0, inputTokens: 0, outputTokens: 0, cost: 0, chatCount: 0, themeCount: 0, testCount: 0 };
         tokensByModel[model].generations++;
         tokensByModel[model].inputTokens += l.input_tokens || 0;
         tokensByModel[model].outputTokens += l.output_tokens || 0;
@@ -538,8 +544,11 @@ export default async function handler(req, res) {
         tokensByModel[model].cost += cost;
         totalApiCost += cost;
 
-        const isChat = !l.event_id;
-        if (isChat) { chatApiCost += cost; chatCount++; tokensByModel[model].chatCount++; }
+        // Categorize: prompt_test (admin lab), chat (event planning), or theme (generation/tweak)
+        const isTest = l.prompt && l.prompt.startsWith('prompt_test');
+        const isChat = !l.event_id && !isTest;
+        if (isTest) { testApiCost += cost; testCount++; tokensByModel[model].testCount++; }
+        else if (isChat) { chatApiCost += cost; chatCount++; tokensByModel[model].chatCount++; }
         else { themeApiCost += cost; themeCount++; tokensByModel[model].themeCount++; }
 
         const ts = new Date(l.created_at).getTime();
@@ -562,10 +571,12 @@ export default async function handler(req, res) {
             apiCostTotal: totalApiCost,
             apiCostChat: chatApiCost,
             apiCostTheme: themeApiCost,
+            apiCostTest: testApiCost,
             apiCost7d: cost7d,
             apiCost30d: cost30d,
             chatCount,
             themeCount,
+            testCount,
             markupPct,
             revenueTotal: totalApiCost * markupMultiplier,
             revenue7d: cost7d * markupMultiplier,

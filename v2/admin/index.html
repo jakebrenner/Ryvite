@@ -422,7 +422,7 @@
             <div class="stat-label">Revenue Target</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
           <div style="background:#f9f9f9;border-radius:8px;padding:16px;">
             <div style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Chat (Event Planning)</div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;">
@@ -435,6 +435,13 @@
             <div style="display:flex;justify-content:space-between;align-items:baseline;">
               <span style="font-size:20px;font-weight:700;" id="costTheme">—</span>
               <span style="font-size:12px;color:#888;" id="costThemeCount">0 generations</span>
+            </div>
+          </div>
+          <div style="background:#f9f9f9;border-radius:8px;padding:16px;">
+            <div style="font-size:12px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Prompt Lab Tests</div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:20px;font-weight:700;" id="costTest">—</span>
+              <span style="font-size:12px;color:#888;" id="costTestCount">0 tests</span>
             </div>
           </div>
         </div>
@@ -898,7 +905,7 @@
           <div class="config-field">
             <label>Chat Model (Event Details Extraction)</label>
             <select id="chatModelSelect">
-              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fastest, cheapest ($0.80/1M in, $4/1M out)</option>
+              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fastest, cheapest ($1/1M in, $5/1M out)</option>
               <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — Balanced ($3/1M in, $15/1M out)</option>
               <option value="claude-opus-4-6">Claude Opus 4.6 — Most capable ($15/1M in, $75/1M out)</option>
             </select>
@@ -907,7 +914,7 @@
           <div class="config-field">
             <label>Theme Model (Invite Design Generation)</label>
             <select id="themeModelSelect">
-              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fastest, cheapest ($0.80/1M in, $4/1M out)</option>
+              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fastest, cheapest ($1/1M in, $5/1M out)</option>
               <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — Balanced ($3/1M in, $15/1M out)</option>
               <option value="claude-opus-4-6">Claude Opus 4.6 — Most capable ($15/1M in, $75/1M out)</option>
             </select>
@@ -938,42 +945,9 @@
       </div>
 
       <div class="config-section">
-        <h3>Cost Estimation</h3>
-        <p style="font-size:13px;color:#888;margin-bottom:16px;">Approximate cost per operation based on typical token usage.</p>
-        <table style="font-size:13px;">
-          <thead>
-            <tr>
-              <th>Operation</th>
-              <th>Avg Tokens (in/out)</th>
-              <th>Haiku 4.5</th>
-              <th>Sonnet 4</th>
-              <th>Opus 4</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Chat message</td>
-              <td>~2K / ~300</td>
-              <td style="color:var(--mint-fizz);font-weight:600;">~$0.003</td>
-              <td>~$0.011</td>
-              <td>~$0.053</td>
-            </tr>
-            <tr>
-              <td>Theme generation</td>
-              <td>~3K / ~3K</td>
-              <td>~$0.014</td>
-              <td style="color:var(--mint-fizz);font-weight:600;">~$0.054</td>
-              <td>~$0.270</td>
-            </tr>
-            <tr>
-              <td><strong>Full event creation</strong><br><span style="color:#888;font-size:11px;">~4 chat msgs + 1 theme gen</span></td>
-              <td></td>
-              <td>~$0.026</td>
-              <td style="color:var(--mint-fizz);font-weight:600;">~$0.098</td>
-              <td>~$0.482</td>
-            </tr>
-          </tbody>
-        </table>
+        <h3>Actual Cost Per Operation</h3>
+        <p style="font-size:13px;color:#888;margin-bottom:16px;">Computed from real generation_log data. Updates automatically.</p>
+        <div id="costEstimationTable" style="font-size:13px;color:#888;">Loading...</div>
       </div>
 
       <div class="config-section">
@@ -1229,7 +1203,7 @@
               <label>Models</label>
               <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
                 <label class="style-checkbox" style="margin-bottom:0;" id="modelCheck_haiku">
-                  <input type="checkbox" name="modelCheck" value="claude-haiku-4-5-20251001"> <span style="font-size:13px;">Haiku 4.5 — Fast ($0.80/$4)</span>
+                  <input type="checkbox" name="modelCheck" value="claude-haiku-4-5-20251001"> <span style="font-size:13px;">Haiku 4.5 — Fast ($1/$5)</span>
                 </label>
                 <label class="style-checkbox selected" style="margin-bottom:0;" id="modelCheck_sonnet">
                   <input type="checkbox" name="modelCheck" value="claude-sonnet-4-6" checked> <span style="font-size:13px;">Sonnet 4.6 — Balanced ($3/$15)</span>
@@ -1604,8 +1578,10 @@
       document.getElementById('revenueTotal').textContent = fmtCost(c.revenueTotal || 0);
       document.getElementById('costChat').textContent = fmtCost(c.apiCostChat || 0);
       document.getElementById('costTheme').textContent = fmtCost(c.apiCostTheme || 0);
+      document.getElementById('costTest').textContent = fmtCost(c.apiCostTest || 0);
       document.getElementById('costChatCount').textContent = (c.chatCount || 0) + ' calls';
       document.getElementById('costThemeCount').textContent = (c.themeCount || 0) + ' generations';
+      document.getElementById('costTestCount').textContent = (c.testCount || 0) + ' tests';
       var markup = (1 + (c.markupPct || 100) / 100);
       document.getElementById('markupDisplay').textContent = markup.toFixed(1);
 
@@ -1620,14 +1596,33 @@
         var m = stats.tokensByModel[model];
         return '<div class="usage-card">'
           + '<div class="model-name">' + escapeHtml(model) + '</div>'
-          + '<div class="usage-stats" style="grid-template-columns:repeat(5,1fr);">'
+          + '<div class="usage-stats" style="grid-template-columns:repeat(6,1fr);">'
           + '<div class="usage-stat"><div class="val">' + m.chatCount + '</div><div class="lbl">Chat</div></div>'
           + '<div class="usage-stat"><div class="val">' + m.themeCount + '</div><div class="lbl">Theme</div></div>'
+          + '<div class="usage-stat"><div class="val">' + (m.testCount || 0) + '</div><div class="lbl">Tests</div></div>'
           + '<div class="usage-stat"><div class="val">' + formatNumber(m.inputTokens) + '</div><div class="lbl">In Tokens</div></div>'
           + '<div class="usage-stat"><div class="val">' + formatNumber(m.outputTokens) + '</div><div class="lbl">Out Tokens</div></div>'
           + '<div class="usage-stat"><div class="val" style="color:var(--mint-fizz);">' + fmtCost(m.cost) + '</div><div class="lbl">Cost</div></div>'
           + '</div></div>';
       }).join('');
+
+      // Render actual cost per operation table (AI Models tab)
+      var c2 = stats.costs || {};
+      var estEl = document.getElementById('costEstimationTable');
+      if (estEl) {
+        var chatAvgCost = c2.chatCount > 0 ? c2.apiCostChat / c2.chatCount : 0;
+        var themeAvgCost = c2.themeCount > 0 ? c2.apiCostTheme / c2.themeCount : 0;
+        var testAvgCost = c2.testCount > 0 ? c2.apiCostTest / c2.testCount : 0;
+        var totalOps = (c2.chatCount || 0) + (c2.themeCount || 0) + (c2.testCount || 0);
+        estEl.innerHTML = '<table style="width:100%;font-size:13px;">'
+          + '<thead><tr><th style="text-align:left;">Operation</th><th>Count</th><th>Total Cost</th><th>Avg Cost</th></tr></thead>'
+          + '<tbody>'
+          + '<tr><td>Chat (Event Planning)</td><td>' + (c2.chatCount || 0) + '</td><td>' + fmtCost(c2.apiCostChat || 0) + '</td><td>' + fmtCost(chatAvgCost) + '</td></tr>'
+          + '<tr><td>Theme Generation</td><td>' + (c2.themeCount || 0) + '</td><td>' + fmtCost(c2.apiCostTheme || 0) + '</td><td>' + fmtCost(themeAvgCost) + '</td></tr>'
+          + '<tr><td>Prompt Lab Tests</td><td>' + (c2.testCount || 0) + '</td><td>' + fmtCost(c2.apiCostTest || 0) + '</td><td>' + fmtCost(testAvgCost) + '</td></tr>'
+          + '<tr style="font-weight:700;border-top:2px solid #ddd;"><td>Total</td><td>' + totalOps + '</td><td>' + fmtCost(c2.apiCostTotal || 0) + '</td><td>' + fmtCost(totalOps > 0 ? c2.apiCostTotal / totalOps : 0) + '</td></tr>'
+          + '</tbody></table>';
+      }
     }
 
     // ---- Users ----
@@ -2943,13 +2938,13 @@ If provided, analyze them for color palette, visual mood, textures, typography s
     }
 
     // ── Cost calculation helper ──
-    var COST_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-    var COST_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
+    var COST_IN = { 'claude-haiku-4-5-20251001': 1.00, 'claude-sonnet-4-20250514': 3.00, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-20250514': 15.00, 'claude-opus-4-6': 15.00 };
+    var COST_OUT = { 'claude-haiku-4-5-20251001': 5.00, 'claude-sonnet-4-20250514': 15.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-20250514': 75.00, 'claude-opus-4-6': 75.00 };
 
     function calcEstCost(meta) {
       if (meta.hybrid) {
         var d = meta.hybrid.draft, r = meta.hybrid.refine;
-        var draftCost = (d.tokens.input * (COST_IN[d.model] || 0.80) + d.tokens.output * (COST_OUT[d.model] || 4)) / 1000000;
+        var draftCost = (d.tokens.input * (COST_IN[d.model] || 3) + d.tokens.output * (COST_OUT[d.model] || 15)) / 1000000;
         var refineCost = (r.tokens.input * (COST_IN[r.model] || 3) + r.tokens.output * (COST_OUT[r.model] || 15)) / 1000000;
         return draftCost + refineCost;
       }

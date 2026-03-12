@@ -10,11 +10,13 @@ const supabase = createClient(
 
 const DEFAULT_CHAT_MODEL = 'claude-haiku-4-5-20251001';
 
-// AI model pricing per 1M tokens (must match billing.js / generate-theme.js)
+// AI model pricing per 1M tokens — must match billing.js, generate-theme.js, ratings.js, admin.js
 const AI_MODEL_PRICING = {
-  'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
-  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
-  'claude-opus-4-6': { input: 15.00, output: 75.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-6':         { input: 3.00, output: 15.00 },
+  'claude-opus-4-20250514':    { input: 15.00, output: 75.00 },
+  'claude-opus-4-6':           { input: 15.00, output: 75.00 },
 };
 
 function calcGenerationCost(model, inputTokens, outputTokens, markupPct = 50) {

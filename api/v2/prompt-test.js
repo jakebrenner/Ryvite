@@ -9,6 +9,22 @@ const supabaseAdmin = createClient(
 
 const FOUNDER_EMAIL = 'jake@getmrkt.com';
 
+// Log test generation to generation_log so admin cost tracking is accurate
+function logTestGeneration(userId, model, inputTokens, outputTokens, latencyMs, promptVersionId) {
+  supabaseAdmin.from('generation_log').insert({
+    user_id: userId,
+    event_id: null,
+    prompt: 'prompt_test' + (promptVersionId ? ': version ' + promptVersionId : ''),
+    model,
+    input_tokens: inputTokens || 0,
+    output_tokens: outputTokens || 0,
+    latency_ms: latencyMs || 0,
+    status: 'success',
+    is_tweak: false,
+    prompt_version_id: promptVersionId || null,
+  }).then(() => {}).catch(e => console.warn('Failed to log test generation:', e.message));
+}
+
 async function verifyAdmin(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) return null;
@@ -510,6 +526,7 @@ export default async function handler(req, res) {
     if (!html) return res.status(400).json({ error: 'html is required' });
 
     try {
+      const autoTagStart = Date.now();
       const response = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
@@ -548,6 +565,9 @@ Guidelines:
       if (!parsed) {
         return res.status(500).json({ error: 'Failed to parse auto-tag response' });
       }
+
+      // Log autoTag call to generation_log
+      logTestGeneration(admin.id, 'claude-haiku-4-5-20251001', response.usage?.input_tokens || 0, response.usage?.output_tokens || 0, Date.now() - autoTagStart, null);
 
       return res.status(200).json({
         success: true,
@@ -887,6 +907,12 @@ Return a JSON object with exactly these keys:
       const totalInputTokens = draftResult.metadata.tokens.input + (refineFailed ? 0 : refinedResult.metadata.tokens.input);
       const totalOutputTokens = draftResult.metadata.tokens.output + (refineFailed ? 0 : refinedResult.metadata.tokens.output);
 
+      // Log both draft and refine steps
+      logTestGeneration(admin.id, draftModel, draftResult.metadata.tokens.input, draftResult.metadata.tokens.output, draftResult.metadata.latencyMs, usedPromptVersionId);
+      if (!refineFailed) {
+        logTestGeneration(admin.id, refineModel, refinedResult.metadata.tokens.input, refinedResult.metadata.tokens.output, refinedResult.metadata.latencyMs, usedPromptVersionId);
+      }
+
       return res.status(200).json({
         success: true,
         theme: refinedResult.theme,
@@ -911,13 +937,15 @@ Return a JSON object with exactly these keys:
         models.map(m => generateWithModel(m, userMessage, activeSystemPrompt))
       );
 
-      const COST_PER_M_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-      const COST_PER_M_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
+      const COST_PER_M_IN = { 'claude-haiku-4-5-20251001': 1.00, 'claude-sonnet-4-20250514': 3.00, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-20250514': 15.00, 'claude-opus-4-6': 15.00 };
+      const COST_PER_M_OUT = { 'claude-haiku-4-5-20251001': 5.00, 'claude-sonnet-4-20250514': 15.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-20250514': 75.00, 'claude-opus-4-6': 75.00 };
 
       const outputs = results.map((r, i) => {
         if (r.status === 'fulfilled') {
           const m = r.value.metadata;
           const estCost = (m.tokens.input * (COST_PER_M_IN[m.model] || 3) + m.tokens.output * (COST_PER_M_OUT[m.model] || 15)) / 1000000;
+          // Log each model's generation
+          logTestGeneration(admin.id, m.model, m.tokens.input, m.tokens.output, m.latencyMs, usedPromptVersionId);
           return { success: true, ...r.value, estCost };
         } else {
           return { success: false, model: models[i], error: r.reason?.message || 'Generation failed' };
@@ -928,6 +956,7 @@ Return a JSON object with exactly these keys:
     } else {
       // Single model
       const result = await generateWithModel(model, userMessage, activeSystemPrompt);
+      logTestGeneration(admin.id, model, result.metadata.tokens.input, result.metadata.tokens.output, result.metadata.latencyMs, usedPromptVersionId);
       return res.status(200).json({ success: true, ...result, promptVersionId: usedPromptVersionId });
     }
   } catch (err) {
