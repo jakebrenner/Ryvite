@@ -558,12 +558,17 @@ function normalizeThemeKeys(theme) {
   if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\n')) theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\n/g, '\n');
   if (theme.theme_html && theme.theme_html.includes('\\t')) theme.theme_html = theme.theme_html.replace(/\\t/g, '\t');
   if (theme.theme_css && theme.theme_css.includes('\\t')) theme.theme_css = theme.theme_css.replace(/\\t/g, '\t');
-  if (theme.theme_html && !theme.theme_css) {
+  // Always extract <style> blocks from theme_html and merge into theme_css.
+  // AI may put CSS in both theme_css AND inline <style> tags in the HTML.
+  if (theme.theme_html) {
     const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-    if (styleMatch) { theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n'); theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ''); }
+    if (styleMatch) {
+      const extractedCss = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+      theme.theme_css = theme.theme_css ? (theme.theme_css + '\n' + extractedCss) : extractedCss;
+      theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    }
   }
   if (theme.theme_html && (theme.theme_html.includes('<!DOCTYPE') || theme.theme_html.includes('<html'))) {
-    if (!theme.theme_css) { const m = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi); if (m) theme.theme_css = m.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n'); }
     const linkMatches = theme.theme_html.match(/<link[^>]*href=["'](https:\/\/fonts\.googleapis\.com\/[^"']+)["'][^>]*>/gi);
     if (linkMatches) { const fontUrl = linkMatches.map(l => { const m = l.match(/href=["']([^"']+)["']/); return m ? m[1] : null; }).filter(Boolean)[0]; if (fontUrl && !theme.theme_config?.googleFontsImport) { if (!theme.theme_config) theme.theme_config = {}; theme.theme_config.googleFontsImport = fontUrl; } }
     const bodyMatch = theme.theme_html.match(/<body[^>]*>([\s\S]*)<\/body>/i);

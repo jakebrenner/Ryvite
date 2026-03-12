@@ -762,8 +762,6 @@
     // Cost tracking state — tracks cumulative cost for this event (persisted across sessions)
     var eventCostCents = 0;
     var _genRetried = false; // prevents infinite retry on mobile "Load failed"
-    var _isGenerating = false; // true while theme generation is in-flight
-    var _genStartedAt = 0; // timestamp when generation started (for visibility recovery)
     var eventGenCount = 0;
     var usagePlanUser = false;
 
@@ -2872,7 +2870,6 @@
     }
 
     function stopGeneratingPuns() {
-      _isGenerating = false;
       if (genPunIntervalId) { clearInterval(genPunIntervalId); genPunIntervalId = null; }
       genStageTimers.forEach(function(t) { clearTimeout(t); clearInterval(t); });
       genStageTimers = [];
@@ -2929,8 +2926,6 @@
       document.getElementById('generatingLoadingState').style.display = 'block';
       document.getElementById('generatingView').style.display = 'block';
       document.getElementById('generatedView').style.display = 'none';
-      _isGenerating = true;
-      _genStartedAt = Date.now();
       startGeneratingPuns();
 
       if (!currentEvent) {
@@ -3082,46 +3077,11 @@
         }
       } catch (err) {
         // Mobile Safari "Load failed" — connection dropped during SSE stream.
-        // The server likely completed generation and saved to DB after res.end().
-        // Try to recover the theme from DB before burning tokens on a full regeneration.
-        if (err.message === 'Load failed' && !_genRetried && currentEvent && currentEvent.id) {
-          console.warn('[generate-theme] Mobile connection dropped, attempting DB recovery...');
+        // Auto-retry once since the server likely completed the generation.
+        if (err.message === 'Load failed' && !_genRetried) {
+          console.warn('[generate-theme] Mobile connection dropped, retrying...');
           _genRetried = true;
-          try {
-            // Wait for server-side DB save to complete (saves happen after res.end())
-            await new Promise(function(r) { setTimeout(r, 3000); });
-            var recoveryRes = await authFetch('/api/v2/events?action=get&eventId=' + encodeURIComponent(currentEvent.id));
-            var recoveryData = await recoveryRes.json();
-            if (recoveryData.success && recoveryData.event && recoveryData.event.themeVersions && recoveryData.event.themeVersions.length > themeVersions.length) {
-              console.log('[generate-theme] Recovered theme from DB after connection drop');
-              var ev = recoveryData.event;
-              themeVersions = ev.themeVersions;
-              activeVersionIndex = ev.themeVersions.findIndex(function(t) { return t.isActive; });
-              if (activeVersionIndex < 0) activeVersionIndex = ev.themeVersions.length - 1;
-              var ver = themeVersions[activeVersionIndex];
-              currentEvent.themeHtml = ver.html;
-              currentEvent.themeCss = ver.css;
-              currentEvent.themeConfig = ver.config;
-              stopGeneratingPuns();
-              document.getElementById('generatingView').style.display = 'none';
-              document.getElementById('generatedView').style.display = 'block';
-              renderPreview(ver);
-              renderVersionGallery();
-              pendingRatingThemeId = ver.id;
-              initDesignChatIfNeeded();
-              setTimeout(function() { initCostTracker(); }, 2000);
-              updateMobileLayout();
-              try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
-              _genRetried = false;
-              return;
-            }
-            // Theme not in DB yet — fall through to full retry
-            console.warn('[generate-theme] DB recovery found no new theme, retrying generation...');
-            try { return await generateTheme(feedback); } finally { _genRetried = false; }
-          } catch (recoveryErr) {
-            console.warn('[generate-theme] DB recovery failed, retrying generation...', recoveryErr);
-            try { return await generateTheme(feedback); } finally { _genRetried = false; }
-          }
+          try { return await generateTheme(feedback); } finally { _genRetried = false; }
         }
         console.error('[generate-theme] CATCH error:', err, err.stack);
         stopGeneratingPuns();
@@ -3264,7 +3224,8 @@
     }
 
     function buildSrcdoc(ver) {
-      var fontsImport = ver.config.googleFontsImport || '';
+      var config = ver.config || {};
+      var fontsImport = config.googleFontsImport || '';
       // Normalize: ensure it's a full @import statement, not just a URL
       if (fontsImport && !fontsImport.startsWith('@import')) {
         fontsImport = "@import url('" + fontsImport + "');";
@@ -3277,12 +3238,19 @@
       var bodyTagMatch = ver.html.match(/<body\b([^>]*)>/i);
       var bodyAttrs = bodyTagMatch ? bodyTagMatch[1].trim() : '';
 
-      // Extract <style> blocks from <head> before stripping — AI may put styles there
+      // Extract CSS content from <head> <style> blocks before stripping
       var headStyles = '';
       var headMatch = ver.html.match(/<head(?:\s[^>]*)?>[\s\S]*?<\/head\s*>/i);
       if (headMatch) {
-        var headStyleMatches = headMatch[0].match(/<style[^>]*>[\s\S]*?<\/style\s*>/gi);
-        if (headStyleMatches) headStyles = headStyleMatches.join('\n');
+        var headStyleMatches = headMatch[0].match(/<style[^>]*>([\s\S]*?)<\/style\s*>/gi);
+        if (headStyleMatches) {
+          // Extract inner CSS content (strip <style> tags), sanitize, and re-wrap
+          var headCss = headStyleMatches.map(function(s) {
+            return s.replace(/<style[^>]*>/gi, '').replace(/<\/style\s*>/gi, '');
+          }).join('\n');
+          headCss = sanitizeThemeText(headCss).replace(/<\/style/gi, '<\\/style');
+          if (headCss.trim()) headStyles = '<style>' + headCss + '</style>';
+        }
       }
 
       // Strip document-level tags — our template provides these
@@ -3589,12 +3557,13 @@
     // AI provides: .thankyou-page background/decorative styling, .thankyou-hero heading + subtitle, and CSS
     // We guarantee: calendar buttons, footer, layout structure
     function buildThankYouSrcdoc(ver) {
-      var fontsImport = ver.config.googleFontsImport || '';
+      var config = ver.config || {};
+      var fontsImport = config.googleFontsImport || '';
       var guestName = 'Sarah';
       var title = extractedData.title || 'the event';
-      var pc = ver.config.primaryColor || '#333';
-      var sc = ver.config.secondaryColor || '#4CAF50';
-      var ac = ver.config.accentColor || '#2196F3';
+      var pc = config.primaryColor || '#333';
+      var sc = config.secondaryColor || '#4CAF50';
+      var ac = config.accentColor || '#2196F3';
 
       // Guaranteed CSS — these are the structural styles we control
       var guaranteedCSS = '.thankyou-page { max-width:393px; margin:0 auto; padding:60px 32px 40px; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }'
@@ -3625,8 +3594,8 @@
       // Calendar button click handling is wired via iframe.onload in renderPreview
       // (see injectCalendarHandlers) — no script injection in srcdoc.
 
-      if (ver.config.thankyouHtml) {
-        var tyHtml = sanitizeThemeText(ver.config.thankyouHtml);
+      if (config.thankyouHtml) {
+        var tyHtml = sanitizeThemeText(config.thankyouHtml);
 
         // New simplified format: AI provides empty .thankyou-hero — platform fills it
         var heroContent = '<h1 class="thankyou-title">Thank You!</h1>'
@@ -3666,11 +3635,11 @@
       }
 
       // Fallback: build entirely from theme config
-      var accent = ver.config.accentColor || ver.config.primaryColor || '#E94560';
-      var bgColor = ver.config.backgroundColor || '#FFFAF5';
-      var textColor = ver.config.textColor || '#1A1A2E';
-      var headlineFont = ver.config.fontHeadline || 'serif';
-      var bodyFont = ver.config.fontBody || 'sans-serif';
+      var accent = config.accentColor || config.primaryColor || '#E94560';
+      var bgColor = config.backgroundColor || '#FFFAF5';
+      var textColor = config.textColor || '#1A1A2E';
+      var headlineFont = config.fontHeadline || 'serif';
+      var bodyFont = config.fontBody || 'sans-serif';
 
       var thankYouHtml = '<div class="thankyou-page" style="background:' + bgColor + ';color:' + textColor + ';font-family:' + bodyFont + ',sans-serif;">'
         + '<div class="thankyou-hero">'
@@ -5476,60 +5445,6 @@
     });
 
     setupDesignChatKeyboardHandler();
-
-    // When user returns to the page after phone sleep / tab switch during generation,
-    // the SSE connection is dead. Poll DB to recover the completed theme.
-    document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState !== 'visible') return;
-      if (!_isGenerating || !currentEvent || !currentEvent.id) return;
-      // Only attempt recovery if generation has been running for at least 5 seconds
-      if (Date.now() - _genStartedAt < 5000) return;
-      console.log('[visibility-recovery] Page visible again during generation, checking DB...');
-      var prevCount = themeVersions.length;
-      var pollAttempts = 0;
-      var maxPolls = 4;
-      var pollDelay = 3000;
-      function pollForTheme() {
-        pollAttempts++;
-        authFetch('/api/v2/events?action=get&eventId=' + encodeURIComponent(currentEvent.id))
-          .then(function(r) { return r.json(); })
-          .then(function(result) {
-            if (!_isGenerating) return; // generation completed normally while we were polling
-            if (result.success && result.event && result.event.themeVersions && result.event.themeVersions.length > prevCount) {
-              console.log('[visibility-recovery] Found new theme in DB, recovering');
-              var ev = result.event;
-              themeVersions = ev.themeVersions;
-              activeVersionIndex = ev.themeVersions.findIndex(function(t) { return t.isActive; });
-              if (activeVersionIndex < 0) activeVersionIndex = ev.themeVersions.length - 1;
-              var ver = themeVersions[activeVersionIndex];
-              currentEvent.themeHtml = ver.html;
-              currentEvent.themeCss = ver.css;
-              currentEvent.themeConfig = ver.config;
-              stopGeneratingPuns();
-              document.getElementById('generatingView').style.display = 'none';
-              document.getElementById('generatedView').style.display = 'block';
-              renderPreview(ver);
-              renderVersionGallery();
-              pendingRatingThemeId = ver.id;
-              initDesignChatIfNeeded();
-              setTimeout(function() { initCostTracker(); }, 2000);
-              updateMobileLayout();
-              try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
-            } else if (pollAttempts < maxPolls) {
-              console.log('[visibility-recovery] Theme not ready yet, polling again (' + pollAttempts + '/' + maxPolls + ')...');
-              setTimeout(pollForTheme, pollDelay);
-            } else {
-              console.log('[visibility-recovery] Theme not found after ' + maxPolls + ' polls, waiting for fetch to complete or fail normally');
-            }
-          })
-          .catch(function(e) {
-            console.warn('[visibility-recovery] Poll failed:', e);
-            if (pollAttempts < maxPolls) setTimeout(pollForTheme, pollDelay);
-          });
-      }
-      // First poll after a short delay to give the server time to finish saving
-      setTimeout(pollForTheme, 2000);
-    });
   </script>
 </body>
 </html>

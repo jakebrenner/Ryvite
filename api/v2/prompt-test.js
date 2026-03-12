@@ -487,23 +487,19 @@ function normalizeThemeKeys(theme) {
   if (theme.theme_html && theme.theme_html.includes('\\t')) theme.theme_html = theme.theme_html.replace(/\\t/g, '\t');
   if (theme.theme_css && theme.theme_css.includes('\\t')) theme.theme_css = theme.theme_css.replace(/\\t/g, '\t');
 
-  // If CSS is missing but embedded in HTML <style> tags, extract it
-  if (theme.theme_html && !theme.theme_css) {
+  // Always extract <style> blocks from theme_html and merge into theme_css.
+  // AI may put CSS in both theme_css AND inline <style> tags in the HTML.
+  if (theme.theme_html) {
     const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
     if (styleMatch) {
-      theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+      const extractedCss = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+      theme.theme_css = theme.theme_css ? (theme.theme_css + '\n' + extractedCss) : extractedCss;
       theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     }
   }
 
-  // If HTML is a full document, extract body content and head styles
+  // If HTML is a full document, extract body content
   if (theme.theme_html && (theme.theme_html.includes('<!DOCTYPE') || theme.theme_html.includes('<html'))) {
-    if (!theme.theme_css) {
-      const headStyleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-      if (headStyleMatch) {
-        theme.theme_css = headStyleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
-      }
-    }
     const bodyMatch = theme.theme_html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
     if (bodyMatch) theme.theme_html = bodyMatch[1].trim();
   }
