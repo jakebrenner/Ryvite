@@ -661,6 +661,7 @@
           actionsHtml += '<a href="/v2/create/?eventId=' + encodeURIComponent(event.id) + '">Continue</a>';
         } else if (!isArchived) {
           actionsHtml += '<a href="/v2/event/' + encodeURIComponent(event.slug) + '" target="_blank">View</a>';
+          actionsHtml += '<a href="/v2/create/?eventId=' + encodeURIComponent(event.id) + '">Edit</a>';
           actionsHtml += '<button onclick="openRSVPModal(\'' + event.id + '\', \'' + escapeHtml(event.title).replace(/'/g, "\\'") + '\')">RSVPs</button>';
         } else {
           actionsHtml += '<a href="/v2/event/' + encodeURIComponent(event.slug) + '" target="_blank">View</a>';

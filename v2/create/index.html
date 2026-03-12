@@ -1434,7 +1434,7 @@
       // If draft already exists, update it with extracted details
       if (currentEvent) {
         try {
-          await authFetch('/api/v2/events?action=update', {
+          var updateRes = await authFetch('/api/v2/events?action=update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1450,6 +1450,10 @@
               settings: { creation_step: 1 }
             })
           });
+          var updateResult = await updateRes.json();
+          if (updateResult.success && updateResult.event) {
+            currentEvent.slug = updateResult.event.slug;
+          }
           await saveCustomFields();
           return true;
         } catch (err) {

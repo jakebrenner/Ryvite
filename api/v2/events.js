@@ -228,7 +228,14 @@ export default async function handler(req, res) {
 
       // Map camelCase to snake_case for events table
       const dbUpdates = {};
-      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.title !== undefined) {
+        dbUpdates.title = updates.title;
+        // Regenerate slug when title changes (only for draft events — published slugs stay stable for shared links)
+        const { data: currentEvt } = await supabaseAdmin.from('events').select('status').eq('id', eventId).single();
+        if (currentEvt?.status === 'draft') {
+          dbUpdates.slug = generateSlug(updates.title);
+        }
+      }
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.eventDate !== undefined) dbUpdates.event_date = updates.eventDate || null;
       if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate || null;
