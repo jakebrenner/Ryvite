@@ -1484,10 +1484,12 @@ This is the most common failure mode. Double-check it.`;
     // Estimate tokens immediately for the client — accurate cost logged in background
     let genInputTokens = genFinalMessage?.usage?.input_tokens || 0;
     let genOutputTokens = genFinalMessage?.usage?.output_tokens || 0;
+    const hadFinalMessage = !!genFinalMessage;
     if (genInputTokens === 0 && genOutputTokens === 0) {
       genOutputTokens = Math.round(fullText.length / 4);
       genInputTokens = Math.round((activePrompt.systemPrompt?.length || 8000) / 4);
     }
+    console.log('[cost] Estimated tokens:', { hadFinalMessage, genInputTokens, genOutputTokens, fullTextLen: fullText.length, model: themeModel });
     const latency = Date.now() - startTime;
 
     // Parse JSON response — handle various wrapping patterns
@@ -1517,6 +1519,7 @@ This is the most common failure mode. Double-check it.`;
     // CRITICAL: Send theme to client and close connection IMMEDIATELY.
     // res.text() on client buffers until res.end(), so DB saves MUST happen after.
     const genCost = calcGenerationCost(themeModel, genInputTokens, genOutputTokens);
+    console.log('[cost] Sending to client:', { genCost, model: themeModel, inputTokens: genInputTokens, outputTokens: genOutputTokens });
     sendSSE('done', {
       success: true,
       theme: {
@@ -1563,6 +1566,7 @@ This is the most common failure mode. Double-check it.`;
       const finalInputTokens = genFinalMessage?.usage?.input_tokens || genInputTokens;
       const finalOutputTokens = genFinalMessage?.usage?.output_tokens || genOutputTokens;
       const finalCost = calcGenerationCost(themeModel, finalInputTokens, finalOutputTokens);
+      console.log('[cost] Background save tokens:', { finalInputTokens, finalOutputTokens, cost: finalCost, hadFinalMsg: !!genFinalMessage, usage: genFinalMessage?.usage });
 
       const genInsert = {
         event_id: eventId,

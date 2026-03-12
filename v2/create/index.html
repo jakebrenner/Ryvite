@@ -3020,9 +3020,10 @@
             // Set pending rating BEFORE initDesignChat so it gets picked up
             pendingRatingThemeId = ver.id;
             initDesignChatIfNeeded();
-            // Track generation cost
+            // Track generation cost — show estimate immediately, then refresh from DB
             if (genResult.metadata) updateCostFromGeneration(genResult.metadata);
-            if (eventGenCount <= 1) initCostTracker();
+            // Always re-fetch accurate cost from DB after background save completes
+            setTimeout(function() { initCostTracker(); }, 6000);
             // Persist creation_step so resume returns to preview
             if (currentEvent) {
               authFetch('/api/v2/events?action=update', {
@@ -3234,19 +3235,16 @@
         + '  Object.keys(overrides).forEach(function(key) {'
         + '    var el = document.querySelector("[data-field=\\"" + key + "\\"]");'
         + '    if (!el) return;'
-        // Preserve text color: capture the computed color from the element or its first
-        // styled child before replacing innerHTML, then re-apply it. This prevents the
-        // "flash of wrong color" when AI puts color on child elements that get stripped.
-        + '    var cs = window.getComputedStyle(el);'
-        + '    var origColor = cs.color;'
-        // Also check first child — AI often puts color on a span/p inside the data-field container
-        + '    if (el.firstElementChild) {'
-        + '      var childColor = window.getComputedStyle(el.firstElementChild).color;'
-        + '      if (childColor !== origColor) origColor = childColor;'
-        + '    }'
+        // Preserve text color: find the deepest text-bearing element and capture its
+        // computed color before replacing innerHTML. AI puts color on various descendants.
+        + '    var deepest = el;'
+        + '    var walker = el;'
+        + '    while (walker.firstElementChild) walker = walker.firstElementChild;'
+        + '    deepest = walker;'
+        + '    var origColor = window.getComputedStyle(deepest).color;'
         + '    el.innerHTML = overrides[key];'
         // Re-apply the color to the container so the new plain text inherits it
-        + '    if (origColor && !el.style.color) el.style.color = origColor;'
+        + '    if (origColor) el.style.color = origColor;'
         + '  });'
         + '  var dc = document.querySelector("[data-field=\\"dresscode\\"]");'
         + '  if (dc && !overrides.dresscode) { dc.style.display = "none"; }'
@@ -3284,6 +3282,7 @@
         // Use the higher of DB cost vs locally tracked cost (handles race where
         // local updateCostFromGeneration ran before DB write completed)
         var dbCost = costData.totalCostCents || 0;
+        console.log('[cost] initCostTracker: dbCost=' + dbCost + ' localCost=' + eventCostCents + ' using=' + Math.max(dbCost, eventCostCents));
         eventCostCents = Math.max(dbCost, eventCostCents);
         eventGenCount = Math.max(costData.generationCount || 0, eventGenCount);
         usagePlanUser = true;
@@ -3299,6 +3298,7 @@
     function updateCostFromGeneration(metadata) {
       if (!metadata || !metadata.cost) return;
       var genCost = metadata.cost.totalCostCents || 0;
+      console.log('[cost] updateCostFromGeneration:', JSON.stringify(metadata.cost), 'tokens:', JSON.stringify(metadata.tokens), 'model:', metadata.model, 'adding:', genCost, 'to existing:', eventCostCents);
       eventCostCents += genCost;
       eventGenCount++;
       // Show cost tracker immediately even if initCostTracker hasn't returned yet
@@ -4278,8 +4278,9 @@
             // Update sessionStorage cache
             try { if (currentEvent) sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
             var chatMsg = (tweakResult.chatResponse || tweakResult.chat_response || 'Done! I\'ve updated the design. Take a look at the preview.') + '\n\nWant to make any more changes?';
-            // Track tweak cost
+            // Track tweak cost — show estimate immediately, then refresh from DB
             if (tweakResult.metadata) updateCostFromGeneration(tweakResult.metadata);
+            setTimeout(function() { initCostTracker(); }, 6000);
             designChatHistory.push({ role: 'assistant', content: chatMsg });
             // Show rating widget for every generation (tweaks included)
             showThemeRating(newVer.id);
