@@ -206,6 +206,12 @@
     .send-btn:hover:not(:disabled) { background: var(--blush-pop); transform: translateY(-1px); }
     .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    /* Test SMS */
+    .test-sms-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .test-sms-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px dashed #ccc; border-radius: 8px; background: #fafafa; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; color: #666; transition: all 0.15s; white-space: nowrap; }
+    .test-sms-btn:hover:not(:disabled) { border-color: var(--party-coral); color: var(--party-coral); background: rgba(233,69,96,0.03); }
+    .test-sms-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
     /* SMS History */
     .history-toggle { display: flex; align-items: center; gap: 8px; margin-top: 24px; padding: 12px 0; border-top: 1px solid #eee; cursor: pointer; font-size: 13px; font-weight: 600; color: #666; user-select: none; }
     .history-toggle:hover { color: var(--party-coral); }
@@ -996,7 +1002,7 @@
       var content = document.getElementById('manageContent');
       var counts = getGuestCountsWithPhone(manageRsvps);
       var inviteUrl = getInviteUrl();
-      var defaultInviteMsg = 'Hi {name}, you\'re invited to ' + manageTitle + '! RSVP here: ' + inviteUrl;
+      var defaultInviteMsg = 'Hi {name}, you\'re invited to ' + manageTitle + '! RSVP here: {link}';
 
       var html = '';
 
@@ -1018,12 +1024,22 @@
       var defaultMsg = manageMsgType === 'invite' ? defaultInviteMsg : '';
       var placeholder = manageMsgType === 'invite' ? 'Write your invite message...' : 'Type your update message...';
       html += '<textarea class="compose-textarea" id="smsComposeText" placeholder="' + placeholder + '" oninput="updateSmsPreview()">' + escapeHtml(defaultMsg) + '</textarea>';
-      html += '<div class="compose-helper">{name} will be replaced with each guest\'s name</div>';
+      html += '<div class="compose-helper">{name} will be replaced with each guest\'s name · {link} will insert the RSVP link</div>';
 
-      // Stats row
+      // Stats row + test SMS
       html += '<div class="compose-stats">'
         + '<span class="char-count" id="smsCharCount">0 chars · 0 segments</span>'
         + '<span class="cost-estimate" id="smsCostEstimate"></span>'
+        + '</div>';
+
+      // Test SMS row
+      var userPhone = user && user.phone ? user.phone : '';
+      html += '<div class="test-sms-row">'
+        + '<button class="test-sms-btn" id="testSmsBtn" onclick="sendTestSms()"' + (!userPhone ? ' disabled title="Add a phone number in your profile first"' : '') + '>'
+        + '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 1H7c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14z"/></svg>'
+        + ' Send test to myself' + (userPhone ? ' (' + escapeHtml(formatPhoneDisplay(userPhone)) + ')' : '') + '</button>'
+        + (!userPhone ? '<a href="/v2/profile/" style="font-size:12px;color:var(--party-coral);">Add phone in profile</a>' : '')
+        + '<span id="testSmsStatus" style="font-size:12px;color:var(--mint-fizz);font-weight:500;display:none;"></span>'
         + '</div>';
 
       // Send button
@@ -1096,7 +1112,8 @@
 
         try {
           var action = manageMsgType === 'invite' ? 'sendInvites' : 'sendUpdate';
-          var body = { eventId: manageEventId, message: text };
+          var resolvedText = resolveMessagePlaceholders(text);
+          var body = { eventId: manageEventId, message: resolvedText };
           if (manageMsgType === 'invite') {
             body.allGuests = filter === 'all';
           } else {
@@ -1127,6 +1144,63 @@
           sendBtn.textContent = 'Send to ' + guestCount + ' guest' + (guestCount !== 1 ? 's' : '');
         }
       });
+    }
+
+    function formatPhoneDisplay(phone) {
+      if (!phone) return '';
+      var digits = phone.replace(/\D/g, '');
+      if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+      if (digits.length === 10) return '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+      return phone;
+    }
+
+    function resolveMessagePlaceholders(text) {
+      var inviteUrl = getInviteUrl();
+      return text.replace(/\{link\}/gi, inviteUrl);
+    }
+
+    async function sendTestSms() {
+      var userPhone = user && user.phone ? user.phone : '';
+      if (!userPhone) { showToast('Add a phone number in your profile first'); return; }
+
+      var textarea = document.getElementById('smsComposeText');
+      if (!textarea || !textarea.value.trim()) { showToast('Write a message first'); return; }
+
+      var testBtn = document.getElementById('testSmsBtn');
+      var statusEl = document.getElementById('testSmsStatus');
+      testBtn.disabled = true;
+      testBtn.textContent = 'Sending...';
+
+      try {
+        // Replace {link} placeholder in the message before sending
+        var msgWithLink = resolveMessagePlaceholders(textarea.value.trim());
+
+        var res = await authFetch('/api/v2/sms?action=sendTest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: userPhone,
+            message: msgWithLink,
+            eventId: manageEventId
+          })
+        });
+        var result = await res.json();
+
+        if (result.success) {
+          testBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 1H7c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14z"/></svg> Send test to myself (' + escapeHtml(formatPhoneDisplay(userPhone)) + ')';
+          testBtn.disabled = false;
+          if (statusEl) { statusEl.style.display = ''; statusEl.textContent = 'Test sent!'; }
+          setTimeout(function() { if (statusEl) statusEl.style.display = 'none'; }, 4000);
+        } else {
+          showToast('Test failed: ' + (result.error || 'Unknown error'));
+          testBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 1H7c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14z"/></svg> Send test to myself (' + escapeHtml(formatPhoneDisplay(userPhone)) + ')';
+          testBtn.disabled = false;
+        }
+      } catch (err) {
+        showToast('Error sending test');
+        testBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 1H7c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14z"/></svg> Send test to myself (' + escapeHtml(formatPhoneDisplay(userPhone)) + ')';
+        testBtn.disabled = false;
+      }
     }
 
     function toggleSmsHistory() {

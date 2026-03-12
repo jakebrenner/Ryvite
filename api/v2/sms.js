@@ -513,6 +513,38 @@ export default async function handler(req, res) {
       });
     }
 
+    // ============================================================
+    // Send a single test SMS to the host's own phone
+    // ============================================================
+    if (action === 'sendTest') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { phone, message } = req.body || {};
+
+      if (!phone || !message) {
+        return res.status(400).json({ success: false, error: 'phone and message are required' });
+      }
+
+      const e164 = toE164(phone);
+      if (!e164) {
+        return res.status(400).json({ success: false, error: 'Invalid phone number' });
+      }
+
+      // Replace {name} with "Test Guest" for preview
+      const testBody = message.replace(/\{name\}/gi, 'Test Guest');
+
+      const result = await sendViaClickSend([{ to: e164, body: testBody }]);
+      if (!result.success) {
+        return res.status(502).json({ success: false, error: result.error });
+      }
+
+      // Record test message (no event association required, but include if provided)
+      const eventId = req.body.eventId || null;
+      await recordSmsMessages(user.id, eventId, [{ phone: normalizePhone(phone), name: 'Test', guestId: null }], 'custom', result.data);
+
+      return res.status(200).json({ success: true });
+    }
+
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
 
   } catch (err) {
