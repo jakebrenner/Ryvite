@@ -749,6 +749,7 @@
 
     // Cost tracking state — tracks cumulative cost for this event (persisted across sessions)
     var eventCostCents = 0;
+    var _genRetried = false; // prevents infinite retry on mobile "Load failed"
     var eventGenCount = 0;
     var usagePlanUser = false;
 
@@ -2992,7 +2993,7 @@
           }
 
           console.log('[generate-theme] Parse complete. Result:', !!genResult, 'Error:', genError);
-          window._lastGenDebug = 'Status: ' + res2.status + ' | Bytes: ' + fullText.length + ' | Elapsed: ' + elapsed + 's | Result: ' + !!genResult + ' | Build: 2026-03-11e';
+          window._lastGenDebug = 'Status: ' + res2.status + ' | Bytes: ' + fullText.length + ' | Elapsed: ' + elapsed + 's | Result: ' + !!genResult + ' | Build: 2026-03-12a';
 
           if (genResult && genResult.success) {
             var ver = {
@@ -3032,11 +3033,18 @@
             stopGeneratingPuns();
             console.error('[generate-theme] Generation failed. genError:', genError, 'genResult:', genResult ? JSON.stringify(genResult).substring(0, 500) : null);
             var errMsg = (genError && (genError.message || genError.error)) || (genResult && !genResult.success ? 'Server returned failure' : 'No response received from server');
-            window._lastGenDebug = 'Bytes: ' + fullText.length + ' | Error: ' + JSON.stringify(genError) + ' | Result keys: ' + (genResult ? Object.keys(genResult).join(',') : 'null') + ' | Build: 2026-03-11e';
+            window._lastGenDebug = 'Bytes: ' + fullText.length + ' | Error: ' + JSON.stringify(genError) + ' | Result keys: ' + (genResult ? Object.keys(genResult).join(',') : 'null') + ' | Build: 2026-03-12a';
             showGeneratingError(errMsg);
           }
         }
       } catch (err) {
+        // Mobile Safari "Load failed" — connection dropped during SSE stream.
+        // Auto-retry once since the server likely completed the generation.
+        if (err.message === 'Load failed' && !_genRetried) {
+          console.warn('[generate-theme] Mobile connection dropped, retrying...');
+          _genRetried = true;
+          try { return await generateTheme(feedback); } finally { _genRetried = false; }
+        }
         console.error('[generate-theme] CATCH error:', err, err.stack);
         stopGeneratingPuns();
         var catchMsg = err.message || 'Error generating theme';
@@ -3060,7 +3068,7 @@
         + '<h3 class="gen-title" style="color:var(--party-coral);">Oops!</h3>'
         + '<p style="margin-bottom:12px;font-size:14px;color:#888;">' + escapeHtml(msg) + '</p>'
         + '<details style="margin-bottom:20px;text-align:left;max-width:100%;"><summary style="font-size:11px;color:#aaa;cursor:pointer;">Debug info</summary>'
-        + '<pre style="font-size:10px;color:#999;background:#f5f5f5;padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:4px;">' + escapeHtml(window._lastGenDebug || 'No debug info') + '\nBuild: 2026-03-11e</pre></details>'
+        + '<pre style="font-size:10px;color:#999;background:#f5f5f5;padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:4px;">' + escapeHtml(window._lastGenDebug || 'No debug info') + '\nBuild: 2026-03-12a</pre></details>'
         + buttons + '</div>';
     }
 
@@ -4213,7 +4221,7 @@
           clearInterval(tweakPunInterval);
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
 
-          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11k');
+          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-12a');
 
           if (tweakResult && tweakResult.success && tweakResult.chatOnly) {
             // AI returned conversational text instead of a theme change — display it
