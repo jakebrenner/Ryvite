@@ -84,6 +84,14 @@
     {
       "source": "/blog/:slug",
       "destination": "/api/v2/blog-page?slug=:slug"
+    },
+    {
+      "source": "/templates",
+      "destination": "/v2/templates/index.html"
+    },
+    {
+      "source": "/templates/:type",
+      "destination": "/v2/templates/index.html"
     }
   ]
 }
