@@ -1120,15 +1120,9 @@ Return ONLY a valid JSON object with these keys:
       let tweakInputTokens = tweakFinalMessage?.usage?.input_tokens || 0;
       let tweakOutputTokens = tweakFinalMessage?.usage?.output_tokens || 0;
       if (tweakInputTokens === 0 && tweakOutputTokens === 0) {
-        try {
-          const finalMsg = await stream.finalMessage();
-          tweakInputTokens = finalMsg?.usage?.input_tokens || 0;
-          tweakOutputTokens = finalMsg?.usage?.output_tokens || 0;
-        } catch (e) {
-          tweakOutputTokens = Math.round(fullText.length / 4);
-          tweakInputTokens = Math.round(fullText.length / 3);
-          console.warn('[tweak] Could not get token usage, estimating:', tweakInputTokens, 'in /', tweakOutputTokens, 'out');
-        }
+        tweakOutputTokens = Math.round(fullText.length / 4);
+        tweakInputTokens = Math.round(fullText.length / 3);
+        console.warn('[tweak] finalMessage missing, estimating tokens:', tweakInputTokens, 'in /', tweakOutputTokens, 'out');
       }
       const latency = Date.now() - startTime;
 
@@ -1482,21 +1476,13 @@ This is the most common failure mode. Double-check it.`;
     });
 
     // Get token usage — finalMessage may be null if stream resolved via 'end' or idle timeout
-    // Fallback: query the stream object directly for accumulated usage
     let genInputTokens = genFinalMessage?.usage?.input_tokens || 0;
     let genOutputTokens = genFinalMessage?.usage?.output_tokens || 0;
     if (genInputTokens === 0 && genOutputTokens === 0) {
-      try {
-        const finalMsg = await stream.finalMessage();
-        genInputTokens = finalMsg?.usage?.input_tokens || 0;
-        genOutputTokens = finalMsg?.usage?.output_tokens || 0;
-      } catch (e) {
-        // Estimate from content length if usage unavailable
-        // Rough heuristic: 1 token ≈ 4 chars output, input from prompt length
-        genOutputTokens = Math.round(fullText.length / 4);
-        genInputTokens = Math.round((activePrompt.systemPrompt?.length || 8000) / 4);
-        console.warn('[generate-theme] Could not get token usage, estimating:', genInputTokens, 'in /', genOutputTokens, 'out');
-      }
+      // Estimate from content length — stream.finalMessage() hangs if stream already ended
+      genOutputTokens = Math.round(fullText.length / 4);
+      genInputTokens = Math.round((activePrompt.systemPrompt?.length || 8000) / 4);
+      console.warn('[generate-theme] finalMessage missing, estimating tokens:', genInputTokens, 'in /', genOutputTokens, 'out');
     }
     const latency = Date.now() - startTime;
 
