@@ -762,6 +762,8 @@
     // Cost tracking state — tracks cumulative cost for this event (persisted across sessions)
     var eventCostCents = 0;
     var _genRetried = false; // prevents infinite retry on mobile "Load failed"
+    var _isGenerating = false; // true while theme generation is in-flight
+    var _genStartedAt = 0; // timestamp when generation started (for visibility recovery)
     var eventGenCount = 0;
     var usagePlanUser = false;
 
@@ -2870,6 +2872,7 @@
     }
 
     function stopGeneratingPuns() {
+      _isGenerating = false;
       if (genPunIntervalId) { clearInterval(genPunIntervalId); genPunIntervalId = null; }
       genStageTimers.forEach(function(t) { clearTimeout(t); clearInterval(t); });
       genStageTimers = [];
@@ -2926,6 +2929,8 @@
       document.getElementById('generatingLoadingState').style.display = 'block';
       document.getElementById('generatingView').style.display = 'block';
       document.getElementById('generatedView').style.display = 'none';
+      _isGenerating = true;
+      _genStartedAt = Date.now();
       startGeneratingPuns();
 
       if (!currentEvent) {
@@ -5471,6 +5476,60 @@
     });
 
     setupDesignChatKeyboardHandler();
+
+    // When user returns to the page after phone sleep / tab switch during generation,
+    // the SSE connection is dead. Poll DB to recover the completed theme.
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState !== 'visible') return;
+      if (!_isGenerating || !currentEvent || !currentEvent.id) return;
+      // Only attempt recovery if generation has been running for at least 5 seconds
+      if (Date.now() - _genStartedAt < 5000) return;
+      console.log('[visibility-recovery] Page visible again during generation, checking DB...');
+      var prevCount = themeVersions.length;
+      var pollAttempts = 0;
+      var maxPolls = 4;
+      var pollDelay = 3000;
+      function pollForTheme() {
+        pollAttempts++;
+        authFetch('/api/v2/events?action=get&eventId=' + encodeURIComponent(currentEvent.id))
+          .then(function(r) { return r.json(); })
+          .then(function(result) {
+            if (!_isGenerating) return; // generation completed normally while we were polling
+            if (result.success && result.event && result.event.themeVersions && result.event.themeVersions.length > prevCount) {
+              console.log('[visibility-recovery] Found new theme in DB, recovering');
+              var ev = result.event;
+              themeVersions = ev.themeVersions;
+              activeVersionIndex = ev.themeVersions.findIndex(function(t) { return t.isActive; });
+              if (activeVersionIndex < 0) activeVersionIndex = ev.themeVersions.length - 1;
+              var ver = themeVersions[activeVersionIndex];
+              currentEvent.themeHtml = ver.html;
+              currentEvent.themeCss = ver.css;
+              currentEvent.themeConfig = ver.config;
+              stopGeneratingPuns();
+              document.getElementById('generatingView').style.display = 'none';
+              document.getElementById('generatedView').style.display = 'block';
+              renderPreview(ver);
+              renderVersionGallery();
+              pendingRatingThemeId = ver.id;
+              initDesignChatIfNeeded();
+              setTimeout(function() { initCostTracker(); }, 2000);
+              updateMobileLayout();
+              try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
+            } else if (pollAttempts < maxPolls) {
+              console.log('[visibility-recovery] Theme not ready yet, polling again (' + pollAttempts + '/' + maxPolls + ')...');
+              setTimeout(pollForTheme, pollDelay);
+            } else {
+              console.log('[visibility-recovery] Theme not found after ' + maxPolls + ' polls, waiting for fetch to complete or fail normally');
+            }
+          })
+          .catch(function(e) {
+            console.warn('[visibility-recovery] Poll failed:', e);
+            if (pollAttempts < maxPolls) setTimeout(pollForTheme, pollDelay);
+          });
+      }
+      // First poll after a short delay to give the server time to finish saving
+      setTimeout(pollForTheme, 2000);
+    });
   </script>
 </body>
 </html>
