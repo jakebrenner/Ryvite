@@ -681,7 +681,7 @@ export default async function handler(req, res) {
           user_id: user.id,
           subscription_id: subscription.id
         });
-        await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: coupon.id }).catch(() => {});
+        await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: coupon.id }).then(() => {});
       }
 
       return res.status(200).json({
@@ -1152,7 +1152,7 @@ export default async function handler(req, res) {
             });
 
             // Update charge count and threshold
-            await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: uid }).catch(() => {});
+            await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: uid }).then(() => {});
 
             // Update sweep timestamp
             await supabaseAdmin
@@ -1824,7 +1824,7 @@ export async function checkAndChargeSmsUsage(userId) {
     });
 
     // Update successful charge count and threshold tier
-    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).catch(() => {});
+    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).then(() => {});
 
     return { charged: true, amountCents: chargeAmount, creditsApplied, messageCount: unbilledMessages.length };
   } catch (e) {
@@ -1976,7 +1976,7 @@ export async function checkAndChargeAiUsage(userId) {
     });
 
     // Update successful charge count and threshold tier
-    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).catch(() => {});
+    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).then(() => {});
 
     return { charged: true, amountCents: chargeAmount, creditsApplied, generationCount: unbilledGens.length };
   } catch (e) {

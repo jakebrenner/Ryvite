@@ -828,13 +828,15 @@ Rules:
       }).catch(() => {});
       if (fieldEventId) {
         supabase.rpc('increment_event_cost', { p_event_id: fieldEventId, p_cost_cents: fieldCost.totalCostCents })
-          .catch(() => {
-            supabase.from('events').select('total_cost_cents').eq('id', fieldEventId).single()
-              .then(({ data }) => {
-                if (data) supabase.from('events')
-                  .update({ total_cost_cents: (data.total_cost_cents || 0) + fieldCost.totalCostCents })
-                  .eq('id', fieldEventId).catch(() => {});
-              }).catch(() => {});
+          .then(({ error }) => {
+            if (error) {
+              supabase.from('events').select('total_cost_cents').eq('id', fieldEventId).single()
+                .then(({ data }) => {
+                  if (data) supabase.from('events')
+                    .update({ total_cost_cents: (data.total_cost_cents || 0) + fieldCost.totalCostCents })
+                    .eq('id', fieldEventId).then(() => {});
+                });
+            }
           });
       }
       checkAndChargeAiUsage(user.id).catch(() => {});
@@ -1268,14 +1270,15 @@ Return ONLY a valid JSON object with these keys:
         }).catch(() => {});
         // Atomically increment persistent event cost with accurate amount
         supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: finalTweakCost.totalCostCents })
-          .catch(() => {
-            supabase.from('events')
-              .select('total_cost_cents').eq('id', eventId).single()
-              .then(({ data }) => {
-                if (data) supabase.from('events')
-                  .update({ total_cost_cents: (data.total_cost_cents || 0) + finalTweakCost.totalCostCents })
-                  .eq('id', eventId).catch(() => {});
-              }).catch(() => {});
+          .then(({ error }) => {
+            if (error) {
+              supabase.from('events').select('total_cost_cents').eq('id', eventId).single()
+                .then(({ data }) => {
+                  if (data) supabase.from('events')
+                    .update({ total_cost_cents: (data.total_cost_cents || 0) + finalTweakCost.totalCostCents })
+                    .eq('id', eventId).then(() => {});
+                });
+            }
           });
 
         // Check if usage-based AI billing threshold is reached
@@ -1631,14 +1634,15 @@ This is the most common failure mode. Double-check it.`;
       }).catch(() => {});
       // Atomically increment persistent event cost with accurate amount
       supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: finalCost.totalCostCents })
-        .catch(() => {
-          supabase.from('events')
-            .select('total_cost_cents').eq('id', eventId).single()
-            .then(({ data }) => {
-              if (data) supabase.from('events')
-                .update({ total_cost_cents: (data.total_cost_cents || 0) + finalCost.totalCostCents })
-                .eq('id', eventId).catch(() => {});
-            }).catch(() => {});
+        .then(({ error }) => {
+          if (error) {
+            supabase.from('events').select('total_cost_cents').eq('id', eventId).single()
+              .then(({ data }) => {
+                if (data) supabase.from('events')
+                  .update({ total_cost_cents: (data.total_cost_cents || 0) + finalCost.totalCostCents })
+                  .eq('id', eventId).then(() => {});
+              });
+          }
         });
 
       // Check if usage-based AI billing threshold is reached
