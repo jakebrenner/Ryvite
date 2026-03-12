@@ -1146,7 +1146,7 @@ Return ONLY a valid JSON object with these keys:
           chatOnly: true,
           chatResponse: fullText.trim(),
           theme: null,
-          metadata: { model: tweakModel, latencyMs: Date.now() - startTime, tokens: { input: tweakInputTokens, output: tweakOutputTokens }, cost: tweakCost }
+          metadata: { model: tweakModel, latencyMs: Date.now() - startTime, tokens: { input: tweakInputTokens, output: tweakOutputTokens }, cost: calcGenerationCost(tweakModel, tweakInputTokens, tweakOutputTokens) }
         });
         return res.end();
       }

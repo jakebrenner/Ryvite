@@ -4152,6 +4152,21 @@
         return;
       }
 
+      // Detect if user is asking to change event details (date, time, location, etc.)
+      // These are data changes, not design changes — redirect to the Details tab
+      if (text && !hasPhotos) {
+        var detailChangePattern = /\b(change|update|move|switch|set|make)\b.{0,20}\b(date|time|day|event date|start time|end time|location|venue|address|place|dress code|dresscode|title|event name)\b/i;
+        var dateChangePattern = /\b(a day|one day|two days?|a week|next week|later|earlier|sooner|different day|different date|different time)\b/i;
+        if (detailChangePattern.test(text) || (dateChangePattern.test(text) && /\b(change|update|move|push|bump)\b/i.test(text))) {
+          designChatHistory.push({ role: 'user', content: text });
+          designChatHistory.push({ role: 'assistant', content: "I handle the visual design of your invite, but I can't change event details like dates, times, or locations. You can update those in the **Details** tab above — just tap \"Details\" and edit from there!\n\nIs there anything design-related I can help with?" });
+          renderDesignChat();
+          input.value = '';
+          input.style.height = 'auto';
+          return;
+        }
+      }
+
       // Detect if user is asking for a new design OR is vague/unsure about what to change
       if (text && !skipRedesignDetection) {
         // Match explicit redesign requests
