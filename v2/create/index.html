@@ -262,6 +262,10 @@
     .design-chat-send:disabled { background: #ccc; cursor: not-allowed; }
     .design-chat-photo-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; transition: all 0.2s; }
     .design-chat-photo-btn:hover { border-color: var(--party-coral); background: rgba(233,69,96,0.05); }
+    /* Mobile keyboard compensation — applied via JS when textarea is focused on mobile */
+    .design-chat-keyboard-active { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: white; border-top: 1px solid #eee; box-shadow: 0 -4px 16px rgba(0,0,0,0.1); padding: 0 12px; display: flex; flex-direction: column; }
+    .design-chat-keyboard-active .design-chat-messages { max-height: 40vh; }
+    .design-chat-keyboard-active .design-chat-input-area { padding-bottom: env(safe-area-inset-bottom, 8px); }
     .design-chat-photo-preview { display: flex; gap: 6px; padding: 6px 0; flex-wrap: wrap; }
     .design-chat-photo-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
     .design-chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -4039,6 +4043,76 @@
       });
     }
 
+    // Mobile keyboard handler — keeps design chat input visible above the virtual keyboard
+    function setupDesignChatKeyboardHandler() {
+      if (!('visualViewport' in window)) return;
+      var textarea = document.getElementById('designChatInput');
+      if (!textarea) return;
+      var chatEl = null;
+      var isActive = false;
+      var originalParent = null;
+      var originalNextSibling = null;
+
+      function isMobile() { return window.innerWidth <= 900; }
+
+      function getChat() {
+        if (!chatEl) chatEl = textarea.closest('.design-chat');
+        return chatEl;
+      }
+
+      function activate() {
+        if (isActive || !isMobile()) return;
+        var dc = getChat();
+        if (!dc) return;
+        isActive = true;
+        originalParent = dc.parentNode;
+        originalNextSibling = dc.nextSibling;
+        // Move to body so position:fixed works reliably on iOS Safari
+        document.body.appendChild(dc);
+        dc.classList.add('design-chat-keyboard-active');
+        document.body.style.overflow = 'hidden';
+        updateHeight();
+        window.visualViewport.addEventListener('resize', updateHeight);
+        scrollDesignChat();
+      }
+
+      function deactivate() {
+        if (!isActive) return;
+        var dc = getChat();
+        if (!dc) return;
+        isActive = false;
+        window.visualViewport.removeEventListener('resize', updateHeight);
+        dc.classList.remove('design-chat-keyboard-active');
+        dc.style.height = '';
+        document.body.style.overflow = '';
+        // Restore to original DOM position
+        if (originalNextSibling) {
+          originalParent.insertBefore(dc, originalNextSibling);
+        } else {
+          originalParent.appendChild(dc);
+        }
+      }
+
+      function updateHeight() {
+        var dc = getChat();
+        if (!dc || !isActive) return;
+        var h = Math.min(window.visualViewport.height * 0.55, 360);
+        dc.style.height = h + 'px';
+        scrollDesignChat();
+      }
+
+      textarea.addEventListener('focus', function() {
+        if (!isMobile()) return;
+        setTimeout(activate, 100);
+      });
+
+      textarea.addEventListener('blur', function() {
+        setTimeout(function() {
+          if (document.activeElement !== textarea) deactivate();
+        }, 150);
+      });
+    }
+
     async function handleDesignChatPhoto(event) {
       var files = Array.from(event.target.files);
       if (!files.length) return;
@@ -4125,6 +4199,7 @@
           renderDesignChat();
           input.value = '';
           input.style.height = 'auto';
+          if (window.innerWidth <= 900) input.focus();
           return;
         }
       }
@@ -4163,6 +4238,7 @@
           renderDesignChat();
           input.value = '';
           input.style.height = 'auto';
+          if (window.innerWidth <= 900) input.focus();
           return;
         }
       }
@@ -4209,6 +4285,7 @@
           renderDesignChat();
           input.value = '';
           input.style.height = 'auto';
+          if (window.innerWidth <= 900) input.focus();
           return;
         }
       }
@@ -4222,6 +4299,7 @@
       renderDesignChat();
       input.value = '';
       input.style.height = 'auto';
+      if (window.innerWidth <= 900) input.focus();
 
       var sendBtn = document.getElementById('designChatSendBtn');
       sendBtn.disabled = true;
@@ -5356,6 +5434,8 @@
     document.getElementById('chatInput').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
+
+    setupDesignChatKeyboardHandler();
   </script>
 </body>
 </html>
