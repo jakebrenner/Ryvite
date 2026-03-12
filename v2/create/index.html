@@ -3292,7 +3292,29 @@
       return '';
     }
 
-    // Inject RSVP form and data-field overrides into iframe after it loads.
+    // Build event details HTML for injection into .details-slot
+    function buildDetailsHtml() {
+      var items = [];
+      if (extractedData.startDate) {
+        items.push({ icon: '&#128197;', label: 'Date', value: formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate) });
+      }
+      if (extractedData.locationName || extractedData.locationAddress) {
+        var loc = [extractedData.locationName, extractedData.locationAddress].filter(Boolean).join('<br>');
+        items.push({ icon: '&#128205;', label: 'Location', value: loc });
+      }
+      if (extractedData.dressCode) {
+        items.push({ icon: '&#128087;', label: 'Dress Code', value: extractedData.dressCode });
+      }
+      return items.map(function(item) {
+        return '<div class="detail-item">'
+          + '<div class="detail-icon">' + item.icon + '</div>'
+          + '<div class="detail-text"><div class="detail-label">' + item.label + '</div>'
+          + '<div class="detail-value">' + item.value + '</div></div>'
+          + '</div>';
+      }).join('');
+    }
+
+    // Inject RSVP form and event details into iframe after it loads.
     // Runs from the PARENT page via iframe.contentDocument — no scripts inside srcdoc.
     function injectRsvpForm(iframe) {
       try {
@@ -3307,49 +3329,57 @@
           slot.innerHTML = buildRsvpFormHtml() + btnHtml;
         }
 
-        // Override data-field elements with current event details
-        var overrides = {};
-        if (extractedData.title) overrides.title = extractedData.title;
-        if (extractedData.startDate) overrides.datetime = formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate);
-        var locParts = [];
-        if (extractedData.locationName) locParts.push(extractedData.locationName);
-        if (extractedData.locationAddress) locParts.push(extractedData.locationAddress);
-        if (locParts.length > 0) overrides.location = locParts.join('<br>');
-        if (extractedData.dressCode) overrides.dresscode = extractedData.dressCode;
+        // Inject event details into .details-slot (new pattern — platform controls details HTML)
+        var detailsSlot = doc.querySelector('.details-slot');
+        if (detailsSlot) {
+          detailsSlot.innerHTML = buildDetailsHtml();
+        }
 
-        var win = iframe.contentWindow || doc.defaultView;
-        Object.keys(overrides).forEach(function(key) {
-          var el = doc.querySelector('[data-field="' + key + '"]');
-          if (!el) return;
-          // Walk to deepest child to capture text color before replacing.
-          // AI may put color on a <span>, <p>, or other nested element.
-          var walker = el;
-          while (walker.firstElementChild) walker = walker.firstElementChild;
-          var origColor = '';
-          try { origColor = win.getComputedStyle(walker).color; } catch(e) {}
-
-          // Detect if the text would be unreadable on its background.
-          // If the captured color is dark (black/near-black) but the background is also dark,
-          // the computed color was likely a default — override with white for readability.
-          var bgColor = '';
-          try { bgColor = findEffectiveBgColor(el, win); } catch(e) {}
-          var textIsDark = !origColor || isDarkColor(origColor);
-          var bgIsDark = bgColor && isDarkColor(bgColor);
-          if (textIsDark && bgIsDark) {
-            origColor = '#FFFFFF';
+        // Override title data-field (always kept — title is part of hero design)
+        if (extractedData.title) {
+          var titleEl = doc.querySelector('[data-field="title"]');
+          if (titleEl) {
+            var win = iframe.contentWindow || doc.defaultView;
+            var walker = titleEl;
+            while (walker.firstElementChild) walker = walker.firstElementChild;
+            var origColor = '';
+            try { origColor = win.getComputedStyle(walker).color; } catch(e) {}
+            titleEl.innerHTML = extractedData.title;
+            if (origColor) titleEl.style.setProperty('color', origColor, 'important');
           }
+        }
 
-          el.innerHTML = overrides[key];
-          // Use !important to override any AI CSS rules targeting children we just removed
-          if (origColor) {
-            el.style.setProperty('color', origColor, 'important');
-          }
-        });
+        // Legacy fallback: for old themes without .details-slot, override data-field elements
+        if (!detailsSlot) {
+          var overrides = {};
+          if (extractedData.startDate) overrides.datetime = formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate);
+          var locParts = [];
+          if (extractedData.locationName) locParts.push(extractedData.locationName);
+          if (extractedData.locationAddress) locParts.push(extractedData.locationAddress);
+          if (locParts.length > 0) overrides.location = locParts.join('<br>');
+          if (extractedData.dressCode) overrides.dresscode = extractedData.dressCode;
 
-        // Hide dresscode if not set
-        var dc = doc.querySelector('[data-field="dresscode"]');
-        if (dc && !overrides.dresscode) dc.style.display = 'none';
-        else if (dc && overrides.dresscode) dc.style.display = '';
+          var win2 = iframe.contentWindow || doc.defaultView;
+          Object.keys(overrides).forEach(function(key) {
+            var el = doc.querySelector('[data-field="' + key + '"]');
+            if (!el) return;
+            var w = el;
+            while (w.firstElementChild) w = w.firstElementChild;
+            var origColor = '';
+            try { origColor = win2.getComputedStyle(w).color; } catch(e) {}
+            var bgColor = '';
+            try { bgColor = findEffectiveBgColor(el, win2); } catch(e) {}
+            if ((!origColor || isDarkColor(origColor)) && bgColor && isDarkColor(bgColor)) {
+              origColor = '#FFFFFF';
+            }
+            el.innerHTML = overrides[key];
+            if (origColor) el.style.setProperty('color', origColor, 'important');
+          });
+
+          var dc = doc.querySelector('[data-field="dresscode"]');
+          if (dc && !overrides.dresscode) dc.style.display = 'none';
+          else if (dc && overrides.dresscode) dc.style.display = '';
+        }
       } catch (e) {
         console.warn('[injectRsvpForm] Failed:', e.message);
       }
@@ -3545,7 +3575,14 @@
 
       if (ver.config.thankyouHtml) {
         var tyHtml = ver.config.thankyouHtml;
-        // Replace guest/event placeholders
+
+        // New simplified format: AI provides empty .thankyou-hero — platform fills it
+        var heroContent = '<h1 class="thankyou-title">Thank You!</h1>'
+          + '<p class="thankyou-subtitle">Thanks for RSVPing, <span class="thankyou-guest">' + escapeHtml(guestName) + '</span>! We can\'t wait to see you at <span class="thankyou-event">' + escapeHtml(title) + '</span>.</p>';
+        // Check if .thankyou-hero is empty (new themes) — inject hero content
+        tyHtml = tyHtml.replace(/<div class="thankyou-hero">\s*<\/div>/, '<div class="thankyou-hero">' + heroContent + '</div>');
+
+        // Legacy: replace guest/event placeholders if AI generated them
         tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
         tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(title) + '</span>');
 

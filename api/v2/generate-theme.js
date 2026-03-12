@@ -313,7 +313,7 @@ Return a JSON object with exactly these keys:
 Build the page with these sections (creative freedom on visual execution):
 1. **THEMATIC HEADER** — An animated or illustrated element specific to this event type.
 2. **HERO SECTION** — Large display headline with event title/names/tagline. Photo treatment if photos provided.
-3. **EVENT DETAILS** — Icon + text layout for date, time, location.
+3. **EVENT DETAILS** — \`<div class="details-slot"></div>\`. The platform injects event details (date, time, location, dress code) at runtime — just like the RSVP form. You MUST NOT put any text, icons, or labels inside this div. Style it via CSS to match the theme. The platform injects children with classes: \`.detail-item\`, \`.detail-icon\`, \`.detail-label\`, \`.detail-value\` — style these in theme_css.
 4. **RSVP SECTION** — \`<div class="rsvp-slot"><button class="rsvp-button">...</button></div>\`. The rsvp-slot MUST contain ONLY the button — the platform injects the real form at runtime. Make the button text fun and on-theme but NEVER use commitment words like "I'm Coming", "Count Me In", "I'll Be There", "RSVP Yes", "Sign Me Up", etc. The RSVP status (attending/declined/maybe) is handled by the form — the button just opens it. Use action phrases like "Let's Party!", "Open the Invite!", "Get the Details!", "Join the Fun!", "See What's Inside!", "Reserve Your Spot!" instead.
 
 ## RSVP BUTTON — CRITICAL PLATFORM RULES
@@ -337,12 +337,17 @@ Build the page with these sections (creative freedom on visual execution):
 - NEVER set \`.rsvp-slot\` to \`display: grid\`, \`flex-direction: row\`, or \`flex-wrap: wrap\` with side-by-side children
 - All inputs inside \`.rsvp-slot\` must be full-width (width: 100%) — no 50% widths, no multi-column layouts
 
-## REQUIRED DATA ATTRIBUTES (for platform dynamic content updates)
-- \`data-field="title"\` — on the element containing the event title text
-- \`data-field="datetime"\` — on the container with date/time information
-- \`data-field="location"\` — on the container with location information
-- \`data-field="dresscode"\` — on the container with dress code (omit entirely if not specified)
-- \`data-field="host"\` — on the element showing host name(s), if included
+## REQUIRED DATA ATTRIBUTES
+- \`data-field="title"\` — on the element containing the event title text (the ONLY data-field you generate)
+
+## DETAILS SLOT — CSS STYLING GUIDE (platform injects the HTML at runtime)
+Style these classes in theme_css to match the theme:
+- \`.details-slot\` — container for all event details. Set background, border-radius, padding, margins. Use a color that complements the theme.
+- \`.detail-item\` — each detail row (date, location, dresscode). Use \`display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;\`
+- \`.detail-icon\` — 24px icon area with emoji. Set font-size: 20px.
+- \`.detail-label\` — small label ("Date", "Location"). Set font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;
+- \`.detail-value\` — the actual detail text. Set font-size: 15px; font-weight: 500;
+- **CRITICAL CONTRAST**: If \`.details-slot\` has a dark/colored background, \`.detail-label\` and \`.detail-value\` color MUST be #FFFFFF or #FAFAFA. If light background, use #1A1A1A or darker.
 
 ## TECHNICAL CONSTRAINTS — NON-NEGOTIABLE
 - Max-width 393px (iPhone), centered, mobile-first
@@ -360,34 +365,30 @@ If photos are provided via URL, use them in \`<img>\` tags with the exact URL pr
 - Style with border-radius, box-shadow, border, or creative framing per the event type
 - If photos are bad quality, the treatment should save them (overlay, vignette, color grade via CSS filter)
 
-## THANK YOU PAGE (theme_thankyou_html) — EXACT STRUCTURE REQUIRED
-The platform automatically injects calendar buttons and footer. You ONLY provide the hero content.
+## THANK YOU PAGE (theme_thankyou_html) — SIMPLIFIED
+The platform injects the hero text, calendar buttons, and footer. You provide:
 \`\`\`html
 <div class="thankyou-page">
-  <div class="thankyou-hero">
-    <h1 class="thankyou-title">Thank You!</h1>
-    <p class="thankyou-subtitle"><span class="thankyou-guest">Guest</span>, we can't wait to celebrate with you!</p>
-  </div>
+  <!-- Optional: ONE small decorative SVG or animation element, under 1KB -->
+  <div class="thankyou-hero"></div>
 </div>
 \`\`\`
 Rules:
-- NO emojis in the thank you page
-- NO calendar buttons, NO footer — the platform handles these
-- NO extra sections (dress code, bullet lists, event details)
-- The subtitle must include \`<span class="thankyou-guest">Guest</span>\` placeholder
-- **BRANDED BACKGROUND — CRITICAL**: The thank-you page must feel like a continuation of the invite, NOT a plain white page. Use the same background color, gradient, pattern, or texture from the invite. Carry over the theme's color palette, decorative elements (subtle SVG ornaments, floating particles, gradients, etc.) so the experience feels cohesive and polished.
-- Use the same fonts and color palette as the invite for the title and subtitle
-- Include these CSS rules in theme_css:
+- \`.thankyou-page\` MUST have a branded background matching the invite (gradient, pattern, texture, or solid color)
+- \`.thankyou-hero\` must be EMPTY — the platform fills it with title + subtitle text
+- Optional: add ONE small decorative SVG element (stars, confetti, simple illustration) inside \`.thankyou-page\` but OUTSIDE \`.thankyou-hero\`. Keep it under 1KB.
+- NO text content, NO emojis, NO calendar buttons, NO footer, NO extra sections
+- Include these CSS rules in theme_css (customize colors/fonts to match invite):
 \`\`\`css
 .thankyou-page {
   max-width: 393px; margin: 0 auto; padding: 60px 32px 40px;
   min-height: 100vh; display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center;
-  /* MUST have the same background treatment as the invite — color, gradient, pattern, or texture */
+  /* MUST match the invite's background treatment */
 }
 .thankyou-hero { margin-bottom: 32px; }
-.thankyou-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
-.thankyou-subtitle { font-size: 16px; line-height: 1.5; opacity: 0.8; }
+.thankyou-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; /* use invite heading font + color */ }
+.thankyou-subtitle { font-size: 16px; line-height: 1.5; opacity: 0.8; /* use invite body font */ }
 \`\`\`
 
 ## TEXT CONTRAST — CRITICAL, NEVER VIOLATE
@@ -397,7 +398,7 @@ Rules:
 - Button text MUST contrast against the button background color
 
 ### CONCRETE CONTRAST RULES FOR EACH SECTION:
-- **Event details band** (date, time, location): If the band background is dark (green, navy, black, charcoal, etc.), the text color MUST be white or very light. If the band is light, text MUST be dark. NEVER use a warm/muted color like coral, salmon, or rose on a dark background — it will be unreadable.
+- **Details slot** (\`.details-slot\`): If background is dark, \`.detail-label\` and \`.detail-value\` MUST be white (#FFFFFF/#FAFAFA). If light, use dark text (#1A1A1A). NEVER use accent colors as text on dark backgrounds.
 - **Hero section**: If the background is dark or uses a dark gradient, title and subtitle text MUST be white/cream/very light.
 - **RSVP section**: Button text must be white on dark buttons or dark on light buttons. No exceptions.
 - **SIMPLE RULE**: For ANY section with a colored/dark background, set the text color to #FFFFFF or #FAFAFA. For any section with a light/white background, set text to #1A1A1A or darker. Do NOT try to match text color to theme accent colors on dark backgrounds — it almost always fails contrast.`;
@@ -1407,7 +1408,8 @@ Before outputting, mentally walk through EVERY text element and verify:
 2. Light background sections → text MUST be #1A1A1A or darker
 3. Buttons → text color must contrast against the button's background color
 4. NEVER use accent colors (coral, salmon, rose, gold, etc.) as text on dark backgrounds — they FAIL contrast
-5. The "Party Details" / event info band is the #1 failure point — if its background is dark, ALL text inside MUST be white
+5. The .details-slot CSS — if its background is dark, .detail-label and .detail-value MUST be white
+6. The .thankyou-page CSS — .thankyou-title and .thankyou-subtitle must contrast against the page background
 This is the most common failure mode. Double-check it.`;
 
     // Resolve inspiration images: use base64 if provided, otherwise fetch from URLs
@@ -1438,7 +1440,7 @@ This is the most common failure mode. Double-check it.`;
     // Do NOT use stream.finalMessage() — it blocks past Vercel's 60s timeout
     const stream = client.messages.stream({
       model: themeModel,
-      max_tokens: 16384,
+      max_tokens: 12288,
       system: activePrompt.systemPrompt,
       messages: [{ role: 'user', content: messageContent }]
     });
