@@ -408,10 +408,9 @@
       /* Container */
       .container { padding: 16px 12px; }
 
-      /* Tabs — horizontal scroll */
-      .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 2px; padding: 3px; scrollbar-width: none; }
-      .tabs::-webkit-scrollbar { display: none; }
-      .tab { flex: 0 0 auto; padding: 8px 14px; font-size: 12px; white-space: nowrap; }
+      /* Tabs — wrap to multiple rows */
+      .tabs { flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 16px; }
+      .tab { flex: 0 0 auto; padding: 8px 12px; font-size: 11px; white-space: nowrap; }
 
       /* Stat grid — 2 columns */
       .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
@@ -430,10 +429,9 @@
       /* Style / Generation grid */
       .style-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
 
-      /* Archive sub-nav */
-      .archive-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-      .archive-nav::-webkit-scrollbar { display: none; }
-      .archive-nav-btn { flex: 0 0 auto; padding: 8px 10px; font-size: 11px; white-space: nowrap; }
+      /* Archive sub-nav — wrap to multiple rows */
+      .archive-nav { flex-wrap: wrap; }
+      .archive-nav-btn { flex: 1 0 auto; padding: 8px 10px; font-size: 11px; white-space: nowrap; min-width: 0; }
 
       /* Modals */
       .modal { width: 95%; max-height: 90vh; padding: 16px; }
