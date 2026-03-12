@@ -3183,16 +3183,15 @@
         fontsImport = "@import url('" + fontsImport + "');";
       }
       // Strip document-level tags AI may include — our template provides these
-      // Also strip <script> tags — structural rules say no-JS, and they break our injection script
+      // IMPORTANT: use <head> or <head\s not <head[^>]* which would also match <header>
       var themeHtml = ver.html
-        .replace(/<\/body\s*>/gi, '')
-        .replace(/<\/html\s*>/gi, '')
-        .replace(/<html[^>]*>/gi, '')
-        .replace(/<\/head\s*>/gi, '')
-        .replace(/<head[^>]*>/gi, '')
         .replace(/<!DOCTYPE[^>]*>/gi, '')
-        .replace(/<body[^>]*>/gi, '')
-        .replace(/<script[\s\S]*?<\/script\s*>/gi, '');
+        .replace(/<html\b[^>]*>/gi, '')
+        .replace(/<\/html\s*>/gi, '')
+        .replace(/<head(?:\s[^>]*)?>[\s\S]*?<\/head\s*>/gi, '')
+        .replace(/<body\b[^>]*>/gi, '')
+        .replace(/<\/body\s*>/gi, '')
+        .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '');
       // Inject functional form inputs into rsvp-slot
       var rsvpFormHtml = buildRsvpFormHtml();
 

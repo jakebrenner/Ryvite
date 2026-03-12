@@ -1095,7 +1095,7 @@ Return ONLY a valid JSON object with these keys:
           }
         });
         stream.on('finalMessage', (msg) => { tweakFinalMessage = msg; done(); });
-        stream.on('end', () => { setTimeout(() => { if (!tweakFinalMessage) { console.warn('[tweak stream] end fired without finalMessage, resolving'); } done(); }, 3000); });
+        stream.on('end', () => { setTimeout(() => { if (!tweakFinalMessage) { console.warn('[tweak stream] end fired without finalMessage, resolving'); } done(); }, 500); });
         stream.on('error', (err) => { if (!resolved) { resolved = true; clearInterval(idleCheck); clearInterval(keepalive); reject(err); } });
 
         // Safety: if text was flowing but stopped for 15s AND we have substantial content, assume done
@@ -1453,8 +1453,8 @@ This is the most common failure mode. Double-check it.`;
         }
       });
       stream.on('finalMessage', (msg) => { genFinalMessage = msg; done(); });
-      // 'end' fires before 'finalMessage' — give finalMessage 3s to arrive before resolving
-      stream.on('end', () => { setTimeout(() => { if (!genFinalMessage) { console.warn('[stream] end fired without finalMessage, resolving'); } done(); }, 3000); });
+      // 'end' fires before 'finalMessage' — give finalMessage 500ms to arrive before resolving
+      stream.on('end', () => { setTimeout(() => { if (!genFinalMessage) { console.warn('[stream] end fired without finalMessage, resolving'); } done(); }, 500); });
       stream.on('error', (err) => { if (!resolved) { resolved = true; clearInterval(idleCheck); clearInterval(keepalive); reject(err); } });
 
       // Safety: if text was flowing but stopped for 15s AND we have substantial content, assume done
