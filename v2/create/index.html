@@ -3199,85 +3199,92 @@
       if (fontsImport && !fontsImport.startsWith('@import')) {
         fontsImport = "@import url('" + fontsImport + "');";
       }
-      // Strip document-level tags AI may include — our template provides these
-      // IMPORTANT: use <head> or <head\s not <head[^>]* which would also match <header>
-      // Extract body attributes before stripping (AI often puts background/color on <body>)
-      var bodyTagMatch = ver.html.match(/<body\b([^>]*)>/i);
-      var bodyAttrs = bodyTagMatch ? bodyTagMatch[1].trim() : '';
-      // Extract <style> blocks from <head> before stripping it — AI may put styles there
-      var headStyles = '';
-      var headMatch = ver.html.match(/<head(?:\s[^>]*)?>[\s\S]*?<\/head\s*>/i);
-      if (headMatch) {
-        var headStyleMatches = headMatch[0].match(/<style[^>]*>[\s\S]*?<\/style\s*>/gi);
-        if (headStyleMatches) headStyles = headStyleMatches.join('\n');
-      }
-      var themeHtml = ver.html
-        .replace(/<!DOCTYPE[^>]*>/gi, '')
-        .replace(/<html\b[^>]*>/gi, '')
-        .replace(/<\/html\s*>/gi, '')
-        .replace(/<head(?:\s[^>]*)?>[\s\S]*?<\/head\s*>/gi, '')
-        .replace(/<body\b[^>]*>/gi, '')
-        .replace(/<\/body\s*>/gi, '')
-        .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '');
-      // Inject functional form inputs into rsvp-slot
-      var rsvpFormHtml = buildRsvpFormHtml();
-
-      // Build detail overrides from current extractedData
-      var detailOverrides = {};
-      if (extractedData.title) detailOverrides.title = extractedData.title;
-      if (extractedData.startDate) detailOverrides.datetime = formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate);
-      var locParts = [];
-      if (extractedData.locationName) locParts.push(extractedData.locationName);
-      if (extractedData.locationAddress) locParts.push(extractedData.locationAddress);
-      if (locParts.length > 0) detailOverrides.location = locParts.join('<br>');
-      if (extractedData.dressCode) detailOverrides.dresscode = extractedData.dressCode;
-
-      // Script that injects RSVP form and updates data-field elements
-      // safeJson: escape closing tags in JSON to prevent breaking script context
-      function safeJson(val) { return JSON.stringify(val).replace(/<\x2f/g, '<\\/'); }
-      var rsvpScript = '<script>'
-        + 'document.addEventListener("DOMContentLoaded", function() {'
-        + '  var slot = document.querySelector(".rsvp-slot");'
-        + '  if (slot) {'
-        + '    var btn = slot.querySelector(".rsvp-button");'
-        + '    var btnHtml = btn ? btn.outerHTML : "";'
-        + '    slot.innerHTML = ' + safeJson(rsvpFormHtml) + ' + btnHtml;'
-        + '  }'
-        + '  var overrides = ' + safeJson(detailOverrides) + ';'
-        + '  Object.keys(overrides).forEach(function(key) {'
-        + '    var el = document.querySelector("[data-field=\\"" + key + "\\"]");'
-        + '    if (!el) return;'
-        // Preserve text color: find the deepest text-bearing element and capture its
-        // computed color before replacing innerHTML. AI puts color on various descendants.
-        + '    var deepest = el;'
-        + '    var walker = el;'
-        + '    while (walker.firstElementChild) walker = walker.firstElementChild;'
-        + '    deepest = walker;'
-        + '    var origColor = window.getComputedStyle(deepest).color;'
-        + '    el.innerHTML = overrides[key];'
-        // Re-apply the color to the container so the new plain text inherits it
-        + '    if (origColor) el.style.color = origColor;'
-        + '  });'
-        + '  var dc = document.querySelector("[data-field=\\"dresscode\\"]");'
-        + '  if (dc && !overrides.dresscode) { dc.style.display = "none"; }'
-        + '  else if (dc && overrides.dresscode) { dc.style.display = ""; }'
-        + '});'
-        + '<\/script>';
       // Google Fonts @import MUST be the very first thing in the first <style> block —
       // browsers silently ignore @import after any other CSS rules
       var fontsStyle = fontsImport ? '<style>' + fontsImport + '</style>' : '';
-      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+
+      // Pass HTML and CSS directly — no stripping, no regex extraction, no script injection.
+      // Browsers handle duplicate <html>/<body>/<head> tags gracefully in srcdoc (they merge/flatten).
+      // RSVP form and data-field overrides are injected via iframe.onload in the parent page
+      // (see injectRsvpForm), eliminating ALL script-in-srcdoc failure modes.
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+        + '<meta name="viewport" content="width=393, initial-scale=1.0">'
         + fontsStyle
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
-        + (headStyles || '')
-        + '<style>' + (ver.css || '').replace(/<\/style/gi, '<\\/style') + '</style></head><body' + (bodyAttrs ? ' ' + bodyAttrs : '') + '>' + themeHtml + rsvpScript + '</body></html>';
+        + '<style>' + (ver.css || '') + '</style>'
+        + '</head><body>' + (ver.html || '') + '</body></html>';
+    }
+
+    // Inject RSVP form and data-field overrides into iframe after it loads.
+    // Runs from the PARENT page via iframe.contentDocument — no scripts inside srcdoc.
+    function injectRsvpForm(iframe) {
+      try {
+        var doc = iframe.contentDocument;
+        if (!doc) return;
+
+        // Inject RSVP form into .rsvp-slot
+        var slot = doc.querySelector('.rsvp-slot');
+        if (slot) {
+          var btn = slot.querySelector('.rsvp-button');
+          var btnHtml = btn ? btn.outerHTML : '';
+          slot.innerHTML = buildRsvpFormHtml() + btnHtml;
+        }
+
+        // Override data-field elements with current event details
+        var overrides = {};
+        if (extractedData.title) overrides.title = extractedData.title;
+        if (extractedData.startDate) overrides.datetime = formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate);
+        var locParts = [];
+        if (extractedData.locationName) locParts.push(extractedData.locationName);
+        if (extractedData.locationAddress) locParts.push(extractedData.locationAddress);
+        if (locParts.length > 0) overrides.location = locParts.join('<br>');
+        if (extractedData.dressCode) overrides.dresscode = extractedData.dressCode;
+
+        Object.keys(overrides).forEach(function(key) {
+          var el = doc.querySelector('[data-field="' + key + '"]');
+          if (!el) return;
+          // Walk to deepest child to capture text color before replacing
+          var walker = el;
+          while (walker.firstElementChild) walker = walker.firstElementChild;
+          var origColor = doc.defaultView.getComputedStyle(walker).color;
+          el.innerHTML = overrides[key];
+          if (origColor) el.style.color = origColor;
+        });
+
+        // Hide dresscode if not set
+        var dc = doc.querySelector('[data-field="dresscode"]');
+        if (dc && !overrides.dresscode) dc.style.display = 'none';
+        else if (dc && overrides.dresscode) dc.style.display = '';
+      } catch (e) {
+        console.warn('[injectRsvpForm] Failed:', e.message);
+      }
     }
 
     function renderPreview(ver) {
+      var iframe = document.getElementById('previewFrame');
       if (currentPreviewMode === 'thankyou') {
-        document.getElementById('previewFrame').srcdoc = buildThankYouSrcdoc(ver);
+        iframe.srcdoc = buildThankYouSrcdoc(ver);
+        iframe.onload = function() { injectCalendarHandlers(iframe); };
       } else {
-        document.getElementById('previewFrame').srcdoc = buildSrcdoc(ver);
+        iframe.srcdoc = buildSrcdoc(ver);
+        iframe.onload = function() { injectRsvpForm(iframe); };
+      }
+    }
+
+    // Wire calendar button clicks from thank-you iframe via parent page (no script in srcdoc)
+    function injectCalendarHandlers(iframe) {
+      try {
+        var doc = iframe.contentDocument;
+        if (!doc) return;
+        doc.addEventListener('click', function(e) {
+          var btn = e.target.closest('.cal-btn,[data-cal]');
+          if (btn) {
+            var t = btn.getAttribute('data-cal') || btn.textContent.trim().toLowerCase();
+            window.postMessage({ type: 'calendar', cal: t }, '*');
+          }
+        });
+      } catch (e) {
+        console.warn('[injectCalendarHandlers] Failed:', e.message);
       }
     }
 
@@ -3388,11 +3395,7 @@
       }
       var ver = themeVersions[activeVersionIndex];
       if (!ver) return;
-      if (mode === 'thankyou') {
-        document.getElementById('previewFrame').srcdoc = buildThankYouSrcdoc(ver);
-      } else {
-        renderPreview(ver);
-      }
+      renderPreview(ver);
     }
 
     // Build guaranteed thank you page structure
@@ -3432,7 +3435,8 @@
         + '</div></div>';
       var guaranteedFooterHTML = '<p class="thankyou-footer">Made with &#10084; by <a href="https://www.ryvite.com">Ryvite</a></p>';
 
-      var calScript = '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".cal-btn,[data-cal]");if(btn){var t=btn.getAttribute("data-cal")||btn.textContent.trim().toLowerCase();window.parent.postMessage({type:"calendar",cal:t},"*");}});<\/script>';
+      // Calendar button click handling is wired via iframe.onload in renderPreview
+      // (see injectCalendarHandlers) — no script injection in srcdoc.
 
       if (ver.config.thankyouHtml) {
         var tyHtml = ver.config.thankyouHtml;
@@ -3463,8 +3467,8 @@
           + fontsStyle2
           + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
           + '<style>' + guaranteedCSS + '</style>'
-          + '<style>' + (ver.css || '').replace(/<\/style/gi, '<\\/style') + '</style>'
-          + '</head><body>' + tyHtml + calScript + '</body></html>';
+          + '<style>' + (ver.css || '') + '</style>'
+          + '</head><body>' + tyHtml + '</body></html>';
       }
 
       // Fallback: build entirely from theme config
@@ -3488,7 +3492,7 @@
         + fontsStyle3
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
         + '<style>' + guaranteedCSS + '</style>'
-        + '</head><body>' + thankYouHtml + calScript + '</body></html>';
+        + '</head><body>' + thankYouHtml + '</body></html>';
     }
 
     // Handle calendar button clicks from thank you preview iframe
