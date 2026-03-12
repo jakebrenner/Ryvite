@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Create Event — Ryvite</title>
   <meta name="description" content="Create a beautiful AI-designed event invitation in minutes.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
       --party-coral: #E94560; --blush-pop: #FF6B6B; --midnight: #1A1A2E;
       --confetti-gold: #FFB74D; --mint-fizz: #4ECDC4; --party-purple: #A78BFA; --cream: #FFFAF5;
     }
-    html, body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--midnight); height: 100%; }
+    html, body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--midnight); height: 100%; overflow: hidden; }
     .header { background: white; border-bottom: 1px solid #eee; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
     .header-left { display: flex; align-items: center; }
     .header-left > a { text-decoration: none; display: flex; align-items: center; }
@@ -69,7 +69,7 @@
     .message.success { background: #d4edda; color: #155724; display: block; }
 
     /* Chat UI */
-    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 110px); max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 110px); height: calc(100dvh - 110px); max-width: 720px; margin: 0 auto; padding: 0 20px; }
     .chat-messages { flex: 1; overflow-y: auto; padding: 24px 0; display: flex; flex-direction: column; gap: 16px; min-height: 0; justify-content: flex-end; }
     .chat-bubble { max-width: 85%; padding: 14px 18px; border-radius: 16px; font-size: 14px; line-height: 1.6; animation: fadeIn 0.3s; }
     .chat-bubble.assistant { background: white; border: 1px solid #eee; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
@@ -176,6 +176,9 @@
       .generated-layout { gap: 16px !important; }
       #editPanel { max-width: 100% !important; min-width: 0 !important; width: 100%; order: 2; }
       #previewColumn { order: 1; width: 100%; display: flex; flex-direction: column; align-items: center; }
+      /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+      .chat-input { font-size: 16px; }
+      .design-chat-input-area textarea { font-size: 16px; }
     }
     @media (max-width: 640px) {
       .phone-mockup { width: 320px; margin: 12px auto; }
@@ -2744,7 +2747,16 @@
       // On desktop, constrain edit panel height to match preview column
       syncEditPanelHeight();
     }
-    window.addEventListener('resize', updateMobileLayout);
+    // Gate resize to width-only changes — keyboard open/close only changes height,
+    // so skip expensive updateMobileLayout during keyboard transitions
+    (function() {
+      var lastWidth = window.innerWidth;
+      window.addEventListener('resize', function() {
+        if (window.innerWidth === lastWidth) return;
+        lastWidth = window.innerWidth;
+        updateMobileLayout();
+      });
+    })();
 
     function syncEditPanelHeight() {
       var editPanel = document.getElementById('editPanel');
@@ -3856,9 +3868,14 @@
       if (container) container.scrollTop = container.scrollHeight;
     }
 
+    var _autoResizeRAF = null;
     function autoResizeTextarea(el) {
-      el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+      if (_autoResizeRAF) cancelAnimationFrame(_autoResizeRAF);
+      _autoResizeRAF = requestAnimationFrame(function() {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+        _autoResizeRAF = null;
+      });
     }
 
     async function handleDesignChatPhoto(event) {
