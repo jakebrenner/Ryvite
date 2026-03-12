@@ -3077,11 +3077,46 @@
         }
       } catch (err) {
         // Mobile Safari "Load failed" — connection dropped during SSE stream.
-        // Auto-retry once since the server likely completed the generation.
-        if (err.message === 'Load failed' && !_genRetried) {
-          console.warn('[generate-theme] Mobile connection dropped, retrying...');
+        // The server likely completed generation and saved to DB after res.end().
+        // Try to recover the theme from DB before burning tokens on a full regeneration.
+        if (err.message === 'Load failed' && !_genRetried && currentEvent && currentEvent.id) {
+          console.warn('[generate-theme] Mobile connection dropped, attempting DB recovery...');
           _genRetried = true;
-          try { return await generateTheme(feedback); } finally { _genRetried = false; }
+          try {
+            // Wait for server-side DB save to complete (saves happen after res.end())
+            await new Promise(function(r) { setTimeout(r, 3000); });
+            var recoveryRes = await authFetch('/api/v2/events?action=get&eventId=' + encodeURIComponent(currentEvent.id));
+            var recoveryData = await recoveryRes.json();
+            if (recoveryData.success && recoveryData.event && recoveryData.event.themeVersions && recoveryData.event.themeVersions.length > themeVersions.length) {
+              console.log('[generate-theme] Recovered theme from DB after connection drop');
+              var ev = recoveryData.event;
+              themeVersions = ev.themeVersions;
+              activeVersionIndex = ev.themeVersions.findIndex(function(t) { return t.isActive; });
+              if (activeVersionIndex < 0) activeVersionIndex = ev.themeVersions.length - 1;
+              var ver = themeVersions[activeVersionIndex];
+              currentEvent.themeHtml = ver.html;
+              currentEvent.themeCss = ver.css;
+              currentEvent.themeConfig = ver.config;
+              stopGeneratingPuns();
+              document.getElementById('generatingView').style.display = 'none';
+              document.getElementById('generatedView').style.display = 'block';
+              renderPreview(ver);
+              renderVersionGallery();
+              pendingRatingThemeId = ver.id;
+              initDesignChatIfNeeded();
+              setTimeout(function() { initCostTracker(); }, 2000);
+              updateMobileLayout();
+              try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
+              _genRetried = false;
+              return;
+            }
+            // Theme not in DB yet — fall through to full retry
+            console.warn('[generate-theme] DB recovery found no new theme, retrying generation...');
+            try { return await generateTheme(feedback); } finally { _genRetried = false; }
+          } catch (recoveryErr) {
+            console.warn('[generate-theme] DB recovery failed, retrying generation...', recoveryErr);
+            try { return await generateTheme(feedback); } finally { _genRetried = false; }
+          }
         }
         console.error('[generate-theme] CATCH error:', err, err.stack);
         stopGeneratingPuns();
