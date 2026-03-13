@@ -122,15 +122,25 @@ const DUMMY_DATA = {
 // The frontend injection script overwrites these anyway, but this is belt-and-suspenders.
 function sanitizeHtml(html) {
   if (!html) return html;
-  return html.replace(
+  // Blank data-field text content (will be injected at runtime)
+  html = html.replace(
     /(<[^>]+data-field="[^"]*"[^>]*>)([\s\S]*?)(<\/)/g,
     function(match, open, content, close) {
-      // Keep child elements (like spans with styles) but blank pure text
-      // If content is just text with no tags, replace with empty
       if (!content.includes('<')) return open + '' + close;
       return match;
     }
   );
+  // Strip baked-in form inputs from .rsvp-slot — platform injects these at runtime.
+  // Preserve only the RSVP button inside the slot.
+  html = html.replace(
+    /(<div[^>]*class="[^"]*rsvp-slot[^"]*"[^>]*>)([\s\S]*?)(<\/div>)/gi,
+    function(match, openTag, content, closeTag) {
+      // Extract just the button (if present)
+      var btnMatch = content.match(/<button[^>]*class="[^"]*rsvp-button[^"]*"[^>]*>[\s\S]*?<\/button>/i);
+      return openTag + (btnMatch ? btnMatch[0] : '') + closeTag;
+    }
+  );
+  return html;
 }
 
 export default async function handler(req, res) {

@@ -3547,6 +3547,29 @@
           var btn = slot.querySelector('.rsvp-button');
           var btnHtml = btn ? btn.outerHTML : '';
           slot.innerHTML = buildRsvpFormHtml() + btnHtml;
+        } else {
+          // Fallback: template has no .rsvp-slot — look for baked-in form fields
+          // and wrap them in a .rsvp-slot so we can control them
+          var formInputs = doc.querySelectorAll('input, select, textarea');
+          if (formInputs.length > 0) {
+            // Find the closest common container of all form inputs
+            var formContainer = formInputs[0].parentElement;
+            while (formContainer && formContainer.tagName !== 'BODY') {
+              var containsAll = true;
+              for (var fi = 0; fi < formInputs.length; fi++) {
+                if (!formContainer.contains(formInputs[fi])) { containsAll = false; break; }
+              }
+              if (containsAll) break;
+              formContainer = formContainer.parentElement;
+            }
+            if (formContainer && formContainer.tagName !== 'BODY') {
+              // Preserve the button if present
+              var existingBtn = formContainer.querySelector('button, [type="submit"], .rsvp-button');
+              var existingBtnHtml = existingBtn ? existingBtn.outerHTML : '';
+              formContainer.innerHTML = buildRsvpFormHtml() + existingBtnHtml;
+              formContainer.classList.add('rsvp-slot');
+            }
+          }
         }
 
         // Inject event details into .details-slot (new pattern — platform controls details HTML)
