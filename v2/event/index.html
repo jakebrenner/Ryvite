@@ -175,17 +175,19 @@
         + '<input type="text" id="rsvpName" placeholder="Your name" required>'
         + '</div>';
 
-      // Email field — check if in custom fields, otherwise add default
-      var hasEmail = customFields.some(function(f) { return f.key === 'email'; });
-      if (hasEmail) {
-        var emailField = customFields.find(function(f) { return f.key === 'email'; });
-        html += renderField(emailField);
-      } else {
-        html += '<div class="rsvp-form-group">'
-          + '<label for="rsvpEmail">Email</label>'
-          + '<input type="email" id="rsvpEmail" placeholder="your@email.com">'
-          + '</div>';
-      }
+      // Email (always included, either email or phone required)
+      html += '<div class="rsvp-form-group">'
+        + '<label for="rsvpEmail">Email</label>'
+        + '<input type="email" id="rsvpEmail" placeholder="your@email.com">'
+        + '</div>';
+
+      // Phone (always included, either email or phone required)
+      html += '<div class="rsvp-form-group">'
+        + '<label for="rsvpPhone">Phone</label>'
+        + '<input type="tel" id="rsvpPhone" placeholder="(555) 123-4567">'
+        + '</div>';
+
+      html += '<div style="font-size:11px;color:#888;margin:-4px 0 8px;font-style:italic;">* Either email or phone is required</div>';
 
       // RSVP Status (always required)
       html += '<div class="rsvp-form-group">'
@@ -197,9 +199,9 @@
         + '<option value="maybe">Maybe</option>'
         + '</select></div>';
 
-      // Render custom fields (skip email since handled above)
+      // Render custom fields (skip email and phone since handled above as built-in)
       customFields.forEach(function(field) {
-        if (field.key === 'email') return;
+        if (field.key === 'email' || field.key === 'phone') return;
         html += renderField(field);
       });
 
@@ -255,13 +257,10 @@
       var status = document.getElementById('rsvpStatus').value;
       if (!name || !status) { alert('Please fill in your name and RSVP status'); return; }
 
-      // Collect email
-      var emailEl = document.getElementById('rsvpEmail') || document.getElementById('custom_email');
-      var email = emailEl ? emailEl.value.trim() : '';
-
-      // Collect phone
-      var phoneEl = document.getElementById('custom_phone');
-      var phone = phoneEl ? phoneEl.value.trim() : '';
+      // Collect email and phone (built-in fields)
+      var email = document.getElementById('rsvpEmail').value.trim();
+      var phone = document.getElementById('rsvpPhone').value.trim();
+      if (!email && !phone) { alert('Please provide either your email or phone number'); return; }
 
       // Collect custom field values
       var customFields = currentEventData.customFields || [];
@@ -269,7 +268,7 @@
       var missingRequired = false;
 
       customFields.forEach(function(field) {
-        if (field.key === 'email') return; // handled above
+        if (field.key === 'email' || field.key === 'phone') return; // handled above as built-in
         var el = document.getElementById('custom_' + field.key);
         if (!el) return;
         var val;
@@ -281,9 +280,6 @@
           if (field.required && !val) { missingRequired = true; }
         }
         if (val) responseData[field.key] = val;
-        if (field.key === 'phone' || field.type === 'phone' || field.type === 'tel') {
-          phone = val;
-        }
       });
 
       if (missingRequired) { alert('Please fill in all required fields'); return; }
