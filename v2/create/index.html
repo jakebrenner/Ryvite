@@ -1178,7 +1178,8 @@
                     eventId: currentEvent.id,
                     html: tpl.html,
                     css: tpl.css || '',
-                    config: tpl.config || {}
+                    config: tpl.config || {},
+                    basedOnThemeId: tpl.id || templateId
                   })
                 });
                 var saveThemeResult = await saveThemeRes.json();
@@ -3140,6 +3141,7 @@
           inspirationImageUrls: inspirationImageUrls.filter(function(u) { return !!u; }),
           photoUrls: personPhotoUrls.filter(function(u) { return !!u; })
         };
+        if (window._templateSource) payload.basedOnThemeId = window._templateSource.id || '';
         var res2 = await authFetch('/api/v2/generate-theme', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -4888,6 +4890,7 @@
           },
           rsvpFields: enabledFields.map(function(f) { return { field_key: f.field_key, label: f.label, field_type: f.field_type, is_required: f.is_required }; })
         };
+        if (window._templateSource) payload.basedOnThemeId = window._templateSource.id || '';
 
         // Use streaming SSE to avoid timeouts
         var sseRes = await authFetch('/api/v2/generate-theme?action=tweak', {

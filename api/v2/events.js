@@ -594,7 +594,7 @@ export default async function handler(req, res) {
     // ---- SAVE THEME FROM TEMPLATE (used by "Start from Template" flow) ----
     if (action === 'saveTheme') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
-      const { eventId, html, css, config } = req.body || {};
+      const { eventId, html, css, config, basedOnThemeId } = req.body || {};
       if (!eventId || !html || !css) return res.status(400).json({ error: 'eventId, html, and css required' });
 
       // Verify ownership
@@ -608,7 +608,7 @@ export default async function handler(req, res) {
       const { data: existing } = await supabaseAdmin.from('event_themes').select('version').eq('event_id', eventId).order('version', { ascending: false }).limit(1);
       const nextVersion = (existing && existing.length > 0) ? existing[0].version + 1 : 1;
 
-      const { data: theme, error } = await supabaseAdmin.from('event_themes').insert({
+      const insertData = {
         event_id: eventId,
         version: nextVersion,
         is_active: true,
@@ -619,7 +619,9 @@ export default async function handler(req, res) {
         input_tokens: 0,
         output_tokens: 0,
         latency_ms: 0
-      }).select('id').single();
+      };
+      if (basedOnThemeId) insertData.based_on_theme_id = basedOnThemeId;
+      const { data: theme, error } = await supabaseAdmin.from('event_themes').insert(insertData).select('id').single();
 
       if (error) return res.status(500).json({ error: 'Failed to save theme: ' + error.message });
       return res.status(200).json({ success: true, themeId: theme.id });

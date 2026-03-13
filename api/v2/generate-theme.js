@@ -796,7 +796,7 @@ export default async function handler(req, res) {
   }
 
   const action = req.query?.action || req.body?.action || 'generate';
-  const { eventId, prompt, feedback, rsvpFields, eventDetails, inspirationImages, inspirationImageUrls, tweakInstructions, currentHtml, currentCss, currentConfig, photoBase64, photoUrl, photoUrls } = req.body;
+  const { eventId, prompt, feedback, rsvpFields, eventDetails, inspirationImages, inspirationImageUrls, tweakInstructions, currentHtml, currentCss, currentConfig, photoBase64, photoUrl, photoUrls, basedOnThemeId } = req.body;
 
   // --- INTERPRET FIELD: quick Haiku call to parse natural language into field definition ---
   if (action === 'interpretField') {
@@ -1268,6 +1268,7 @@ Return ONLY a valid JSON object with these keys:
           model: tweakModel, input_tokens: tweakInputTokens,
           output_tokens: tweakOutputTokens, latency_ms: latency
         };
+        if (basedOnThemeId) tweakInsert.based_on_theme_id = basedOnThemeId;
         let { data: newTweakTheme, error: tweakThemeError } = await supabase
           .from('event_themes').insert(tweakInsert).select().single();
         if (tweakThemeError) console.error('Failed to save tweak theme:', tweakThemeError.message);
@@ -1621,6 +1622,7 @@ This is the most common failure mode. Double-check it.`;
         latency_ms: latency,
         prompt_version_id: activePrompt.promptVersionId || null
       };
+      if (basedOnThemeId) genInsert.based_on_theme_id = basedOnThemeId;
       let { data: newTheme, error: themeError } = await supabase
         .from('event_themes').insert(genInsert).select().single();
       if (themeError && themeError.message?.includes('prompt_version_id')) {
