@@ -1135,7 +1135,10 @@ Return ONLY a valid JSON object with these keys:
       let tweakOutputTokens = tweakFinalMessage?.usage?.output_tokens || 0;
       if (tweakInputTokens === 0 && tweakOutputTokens === 0) {
         tweakOutputTokens = Math.round(fullText.length / 4);
-        tweakInputTokens = Math.round(fullText.length / 3);
+        // Input = system prompt + user message (includes full current HTML/CSS + tweak instructions)
+        const tweakSystemLen = tweakSystemPrompt?.length || 4000;
+        const tweakMsgLen = tweakMessage?.length || 8000;
+        tweakInputTokens = Math.round((tweakSystemLen + tweakMsgLen) / 4);
       }
       const latency = Date.now() - startTime;
 
@@ -1531,7 +1534,11 @@ This is the most common failure mode. Double-check it.`;
     const hadFinalMessage = !!genFinalMessage;
     if (genInputTokens === 0 && genOutputTokens === 0) {
       genOutputTokens = Math.round(fullText.length / 4);
-      genInputTokens = Math.round((activePrompt.systemPrompt?.length || 8000) / 4);
+      // Input = system prompt + user message (event details, style refs, design DNA, RSVP fields)
+      // Both contribute to input tokens — user message is often larger than system prompt
+      const systemLen = activePrompt.systemPrompt?.length || 8000;
+      const userMsgLen = userMessage?.length || 4000;
+      genInputTokens = Math.round((systemLen + userMsgLen) / 4);
     }
     console.log('[cost] Estimated tokens:', { hadFinalMessage, genInputTokens, genOutputTokens, fullTextLen: fullText.length, model: themeModel });
     const latency = Date.now() - startTime;
