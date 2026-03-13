@@ -803,6 +803,7 @@
     let chatBubbles = []; // [{text, role}] for UI rebuild on restore
     var chatPhase = 'chatting'; // 'chatting' | 'confirmed' | 'styling'
     var designChatPhase = null; // null = normal flow, 'collecting_details' | 'rsvp_fields' | 'tweaking'
+    var pendingDesignRequest = null; // design preference captured during collecting_details (e.g. "make it orange")
     var currentPreviewMode = 'invite';
 
     // Cost tracking state — tracks cumulative cost for this event (persisted across sessions)
@@ -4035,15 +4036,12 @@
       renderDesignChat();
 
       try {
-        console.log('[design-chat-collecting] Sending to /api/v2/chat, messages:', chatHistory.length, 'eventId:', currentEvent ? currentEvent.id : null);
         var res = await authFetch('/api/v2/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: chatHistory, sessionId: chatSessionId, eventId: currentEvent ? currentEvent.id : null })
         });
-        console.log('[design-chat-collecting] Response status:', res.status);
         var result = await res.json();
-        console.log('[design-chat-collecting] Response:', JSON.stringify(result).substring(0, 200));
 
         // Remove typing indicator
         designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
@@ -4056,6 +4054,12 @@
           if (result.extracted) {
             Object.assign(extractedData, result.extracted);
             renderPreview(themeVersions[activeVersionIndex]);
+          }
+
+          // Capture design/style preferences to apply later in tweaking phase
+          var designKeywords = /\b(color|colour|palette|orange|blue|red|green|gold|black|white|pink|purple|dark|light|bright|pastel|theme|vibe|style|font|minimalist|elegant|rustic|modern|bold|playful|tropical|vintage)\b/i;
+          if (designKeywords.test(text)) {
+            pendingDesignRequest = (pendingDesignRequest ? pendingDesignRequest + '. ' : '') + text;
           }
 
           // Store suggested RSVP fields
@@ -4148,11 +4152,6 @@
 
         // Transition to tweaking phase
         designChatPhase = 'tweaking';
-        var tweakMsg = "All set! Your invite is personalized and ready.\n\n"
-          + "Want to tweak anything? You can adjust colors, fonts, layout, text, or anything else. Just describe what you'd like to change.";
-        designChatHistory.push({ role: 'assistant', content: tweakMsg });
-        renderDesignChat();
-        sendBtn.disabled = false;
 
         // Persist creation_step
         if (currentEvent) {
@@ -4161,6 +4160,26 @@
             body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 2 } })
           }).catch(function() {});
         }
+
+        // If user mentioned design preferences during collecting, auto-fire the tweak
+        if (pendingDesignRequest) {
+          var pendingReq = pendingDesignRequest;
+          pendingDesignRequest = null;
+          designChatHistory.push({ role: 'assistant', content: "All set! Now let me apply those design changes you mentioned..." });
+          renderDesignChat();
+          sendBtn.disabled = false;
+          // Simulate sending the pending design request through the normal tweak system
+          var designInput = document.getElementById('designChatInput');
+          designInput.value = pendingReq;
+          sendDesignChat();
+          return;
+        }
+
+        var tweakMsg = "All set! Your invite is personalized and ready.\n\n"
+          + "Want to tweak anything? You can adjust colors, fonts, layout, text, or anything else. Just describe what you'd like to change.";
+        designChatHistory.push({ role: 'assistant', content: tweakMsg });
+        renderDesignChat();
+        sendBtn.disabled = false;
         return;
       }
 
@@ -4485,6 +4504,15 @@
       var ver = themeVersions[activeVersionIndex];
       try {
         var instructions = text || '';
+        // For "start from design" flow, add preservation context so the AI
+        // keeps the chosen design and only changes what was explicitly requested
+        if (window._templateSource) {
+          instructions = 'IMPORTANT: The user specifically chose this design from our inspiration gallery because they liked it. '
+            + 'Preserve the overall design, layout, structure, illustrations, and visual identity. '
+            + 'ONLY change what the user explicitly asks for — nothing else. '
+            + 'Keep all other design elements exactly as they are.\n\n'
+            + 'User request: ' + instructions;
+        }
         if (hasPhotos) {
           instructions += '\n\nThe user has uploaded ' + designChatPhotoUrls.length + ' photo(s). Embed them in the design.';
         }
