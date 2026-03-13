@@ -595,7 +595,7 @@ export default async function handler(req, res) {
     if (action === 'saveTheme') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
       const { eventId, html, css, config, basedOnThemeId } = req.body || {};
-      if (!eventId || !html || !css) return res.status(400).json({ error: 'eventId, html, and css required' });
+      if (!eventId || !html) return res.status(400).json({ error: 'eventId and html required' });
 
       // Verify ownership
       const { data: ev } = await supabaseAdmin.from('events').select('id').eq('id', eventId).eq('user_id', user.id).single();
@@ -613,7 +613,7 @@ export default async function handler(req, res) {
         version: nextVersion,
         is_active: true,
         html,
-        css,
+        css: css || '',
         config: config || {},
         model: 'template',
         input_tokens: 0,

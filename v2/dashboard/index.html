@@ -734,7 +734,7 @@
           ? '<span class="collab-badge collab-editor">Co-Host</span>'
           : '<span class="collab-badge collab-viewer">Viewer</span>';
 
-        var hasTheme = event.themeHtml && event.themeCss;
+        var hasTheme = !!event.themeHtml;
         var headerHtml = '';
         if (hasTheme) {
           var config = event.themeConfig || {};
@@ -863,7 +863,7 @@
 
         var archiveXHtml = !isArchived ? '<button class="archive-x-btn" onclick="event.stopPropagation();archiveEvent(\'' + event.id + '\', this)" title="Archive">&times;</button>' : '';
 
-        var hasTheme = event.themeHtml && event.themeCss;
+        var hasTheme = !!event.themeHtml;
         var headerHtml = '';
         if (hasTheme) {
           var config = event.themeConfig || {};
