@@ -743,7 +743,7 @@ You MUST only place a styled \`<button class="rsvp-button">\` inside \`.rsvp-slo
 Make the button text fun and on-theme.
 
 Fields that will be injected (for awareness only — do NOT render):
-Default fields: Name, RSVP Status (Attending/Declined/Maybe)${styleContext}
+Default fields: Name, Email, Phone, RSVP Status (Attending/Declined/Maybe)${styleContext}
 
 ══════════════════════
 ⚠️ FINAL CHECK — TEXT CONTRAST (NON-NEGOTIABLE)

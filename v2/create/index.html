@@ -991,9 +991,11 @@
                 dressCode: ev.dressCode || '', description: ev.description || '', prompt: ''
               };
               if (ev.customFields && ev.customFields.length > 0) {
-                rsvpFields = ev.customFields.map(function(f) {
-                  return { field_key: f.key, label: f.label, field_type: f.type, is_required: f.required, options: f.options, placeholder: f.placeholder, enabled: true };
-                });
+                rsvpFields = ev.customFields
+                  .filter(function(f) { return f.key !== 'email' && f.key !== 'phone'; })
+                  .map(function(f) {
+                    return { field_key: f.key, label: f.label, field_type: f.type, is_required: f.required, options: f.options, placeholder: f.placeholder, enabled: true };
+                  });
               }
               // Update themes if server has newer data
               if (ev.themeVersions && ev.themeVersions.length > 0) {
@@ -1056,11 +1058,13 @@
               description: ev.description || '',
               prompt: ''
             };
-            // Restore RSVP fields
+            // Restore RSVP fields (filter out email/phone since they are now built-in)
             if (ev.customFields && ev.customFields.length > 0) {
-              rsvpFields = ev.customFields.map(function(f) {
-                return { field_key: f.key, label: f.label, field_type: f.type, is_required: f.required, options: f.options, placeholder: f.placeholder, enabled: true };
-              });
+              rsvpFields = ev.customFields
+                .filter(function(f) { return f.key !== 'email' && f.key !== 'phone'; })
+                .map(function(f) {
+                  return { field_key: f.key, label: f.label, field_type: f.type, is_required: f.required, options: f.options, placeholder: f.placeholder, enabled: true };
+                });
             }
             // Restore theme versions
             if (ev.themeVersions && ev.themeVersions.length > 0) {
@@ -1352,17 +1356,18 @@
           }
 
           // Store suggested RSVP fields when AI proposes them (awaiting confirmation)
+          // Filter out email/phone since they are now built-in fields
           if (result.suggestedRsvpFields && result.suggestedRsvpFields.length > 0) {
-            rsvpFields = result.suggestedRsvpFields.map(function(f) {
-              return Object.assign({}, f, { enabled: true });
-            });
+            rsvpFields = result.suggestedRsvpFields
+              .filter(function(f) { return f.field_key !== 'email' && f.field_key !== 'phone'; })
+              .map(function(f) { return Object.assign({}, f, { enabled: true }); });
           }
 
           // Always keep latest RSVP fields from the AI
           if (result.suggestedRsvpFields && result.suggestedRsvpFields.length > 0) {
-            rsvpFields = result.suggestedRsvpFields.map(function(f) {
-              return Object.assign({}, f, { enabled: true });
-            });
+            rsvpFields = result.suggestedRsvpFields
+              .filter(function(f) { return f.field_key !== 'email' && f.field_key !== 'phone'; })
+              .map(function(f) { return Object.assign({}, f, { enabled: true }); });
           }
 
           addChatBubble(result.message, 'assistant');
@@ -1414,7 +1419,6 @@
       };
 
       rsvpFields = [
-        { field_key: 'email', label: 'Email', field_type: 'email', is_required: false, options: null, placeholder: 'your@email.com', enabled: true },
         { field_key: 'dietary_restrictions', label: 'Dietary Restrictions', field_type: 'text', is_required: false, options: null, placeholder: 'Any allergies or dietary needs?', enabled: true },
         { field_key: 'number_of_kids', label: 'Number of Kids Attending', field_type: 'number', is_required: true, options: null, placeholder: '1', enabled: true }
       ];
@@ -1503,7 +1507,7 @@
       if (enabledFields.length > 0) {
         html += '<div style="margin-top:16px;border-top:1px solid #eee;padding-top:14px;">'
           + '<h4 style="font-size:14px;font-weight:600;margin-bottom:8px;">RSVP Fields</h4>'
-          + '<div style="font-size:11px;color:#999;margin-bottom:8px;padding:6px 10px;background:#f9f9f9;border-radius:6px;">Always included: <strong>Name</strong>, <strong>RSVP Status</strong></div>'
+          + '<div style="font-size:11px;color:#999;margin-bottom:8px;padding:6px 10px;background:#f9f9f9;border-radius:6px;">Always included: <strong>Name</strong>, <strong>Email</strong>, <strong>Phone</strong>, <strong>RSVP Status</strong></div>'
           + enabledFields.map(function(f) {
               var meta = (FIELD_TYPE_LABELS[f.field_type] || f.field_type);
               return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">'
@@ -1515,7 +1519,7 @@
 
           + '<h4 style="font-size:14px;font-weight:600;margin-bottom:4px;">RSVP Fields</h4>'
           + '<p style="font-size:12px;color:#888;margin-bottom:10px;">Here\'s what I\'d suggest — remove any you don\'t want, or just ask me to add more!</p>'
-          + '<div style="font-size:11px;color:#999;margin-bottom:10px;padding:6px 10px;background:#f9f9f9;border-radius:6px;">Always included: <strong>Name</strong>, <strong>RSVP Status</strong></div>'
+          + '<div style="font-size:11px;color:#999;margin-bottom:10px;padding:6px 10px;background:#f9f9f9;border-radius:6px;">Always included: <strong>Name</strong>, <strong>Email</strong>, <strong>Phone</strong>, <strong>RSVP Status</strong></div>'
           + '<div id="rsvpFieldList">' + renderRsvpFields() + '</div>'
           + '</div>';
       }
@@ -4255,6 +4259,13 @@
         if (removeMatch) {
           var searchTerm = (removeMatch[1] || removeMatch[2] || removeMatch[3] || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
           if (searchTerm) {
+            // Protect built-in fields from removal
+            var builtInFields = ['name', 'email', 'phone', 'rsvpstatus', 'status'];
+            if (builtInFields.indexOf(searchTerm) !== -1) {
+              var friendlyName = searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1);
+              results.push({ action: 'protected', label: friendlyName });
+              continue;
+            }
             var matchedField = enabledFields.find(function(f) {
               var fKey = (f.field_key || '').toLowerCase().replace(/[\s_-]+/g, '');
               var fLabel = (f.label || '').toLowerCase().replace(/[\s_-]+/g, '');
@@ -4278,6 +4289,12 @@
         if (!addDetected) addDetected = /\b(?:i want|i need|can you add|could you add|please add)\b/i.test(part)
           && /\b(?:field|question|ask|input)\b/i.test(part);
         if (addDetected) {
+          // Check if trying to add a built-in field
+          if (/\b(?:email|phone)\b/i.test(part) && !/\b(?:second|another|extra|additional)\b/i.test(part)) {
+            var builtInName = /\bemail\b/i.test(part) ? 'Email' : 'Phone';
+            results.push({ action: 'protected', label: builtInName + ' is already included as a built-in field!' });
+            continue;
+          }
           // Use the original text for the AI call (more context is better)
           results.push({ action: 'add_async', userMessage: text });
           continue;
@@ -4311,6 +4328,7 @@
       var responseMessages = syncChanges.map(function(r) {
         if (r.action === 'remove') return 'Removed the "' + r.label + '" field';
         if (r.action === 'modify') return 'Made "' + (r.label || r.field_key) + '" ' + (r.is_required ? 'required' : 'optional');
+        if (r.action === 'protected') return r.label + ' is a built-in field and can\'t be removed — it\'s needed so you can reach your guests!';
         return '';
       }).filter(Boolean);
 
@@ -5429,7 +5447,7 @@
     }
 
     async function saveCustomFields() {
-      var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
+      var enabledFields = rsvpFields.filter(function(f) { return f.enabled && f.field_key !== 'email' && f.field_key !== 'phone'; });
       if (enabledFields.length === 0 || !currentEvent) return;
 
       try {

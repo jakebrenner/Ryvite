@@ -1415,7 +1415,7 @@ Return ONLY a valid JSON object with these keys:
 
   try {
     // Build RSVP fields description
-    let rsvpFieldsDesc = 'Default fields: Name, RSVP Status (Attending/Declined/Maybe)';
+    let rsvpFieldsDesc = 'Default fields: Name, Email, Phone, RSVP Status (Attending/Declined/Maybe)';
     if (rsvpFields?.length > 0) {
       rsvpFieldsDesc += '\nCustom fields: ' + rsvpFields.map(f => `${f.label} (${f.field_type}${f.is_required ? ', required' : ''})`).join(', ');
     }
