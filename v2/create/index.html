@@ -793,7 +793,49 @@
       <div class="button-group" style="max-width:640px;margin:24px auto 0;">
         <button class="btn btn-secondary" onclick="previousStep()">Back to Design</button>
         <button class="btn" onclick="publishEvent(false)" style="background:#f0f0f0;color:var(--midnight);">Only Publish</button>
-        <button class="btn btn-primary" id="publishBtn" onclick="publishEvent(true)">Publish & Send Invites</button>
+        <button class="btn btn-primary" id="publishBtn" onclick="showSendOptions()">Publish & Send Invites</button>
+      </div>
+
+      <!-- Send Options Modal -->
+      <div id="sendOptionsModal" onclick="if(event.target===this)closeSendOptions()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:16px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+          <h3 style="margin:0 0 4px;font-size:20px;color:var(--midnight);">Send Invites</h3>
+          <p style="margin:0 0 20px;font-size:14px;color:#888;">Choose how to notify your guests</p>
+
+          <!-- SMS option -->
+          <label id="sendOptSms" class="send-option" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--party-coral);border-radius:12px;cursor:pointer;margin-bottom:10px;background:rgba(233,69,96,0.04);">
+            <input type="checkbox" id="sendViaSms" checked onchange="updateSendPreview()" style="margin-top:3px;width:18px;height:18px;accent-color:var(--party-coral);">
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:15px;color:var(--midnight);">SMS Text Message</div>
+              <div id="smsGuestCount" style="font-size:13px;color:#888;margin-top:2px;"></div>
+            </div>
+          </label>
+
+          <!-- Email option (coming soon) -->
+          <label class="send-option" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid #e0e0e0;border-radius:12px;cursor:not-allowed;margin-bottom:16px;opacity:0.5;">
+            <input type="checkbox" disabled style="margin-top:3px;width:18px;height:18px;">
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:15px;color:var(--midnight);">Email <span style="font-size:11px;background:#f0f0f0;padding:2px 8px;border-radius:8px;color:#999;margin-left:6px;">Coming soon</span></div>
+              <div style="font-size:13px;color:#888;margin-top:2px;" id="emailGuestCount"></div>
+            </div>
+          </label>
+
+          <!-- SMS Message Template -->
+          <div id="smsTemplateSection">
+            <label style="font-weight:600;font-size:13px;color:var(--midnight);display:block;margin-bottom:6px;">Message</label>
+            <textarea id="sendSmsMessage" style="width:100%;min-height:72px;border:1.5px solid #ddd;border-radius:10px;padding:12px;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box;" oninput="updateSendPreview()"></textarea>
+            <div style="font-size:12px;color:#999;margin-top:4px;">{name} = guest's name &middot; {link} = personalized RSVP link</div>
+          </div>
+
+          <!-- Cost estimate -->
+          <div id="sendCostEstimate" style="margin-top:16px;padding:12px 16px;background:#f8f8f8;border-radius:10px;font-size:14px;color:var(--midnight);display:none;"></div>
+
+          <!-- Buttons -->
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button class="btn btn-secondary" onclick="closeSendOptions()" style="flex:1;">Cancel</button>
+            <button class="btn btn-primary" id="confirmSendBtn" onclick="publishAndSend()" style="flex:1;">Publish & Send</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -5701,14 +5743,28 @@
 
     async function loadContactsForInvite() {
       try {
-        var [contactsRes, tagsRes] = await Promise.all([
+        var fetches = [
           authFetch('/api/v2/contacts?action=list'),
           authFetch('/api/v2/contacts?action=listTags')
-        ]);
-        var contactsData = await contactsRes.json();
-        var tagsData = await tagsRes.json();
+        ];
+        // Load existing guests from DB if we have an event and haven't loaded yet
+        if (currentEvent && addedGuests.length === 0) {
+          fetches.push(authFetch('/api/v2/events?action=rsvps&eventId=' + currentEvent.id));
+        }
+        var results = await Promise.all(fetches);
+        var contactsData = await results[0].json();
+        var tagsData = await results[1].json();
         if (contactsData.success) allContacts = contactsData.contacts || [];
         if (tagsData.success) allTags = tagsData.tags || [];
+        // Populate addedGuests from DB if loaded
+        if (results[2]) {
+          var guestsData = await results[2].json();
+          if (guestsData.success && guestsData.rsvps && guestsData.rsvps.length > 0) {
+            addedGuests = guestsData.rsvps.map(function(g) {
+              return { id: g.id, serverId: g.id, name: g.name, email: g.email, phone: g.phone, contactId: g.contactId };
+            });
+          }
+        }
       } catch (e) {
         allContacts = [];
         allTags = [];
@@ -5806,13 +5862,20 @@
         });
         var result = await res.json();
         if (result.success) {
-          // Add to local guest list
-          ids.forEach(function(cid) {
-            var contact = allContacts.find(function(c) { return c.id === cid; });
-            if (contact) {
-              addedGuests.push({ id: 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), name: contact.name, email: contact.email, phone: contact.phone, contactId: cid });
-            }
-          });
+          // Add to local guest list using server-returned guest data (with real IDs)
+          if (result.guests && result.guests.length) {
+            result.guests.forEach(function(g) {
+              addedGuests.push({ id: g.id, serverId: g.id, name: g.name, email: g.email, phone: g.phone, contactId: g.contactId });
+            });
+          } else {
+            // Fallback for skipped (already-added) contacts
+            ids.forEach(function(cid) {
+              var contact = allContacts.find(function(c) { return c.id === cid; });
+              if (contact && !addedGuests.some(function(g) { return g.contactId === cid; })) {
+                addedGuests.push({ id: 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), name: contact.name, email: contact.email, phone: contact.phone, contactId: cid });
+              }
+            });
+          }
           selectedContactIds.clear();
           renderGuestList();
           filterContacts();
@@ -5908,15 +5971,20 @@
         }
 
         // Add as guest to event
+        var serverId = null;
         if (currentEvent && contactId) {
-          await authFetch('/api/v2/events?action=addGuests', {
+          var addRes = await authFetch('/api/v2/events?action=addGuests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ eventId: currentEvent.id, contactIds: [contactId] })
           });
+          var addResult = await addRes.json();
+          if (addResult.guests && addResult.guests.length) {
+            serverId = addResult.guests[0].id;
+          }
         }
 
-        addedGuests.push({ id: 'guest_' + Date.now(), name: name, email: email, phone: phone, contactId: contactId, isNew: true });
+        addedGuests.push({ id: serverId || ('guest_' + Date.now()), serverId: serverId, name: name, email: email, phone: phone, contactId: contactId, isNew: true });
         // Refresh contact list
         allContacts.push({ id: contactId, name: name, email: email, phone: phone, tags: [] });
 
@@ -5936,13 +6004,11 @@
       }
     }
 
+    // "Only Publish" — no invites sent
     async function publishEvent(sendInvites) {
       if (!currentEvent) { showMessage('Event not created yet', 'error'); return; }
-      // Disable all publish buttons
       var btns = document.querySelectorAll('.button-group .btn');
       btns.forEach(function(b) { b.disabled = true; });
-      var publishBtn = document.getElementById('publishBtn');
-      publishBtn.textContent = 'Publishing...';
       try {
         // Ensure event details are saved before publishing
         await saveEventToDB();
@@ -5967,7 +6033,7 @@
         var res = await authFetch('/api/v2/events?action=update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ eventId: currentEvent.id, status: 'Published', settings: { invites_sent: !!sendInvites } })
+          body: JSON.stringify({ eventId: currentEvent.id, status: 'Published' })
         });
         var result = await res.json();
         if (result.success) {
@@ -5977,7 +6043,141 @@
       } catch (err) { showMessage('Error publishing event', 'error'); }
       finally {
         btns.forEach(function(b) { b.disabled = false; });
-        publishBtn.textContent = 'Publish & Send Invites';
+      }
+    }
+
+    // Show send options modal
+    function showSendOptions() {
+      if (!currentEvent) { showMessage('Event not created yet', 'error'); return; }
+
+      var smsCount = addedGuests.filter(function(g) { return g.phone; }).length;
+      var emailCount = addedGuests.filter(function(g) { return g.email; }).length;
+      var totalGuests = addedGuests.length;
+
+      document.getElementById('smsGuestCount').textContent = smsCount + ' of ' + totalGuests + ' guest' + (totalGuests !== 1 ? 's' : '') + ' have a phone number';
+      document.getElementById('emailGuestCount').textContent = emailCount + ' of ' + totalGuests + ' guest' + (totalGuests !== 1 ? 's' : '') + ' have an email';
+
+      // Default SMS message
+      var title = currentEvent.title || 'our event';
+      var msgEl = document.getElementById('sendSmsMessage');
+      if (!msgEl.value) {
+        msgEl.value = 'Hi {name}, you\'re invited to ' + title + '! RSVP here: {link}';
+      }
+
+      // Show/hide SMS option based on guests with phones
+      var smsOpt = document.getElementById('sendOptSms');
+      var smsCheck = document.getElementById('sendViaSms');
+      if (smsCount === 0) {
+        smsCheck.checked = false;
+        smsCheck.disabled = true;
+        smsOpt.style.opacity = '0.5';
+        smsOpt.style.cursor = 'not-allowed';
+        smsOpt.style.borderColor = '#e0e0e0';
+        smsOpt.style.background = 'transparent';
+      } else {
+        smsCheck.checked = true;
+        smsCheck.disabled = false;
+        smsOpt.style.opacity = '1';
+        smsOpt.style.cursor = 'pointer';
+        smsOpt.style.borderColor = 'var(--party-coral)';
+        smsOpt.style.background = 'rgba(233,69,96,0.04)';
+      }
+
+      updateSendPreview();
+
+      var modal = document.getElementById('sendOptionsModal');
+      modal.style.display = 'flex';
+    }
+
+    function closeSendOptions() {
+      document.getElementById('sendOptionsModal').style.display = 'none';
+    }
+
+    function updateSendPreview() {
+      var smsChecked = document.getElementById('sendViaSms').checked;
+      var templateSection = document.getElementById('smsTemplateSection');
+      var costEl = document.getElementById('sendCostEstimate');
+
+      templateSection.style.display = smsChecked ? 'block' : 'none';
+
+      if (smsChecked) {
+        var smsCount = addedGuests.filter(function(g) { return g.phone; }).length;
+        var cost = (smsCount * 0.10).toFixed(2);
+        costEl.style.display = 'block';
+        costEl.textContent = 'SMS cost: $' + cost + ' (' + smsCount + ' message' + (smsCount !== 1 ? 's' : '') + ' x $0.10)';
+      } else {
+        costEl.style.display = 'none';
+      }
+
+      // Update confirm button text
+      var btn = document.getElementById('confirmSendBtn');
+      if (smsChecked) {
+        btn.textContent = 'Publish & Send SMS';
+      } else {
+        btn.textContent = 'Just Publish';
+      }
+    }
+
+    // Publish the event AND send invites via selected channels
+    async function publishAndSend() {
+      if (!currentEvent) return;
+
+      var sendSms = document.getElementById('sendViaSms').checked;
+      var btn = document.getElementById('confirmSendBtn');
+      btn.disabled = true;
+      btn.textContent = 'Publishing...';
+
+      try {
+        // Step 1: Publish the event
+        var pubRes = await authFetch('/api/v2/events?action=update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: currentEvent.id, status: 'Published', settings: { invites_sent: sendSms } })
+        });
+        var pubResult = await pubRes.json();
+        if (!pubResult.success) {
+          showMessage(pubResult.error || 'Failed to publish', 'error');
+          return;
+        }
+
+        // Step 2: Send SMS if selected
+        if (sendSms) {
+          btn.textContent = 'Sending SMS...';
+          var message = document.getElementById('sendSmsMessage').value.trim();
+          if (!message) message = 'Hi {name}, you\'re invited! RSVP here: {link}';
+
+          try {
+            var smsRes = await authFetch('/api/v2/sms?action=sendInvites', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                eventId: currentEvent.id,
+                message: message,
+                allGuests: true
+              })
+            });
+            var smsResult = await smsRes.json();
+            if (!smsResult.success) {
+              // Event published but SMS failed — redirect with warning
+              clearDraft();
+              window.location.href = '/v2/dashboard/?published=' + currentEvent.id + '&smsError=1';
+              return;
+            }
+          } catch (smsErr) {
+            clearDraft();
+            window.location.href = '/v2/dashboard/?published=' + currentEvent.id + '&smsError=1';
+            return;
+          }
+        }
+
+        // Success — redirect to dashboard
+        clearDraft();
+        window.location.href = '/v2/dashboard/?published=' + currentEvent.id + (sendSms ? '&smsSent=1' : '');
+      } catch (err) {
+        showMessage('Error publishing event', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Publish & Send';
       }
     }
 

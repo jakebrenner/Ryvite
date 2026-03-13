@@ -733,16 +733,17 @@ export default async function handler(req, res) {
         }));
 
       if (newGuests.length === 0) {
-        return res.status(200).json({ success: true, added: 0, skipped: contacts.length });
+        return res.status(200).json({ success: true, added: 0, skipped: contacts.length, guests: [] });
       }
 
-      const { error } = await supabaseAdmin.from('guests').insert(newGuests);
+      const { data: insertedGuests, error } = await supabaseAdmin.from('guests').insert(newGuests).select('id, contact_id, name, email, phone');
       if (error) return res.status(400).json({ success: false, error: error.message });
 
       return res.status(200).json({
         success: true,
-        added: newGuests.length,
-        skipped: contacts.length - newGuests.length
+        added: insertedGuests.length,
+        skipped: contacts.length - insertedGuests.length,
+        guests: insertedGuests.map(g => ({ id: g.id, contactId: g.contact_id, name: g.name, email: g.email, phone: g.phone }))
       });
     }
 
