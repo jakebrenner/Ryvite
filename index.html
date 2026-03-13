@@ -609,17 +609,28 @@ document.getElementById("contactForm").addEventListener("submit", function(e) {
 
   function initDemo() {
     fetch("/api/v2/showcases")
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
       .then(function(data) {
         showcases = (data && data.showcases) || [];
+        console.log("[Demo] Loaded " + showcases.length + " showcases");
         if (showcases.length === 0) return;
         document.getElementById("demo").style.display = "";
-        scalePhone();
-        buildDots();
-        showShowcase(0);
-        startCycle();
+        // Double rAF to ensure browser has reflowed the now-visible section
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            scalePhone();
+            buildDots();
+            showShowcase(0);
+            startCycle();
+          });
+        });
       })
-      .catch(function() {});
+      .catch(function(err) {
+        console.error("[Demo] Failed to load showcases:", err);
+      });
   }
 
   function scalePhone() {
