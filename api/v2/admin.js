@@ -164,8 +164,9 @@ export default async function handler(req, res) {
       if (!userId) return res.status(400).json({ error: 'userId required' });
 
       // Fetch all data in parallel — only use tables/columns that actually exist
-      const [profileRes, eventsRes, subsRes, billingRes, generationsRes, smsRes, chatRes] = await Promise.all([
+      const [profileRes, authUserRes, eventsRes, subsRes, billingRes, generationsRes, smsRes, chatRes] = await Promise.all([
         supabaseAdmin.from('profiles').select('*').eq('id', userId).single(),
+        supabaseAdmin.auth.admin.getUserById(userId).catch(() => ({ data: { user: null } })),
         supabaseAdmin.from('events').select('id, title, event_type, event_date, status, slug, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
         supabaseAdmin.from('subscriptions').select('*, plans:plan_id (name, display_name, price_cents, max_events, max_generations)').eq('user_id', userId).order('created_at', { ascending: false }),
         supabaseAdmin.from('billing_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
@@ -176,6 +177,9 @@ export default async function handler(req, res) {
 
       const profile = profileRes.data;
       if (!profile) return res.status(404).json({ error: 'User not found' });
+
+      const authUser = authUserRes.data?.user;
+      const isBanned = authUser?.banned_until ? new Date(authUser.banned_until) > new Date() : false;
 
       const events = eventsRes.data || [];
       const eventIds = events.map(e => e.id);
@@ -387,7 +391,8 @@ export default async function handler(req, res) {
           referralSource: profile.referral_source,
           stripeCustomerId: profile.stripe_customer_id,
           createdAt: profile.created_at,
-          updatedAt: profile.updated_at
+          updatedAt: profile.updated_at,
+          isBanned
         },
         financials: {
           totalRevenue,
@@ -2436,6 +2441,98 @@ ${cssSnippet}`
 
       const { error } = await supabaseAdmin.from('featured_showcases').update(updates).eq('id', showcaseId);
       if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- Deactivate / Reactivate User ----
+
+    if (action === 'deactivateUser') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: 'userId required' });
+
+      // Prevent deactivating yourself
+      if (userId === admin.id) {
+        return res.status(400).json({ error: 'Cannot deactivate your own account' });
+      }
+
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        ban_duration: '876000h' // ~100 years
+      });
+
+      if (error) return res.status(500).json({ error: 'Failed to deactivate user: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    if (action === 'reactivateUser') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: 'userId required' });
+
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        ban_duration: 'none'
+      });
+
+      if (error) return res.status(500).json({ error: 'Failed to reactivate user: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    // ---- Admin Notification Preferences ----
+
+    if (action === 'getAdminNotifPrefs') {
+      const { data: prefs } = await supabaseAdmin
+        .from('admin_notification_prefs')
+        .select('phone, new_user_signup')
+        .eq('admin_user_id', admin.id)
+        .maybeSingle();
+
+      if (prefs) {
+        return res.status(200).json({ success: true, prefs });
+      }
+
+      // No prefs yet — return defaults, pre-populate phone from profile
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('phone')
+        .eq('id', admin.id)
+        .single();
+
+      return res.status(200).json({
+        success: true,
+        prefs: {
+          phone: profile?.phone || '',
+          new_user_signup: false
+        }
+      });
+    }
+
+    if (action === 'updateAdminNotifPrefs') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { phone, new_user_signup } = req.body || {};
+
+      // Validate phone
+      if (!phone || typeof phone !== 'string') {
+        return res.status(400).json({ error: 'Phone number is required' });
+      }
+      const digits = phone.replace(/\D/g, '');
+      const normalized = digits.length >= 10 ? digits.slice(-10) : null;
+      if (!normalized) {
+        return res.status(400).json({ error: 'Invalid phone number — must be a 10-digit US number' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('admin_notification_prefs')
+        .upsert({
+          admin_user_id: admin.id,
+          phone: normalized,
+          new_user_signup: new_user_signup !== false
+        }, { onConflict: 'admin_user_id' });
+
+      if (error) {
+        return res.status(500).json({ error: 'Failed to save preferences: ' + error.message });
+      }
+
       return res.status(200).json({ success: true });
     }
 
