@@ -495,15 +495,16 @@ export default async function handler(req, res) {
     // ---- PLATFORM STATS ----
     if (action === 'stats') {
       // Optional date range filter for generation_log
-      const statsFrom = req.query.from; // ISO date string e.g. '2026-03-13'
-      const statsTo = req.query.to;     // ISO date string e.g. '2026-03-20'
+      // Date params are full ISO timestamps with timezone (e.g. '2026-03-13T07:00:00.000Z' for midnight Pacific)
+      const statsFrom = req.query.from;
+      const statsTo = req.query.to;
 
       let logsQuery = supabaseAdmin
         .from('generation_log')
         .select('id, event_id, model, input_tokens, output_tokens, latency_ms, created_at, prompt', { count: 'exact' })
         .eq('status', 'success');
       if (statsFrom) logsQuery = logsQuery.gte('created_at', statsFrom);
-      if (statsTo) logsQuery = logsQuery.lte('created_at', statsTo + 'T23:59:59.999Z');
+      if (statsTo) logsQuery = logsQuery.lte('created_at', statsTo);
 
       // Build date-filtered queries for profiles, events, guests
       let filteredProfilesQuery = supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true });
@@ -515,10 +516,9 @@ export default async function handler(req, res) {
         filteredGuestsQuery = filteredGuestsQuery.gte('created_at', statsFrom);
       }
       if (statsTo) {
-        const toEnd = statsTo + 'T23:59:59.999Z';
-        filteredProfilesQuery = filteredProfilesQuery.lte('created_at', toEnd);
-        filteredEventsQuery = filteredEventsQuery.lte('created_at', toEnd);
-        filteredGuestsQuery = filteredGuestsQuery.lte('created_at', toEnd);
+        filteredProfilesQuery = filteredProfilesQuery.lte('created_at', statsTo);
+        filteredEventsQuery = filteredEventsQuery.lte('created_at', statsTo);
+        filteredGuestsQuery = filteredGuestsQuery.lte('created_at', statsTo);
       }
 
       const [allUsersRes, allEventsRes, allGuestsRes, filteredUsersRes, filteredEventsRes, filteredGuestsRes, logsRes, markupRes] = await Promise.all([
@@ -1174,7 +1174,7 @@ export default async function handler(req, res) {
       if (smsFrom || smsTo) {
         let fq = supabaseAdmin.from('sms_messages').select('id, cost_cents');
         if (smsFrom) fq = fq.gte('created_at', smsFrom);
-        if (smsTo) fq = fq.lte('created_at', smsTo + 'T23:59:59.999Z');
+        if (smsTo) fq = fq.lte('created_at', smsTo);
         const { data: filteredData } = await fq;
         filteredSent = (filteredData || []).length;
         filteredCostCents = (filteredData || []).reduce((sum, m) => sum + (m.cost_cents || 0), 0);

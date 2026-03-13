@@ -128,7 +128,7 @@ Always respond with JSON:
 
 ## CONVERSATION RULES
 - Infer eventType from context (e.g., "my son's 5th birthday" → birthday)
-- Convert relative dates ("next Saturday at 3pm") using today: ${new Date().toISOString().split('T')[0]}
+- Convert relative dates ("next Saturday at 3pm") using today: ${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })}
 - If user provides most info at once, don't ask redundant questions — go straight to proposing RSVP fields (but still wait for confirmation before setting confirmed: true)
 - Capture vibe/style descriptions in "prompt" field — be detailed and specific
 - When suggesting RSVP fields, be conversational and specific to the event — describe the fields naturally, don't just list them robotically`;

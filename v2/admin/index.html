@@ -1829,14 +1829,34 @@
     var statsDateTo = null;
     var activePreset = 'all';
     var ACCURACY_FIX_DATE = '2026-03-13';
+    var PT_TZ = 'America/Los_Angeles';
 
-    function toISODate(d) {
-      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    // Get current date in Pacific time as YYYY-MM-DD
+    function toPacificDate(d) {
+      var parts = d.toLocaleDateString('en-CA', { timeZone: PT_TZ }); // en-CA gives YYYY-MM-DD
+      return parts;
+    }
+
+    // Convert a YYYY-MM-DD date to the start of that day in Pacific time as ISO string
+    function pacificDayStart(dateStr) {
+      // Create a date at midnight Pacific by using the timezone offset
+      var d = new Date(dateStr + 'T00:00:00');
+      var pacific = new Date(d.toLocaleString('en-US', { timeZone: PT_TZ }));
+      var offset = d.getTime() - pacific.getTime();
+      return new Date(d.getTime() + offset).toISOString();
+    }
+
+    // Convert a YYYY-MM-DD date to the end of that day in Pacific time as ISO string
+    function pacificDayEnd(dateStr) {
+      var d = new Date(dateStr + 'T23:59:59.999');
+      var pacific = new Date(d.toLocaleString('en-US', { timeZone: PT_TZ }));
+      var offset = d.getTime() - pacific.getTime();
+      return new Date(d.getTime() + offset).toISOString();
     }
 
     function setDatePreset(preset) {
       activePreset = preset;
-      var now = new Date();
+      var todayPT = toPacificDate(new Date());
       var customEl = document.getElementById('customDateRange');
       customEl.style.display = preset === 'custom' ? 'flex' : 'none';
 
@@ -1849,16 +1869,16 @@
         statsDateFrom = null;
         statsDateTo = null;
       } else if (preset === 'today') {
-        statsDateFrom = toISODate(now);
-        statsDateTo = toISODate(now);
+        statsDateFrom = todayPT;
+        statsDateTo = todayPT;
       } else if (preset === '7d') {
-        var d7 = new Date(now.getTime() - 7 * 86400000);
-        statsDateFrom = toISODate(d7);
-        statsDateTo = toISODate(now);
+        var d7 = new Date(new Date().getTime() - 7 * 86400000);
+        statsDateFrom = toPacificDate(d7);
+        statsDateTo = todayPT;
       } else if (preset === '30d') {
-        var d30 = new Date(now.getTime() - 30 * 86400000);
-        statsDateFrom = toISODate(d30);
-        statsDateTo = toISODate(now);
+        var d30 = new Date(new Date().getTime() - 30 * 86400000);
+        statsDateFrom = toPacificDate(d30);
+        statsDateTo = todayPT;
       } else if (preset === 'accurate') {
         statsDateFrom = ACCURACY_FIX_DATE;
         statsDateTo = null;
@@ -1897,8 +1917,8 @@
     async function reloadStats() {
       try {
         var params = '';
-        if (statsDateFrom) params += '&from=' + statsDateFrom;
-        if (statsDateTo) params += '&to=' + statsDateTo;
+        if (statsDateFrom) params += '&from=' + encodeURIComponent(pacificDayStart(statsDateFrom));
+        if (statsDateTo) params += '&to=' + encodeURIComponent(pacificDayEnd(statsDateTo));
         var res = await adminFetch('stats' + params);
         if (res.success) showStats(res.stats);
       } catch (e) {
@@ -1996,8 +2016,8 @@
       (async function() {
         try {
           var smsParams = '';
-          if (statsDateFrom) smsParams += '&from=' + statsDateFrom;
-          if (statsDateTo) smsParams += '&to=' + statsDateTo;
+          if (statsDateFrom) smsParams += '&from=' + encodeURIComponent(pacificDayStart(statsDateFrom));
+          if (statsDateTo) smsParams += '&to=' + encodeURIComponent(pacificDayEnd(statsDateTo));
           var smsRes = await adminFetch('smsStats' + smsParams);
           if (isFiltered && smsRes.filtered) {
             document.getElementById('statSms').textContent = smsRes.filtered.sent || 0;
@@ -2423,7 +2443,7 @@
             + '<div style="display:flex;justify-content:space-between;align-items:center;">'
             + '<div><span style="font-size:16px;font-weight:700;">$' + (lc.amount / 100).toFixed(2) + '</span>'
             + ' <span class="badge ' + statusBadge + '">' + lc.status + '</span></div>'
-            + '<div style="font-size:12px;color:#888;">' + chargeDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</div>'
+            + '<div style="font-size:12px;color:#888;">' + chargeDate.toLocaleDateString('en-US', { timeZone: PT_TZ, month: 'short', day: 'numeric', year: 'numeric' }) + '</div>'
             + '</div>'
             + (lc.receiptUrl ? '<a href="' + lc.receiptUrl + '" target="_blank" style="font-size:12px;color:var(--party-coral);margin-top:4px;display:inline-block;">View receipt &rarr;</a>' : '')
             + '</div>';
@@ -3853,7 +3873,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         } else {
           // Fallback: use model name + timestamp as name
           autoTag = {
-            name: (result.modelLabel || 'Generated') + ' — ' + new Date().toLocaleDateString(),
+            name: (result.modelLabel || 'Generated') + ' — ' + new Date().toLocaleDateString('en-US', { timeZone: PT_TZ }),
             description: 'Generated in Prompt Lab',
             eventTypes: [],
             tags: [],
@@ -5115,7 +5135,7 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
     function formatDate(iso) {
       if (!iso) return '—';
-      try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+      try { return new Date(iso).toLocaleDateString('en-US', { timeZone: PT_TZ, month: 'short', day: 'numeric', year: 'numeric' }); }
       catch (e) { return iso; }
     }
     function formatNumber(n) {
