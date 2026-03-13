@@ -48,19 +48,19 @@ INSERT INTO blog_posts (
 
 <h2>1. Ryvite \u2014 AI-Generated Custom Invitations</h2>
 
-<p><a href="/examples/">Ryvite</a> takes a fundamentally different approach to digital invitations. Instead of choosing from a library of pre-made templates, you describe your event and an AI generates a completely unique invitation design tailored to your specific event.</p>
+<p><a href="/inspiration/">Ryvite</a> takes a fundamentally different approach to digital invitations. Instead of choosing from a library of pre-made templates, you describe your event and an AI generates a completely unique invitation design tailored to your specific event.</p>
 
 <p>Every invitation is one-of-a-kind. The AI considers your event type, theme, mood, and style preferences to create custom illustrations, typography, color palettes, and animations. You can then refine the design through a conversational chat interface\u2014"make the colors warmer," "add more floral elements," "make it feel more elegant"\u2014until it''s exactly right.</p>
 
 <h3>Pricing</h3>
-<p>Flat per-event pricing. No per-card fees, no guest limits, no ads. Check <a href="/pricing/">current pricing</a> for details.</p>
+<p>Free to start with pay-as-you-go pricing. No per-card fees, no guest limits, no ads. Check <a href="/pricing/">current pricing</a> for details.</p>
 
 <h3>Pros</h3>
 <ul>
   <li>Every design is unique\u2014no one else will have the same invitation</li>
   <li>AI-powered design chat lets you refine designs conversationally</li>
   <li>No ads on your invitations, ever</li>
-  <li>Flat per-event pricing means unlimited guests at no extra cost</li>
+  <li>Pay-as-you-go pricing means unlimited guests with no per-card fees</li>
   <li>Custom animated HTML invitations (not static images)</li>
 </ul>
 
@@ -428,7 +428,7 @@ INSERT INTO blog_posts (
 <p>This is where Paperless Post shines. Their templates are designed by professional artists and well-known brands like Rifle Paper Co., Oscar de la Renta, and John Derian. The designs are consistently elegant, on-trend, and polished. However, they''re still templates\u2014your invitation will look identical to everyone else who chose the same design. Customization is limited to text, some colors, and envelope liner options.</p>
 
 <h3>Ryvite</h3>
-<p><a href="/examples/">Ryvite</a> takes an entirely different approach. Instead of browsing templates, you describe your event\u2014the theme, mood, colors, and style you want\u2014and AI generates a completely unique design. Every invitation includes custom illustrations, animations, typography, and color palettes created specifically for your event. You can then refine the design through a conversational chat interface until it''s perfect. No two Ryvite invitations are the same.</p>
+<p><a href="/inspiration/">Ryvite</a> takes an entirely different approach. Instead of browsing templates, you describe your event\u2014the theme, mood, colors, and style you want\u2014and AI generates a completely unique design. Every invitation includes custom illustrations, animations, typography, and color palettes created specifically for your event. You can then refine the design through a conversational chat interface until it''s perfect. No two Ryvite invitations are the same.</p>
 
 <blockquote>The key difference: Evite and Paperless Post ask you to pick from what exists. Ryvite creates something that didn''t exist before.</blockquote>
 
@@ -441,7 +441,7 @@ INSERT INTO blog_posts (
 <p>Paperless Post uses a coin-based per-card pricing model. You purchase coin packs, then spend coins for each invitation sent. Free templates are available, but premium designer templates cost 1\u20138+ coins per card. At typical pricing, a 100-guest event with premium designs can cost $200\u2013$400 or more. This model hits hardest for large events like weddings.</p>
 
 <h3>Ryvite</h3>
-<p>Ryvite uses flat per-event pricing. You pay once per event regardless of how many guests you invite. No per-card fees, no coin packs, no escalating costs as your guest list grows. Check <a href="/pricing/">current pricing</a> for details.</p>
+<p>Ryvite is free to start with pay-as-you-go pricing. You only pay for what you use. No per-card fees, no coin packs, no escalating costs as your guest list grows. Check <a href="/pricing/">current pricing</a> for details.</p>
 
 <table>
   <thead>
@@ -469,7 +469,7 @@ INSERT INTO blog_posts (
       <td><strong>Ryvite</strong></td>
       <td>No</td>
       <td>Per event (flat)</td>
-      <td>Same flat price</td>
+      <td>Pay as you go</td>
     </tr>
   </tbody>
 </table>
@@ -572,7 +572,7 @@ INSERT INTO blog_posts (
 <h3>Choose Ryvite if:</h3>
 <ul>
   <li>You want a truly unique design that no one else has</li>
-  <li>You prefer flat per-event pricing over per-card fees</li>
+  <li>You prefer pay-as-you-go pricing over per-card fees</li>
   <li>You want AI-powered customization through natural conversation</li>
   <li>You value animated, interactive invitations over static images</li>
   <li>You have a large guest list and want predictable pricing</li>
@@ -734,7 +734,7 @@ INSERT INTO blog_posts (
   <li><strong>Performance</strong> \u2014 Animations are smooth and the page loads quickly on mobile</li>
 </ul>
 
-<p>Browse the <a href="/examples/">example gallery</a> to see what AI-generated invitations look like across different event types\u2014from <a href="/birthday-invitations/">birthday parties</a> to <a href="/wedding-invitations/">weddings</a> and everything in between.</p>
+<p>Browse the <a href="/inspiration/">inspiration gallery</a> to see what AI-generated invitations look like across different event types\u2014from <a href="/birthday-invitations/">birthday parties</a> to <a href="/wedding-invitations/">weddings</a> and everything in between.</p>
 
 <h2>AI Invitations vs. Template Invitations</h2>
 
@@ -910,7 +910,7 @@ INSERT INTO blog_posts (
 
 <p>Consumer expectations are rising. The tolerance for ad-supported invitations\u2014where a carefully crafted event invitation sits alongside banner ads for insurance or fast food\u2014is declining rapidly. Similarly, the willingness to send the same template that thousands of other hosts are using is dropping.</p>
 
-<p>New platforms are responding by building business models that don''t rely on ads or template licensing. Flat per-event pricing, subscription models, and usage-based pricing are replacing the old "free with ads" or "per-card premium" models.</p>
+<p>New platforms are responding by building business models that don''t rely on ads or template licensing. Pay-as-you-go pricing, subscription models, and usage-based pricing are replacing the old "free with ads" or "per-card premium" models.</p>
 
 <p>This trend reflects a broader consumer shift: people are willing to pay for quality experiences that respect their time and taste. A $5\u2013$15 per-event fee for a truly unique, ad-free invitation is an easy decision for most hosts, especially compared to the $50\u2013$500+ they''re spending on the event itself.</p>
 
@@ -919,7 +919,7 @@ INSERT INTO blog_posts (
 <p>If you''re planning events in 2026\u2014whether professionally or for personal occasions\u2014these trends translate into practical opportunities:</p>
 
 <ol>
-  <li><strong>Embrace AI-generated designs</strong> to give each event a unique visual identity without hiring a designer. Browse <a href="/examples/">example invitations</a> to see what''s possible.</li>
+  <li><strong>Embrace AI-generated designs</strong> to give each event a unique visual identity without hiring a designer. Browse <a href="/inspiration/">invitation gallery</a> to see what''s possible.</li>
   <li><strong>Collect phone numbers</strong> for your guest list, not just email addresses. SMS delivery dramatically improves response rates.</li>
   <li><strong>Prioritize mobile experience</strong> when evaluating invitation platforms. View your invitation on your phone before sending it to guests.</li>
   <li><strong>Use custom RSVP fields</strong> to collect the information you actually need (meal choices, accessibility requirements, plus-one details) rather than just yes/no/maybe.</li>

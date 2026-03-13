@@ -36,4 +36,4 @@ https://www.ryvite.com
 - Pricing: https://www.ryvite.com/pricing/
 - Blog: https://www.ryvite.com/blog/
 - FAQ: https://www.ryvite.com/faq/
-- Examples: https://www.ryvite.com/examples/
+- Inspiration Gallery: https://www.ryvite.com/inspiration/

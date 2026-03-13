@@ -15,9 +15,8 @@ const STATIC_PAGES = [
   { url: '/corporate-event-invitations/', priority: '0.8', changefreq: 'monthly' },
   { url: '/pricing/', priority: '0.7', changefreq: 'monthly' },
   { url: '/faq/', priority: '0.6', changefreq: 'monthly' },
-  { url: '/examples/', priority: '0.7', changefreq: 'weekly' },
   { url: '/blog/', priority: '0.7', changefreq: 'weekly' },
-  { url: '/inspiration', priority: '0.6', changefreq: 'weekly' },
+  { url: '/inspiration/', priority: '0.7', changefreq: 'weekly' },
   { url: '/privacy/', priority: '0.3', changefreq: 'yearly' },
   { url: '/terms/', priority: '0.3', changefreq: 'yearly' },
 ];

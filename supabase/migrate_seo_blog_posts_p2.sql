@@ -29,7 +29,7 @@ INSERT INTO blog_posts (
   'Paperless Post is beautiful but expensive. Here are 10 alternatives that deliver stunning digital invitations without the per-card price tag—from free options to AI-powered platforms.',
   E'<p>Paperless Post set the standard for premium digital invitations. Their designer collaborations with brands like Kate Spade and Rifle Paper Co. produce genuinely beautiful templates. But that quality comes at a price\u2014literally. With per-card pricing that can push a 100-guest wedding invitation past $400, many hosts are looking for alternatives that deliver style without the sticker shock.</p>
 
-<p>The good news? In 2026, there are more options than ever. Some are completely free. Others use flat per-event pricing that eliminates the anxiety of watching costs climb with every guest you add. And a few use AI to create designs that are arguably more unique than any template library can offer.</p>
+<p>The good news? In 2026, there are more options than ever. Some are completely free. Others use pay-as-you-go pricing that eliminates the anxiety of watching costs climb with every guest you add. And a few use AI to create designs that are arguably more unique than any template library can offer.</p>
 
 <p>We tested 10 Paperless Post alternatives across design quality, pricing, RSVP features, and overall experience. Here''s what we found.</p>
 
@@ -48,12 +48,12 @@ INSERT INTO blog_posts (
 
 <h2>1. Ryvite \u2014 AI-Generated Custom Designs</h2>
 
-<p><a href="/examples/">Ryvite</a> doesn''t use templates at all. Instead, you describe your event\u2014the theme, mood, colors, and style\u2014and AI generates a completely unique invitation design from scratch. Every invitation is one-of-a-kind, with custom illustrations, typography, color palettes, and CSS animations created specifically for your event.</p>
+<p><a href="/inspiration/">Ryvite</a> doesn''t use templates at all. Instead, you describe your event\u2014the theme, mood, colors, and style\u2014and AI generates a completely unique invitation design from scratch. Every invitation is one-of-a-kind, with custom illustrations, typography, color palettes, and CSS animations created specifically for your event.</p>
 
 <p>The design chat feature lets you refine the result conversationally: "make the colors warmer," "add more floral elements," "try a more minimalist layout." It''s like having a graphic designer who works in seconds.</p>
 
 <h3>Pricing</h3>
-<p>Flat per-event pricing. No per-card fees, no guest limits. Check <a href="/pricing/">current pricing</a> for details.</p>
+<p>Free to start with pay-as-you-go pricing. No per-card fees, no guest limits. Check <a href="/pricing/">current pricing</a> for details.</p>
 
 <h3>Why it''s a great Paperless Post alternative</h3>
 <ul>
@@ -285,7 +285,7 @@ INSERT INTO blog_posts (
     <tr>
       <td><strong>Ryvite</strong></td>
       <td>Per event (flat)</td>
-      <td>Same flat price</td>
+      <td>Pay as you go</td>
       <td>No</td>
       <td>AI-generated unique</td>
       <td>Yes</td>
@@ -443,7 +443,7 @@ INSERT INTO blog_posts (
 
 <h3>3. Per-Event Pricing (Flat Fee)</h3>
 
-<p>Platforms like <a href="/pricing/">Ryvite</a> and Evite Premium charge a flat fee per event regardless of how many guests you invite. Whether you send 10 invitations or 500, the price is the same.</p>
+<p>Platforms like <a href="/pricing/">Ryvite</a> charge pay-as-you-go pricing regardless of how many guests you invite. Whether you send 10 invitations or 500, there are no per-card fees.</p>
 
 <p><strong>True cost:</strong> Predictable and fixed. This model is the best value for large events and eliminates the mental friction of "should I invite one more person?" The per-event cost is typically between $5\u2013$20 depending on the platform and features.</p>
 
@@ -534,7 +534,7 @@ INSERT INTO blog_posts (
       <td>$14.99</td>
       <td>$10\u2013$80</td>
       <td>$5\u2013$30</td>
-      <td>Flat fee</td>
+      <td>Pay as you go</td>
     </tr>
     <tr>
       <td><strong>50</strong></td>
@@ -542,7 +542,7 @@ INSERT INTO blog_posts (
       <td>$14.99</td>
       <td>$50\u2013$400</td>
       <td>$25\u2013$150</td>
-      <td>Flat fee</td>
+      <td>Pay as you go</td>
     </tr>
     <tr>
       <td><strong>100</strong></td>
@@ -550,7 +550,7 @@ INSERT INTO blog_posts (
       <td>$14.99</td>
       <td>$100\u2013$800</td>
       <td>$50\u2013$300</td>
-      <td>Flat fee</td>
+      <td>Pay as you go</td>
     </tr>
     <tr>
       <td><strong>200</strong></td>
@@ -558,7 +558,7 @@ INSERT INTO blog_posts (
       <td>$14.99</td>
       <td>$200\u2013$1,600</td>
       <td>$100\u2013$600</td>
-      <td>Flat fee</td>
+      <td>Pay as you go</td>
     </tr>
     <tr>
       <td><strong>500</strong></td>
@@ -566,7 +566,7 @@ INSERT INTO blog_posts (
       <td>$14.99</td>
       <td>$500\u2013$4,000</td>
       <td>$250\u2013$1,500</td>
-      <td>Flat fee</td>
+      <td>Pay as you go</td>
     </tr>
   </tbody>
 </table>
@@ -600,13 +600,13 @@ INSERT INTO blog_posts (
 <p>Most hosts spend <strong>$0\u2013$15</strong>. Free platforms like Partiful or Evite''s free tier are popular choices. For a nicer design without ads, per-event pricing platforms are the sweet spot.</p>
 
 <h3>Milestone Events (30th/40th/50th birthdays, anniversaries, graduations)</h3>
-<p>Most hosts spend <strong>$5\u2013$50</strong>. Design quality matters more here. Hosts typically choose ad-free options and are willing to pay for better aesthetics. <a href="/birthday-invitations/">AI-generated birthday invitations</a> offer unique designs at flat per-event prices.</p>
+<p>Most hosts spend <strong>$5\u2013$50</strong>. Design quality matters more here. Hosts typically choose ad-free options and are willing to pay for better aesthetics. <a href="/birthday-invitations/">AI-generated birthday invitations</a> offer unique designs with pay-as-you-go pricing.</p>
 
 <h3>Weddings</h3>
 <p>Most hosts spend <strong>$15\u2013$500+</strong>. The range is enormous because per-card pricing scales with large guest lists. <a href="/wedding-invitations/">Wedding invitations</a> on Paperless Post commonly run $200\u2013$800 for 100\u2013200 guests. Per-event platforms keep this under $20. Zola offers free digital invitations as part of their wedding suite.</p>
 
 <h3>Corporate Events</h3>
-<p>Most companies spend <strong>$15\u2013$200+</strong>. Professional design quality is non-negotiable, but per-card costs for large attendee lists can add up quickly. Flat per-event pricing is increasingly popular for corporate event planners.</p>
+<p>Most companies spend <strong>$15\u2013$200+</strong>. Professional design quality is non-negotiable, but per-card costs for large attendee lists can add up quickly. Pay-as-you-go pricing is increasingly popular for corporate event planners.</p>
 
 <h2>Best Value Picks for 2026</h2>
 
@@ -615,7 +615,7 @@ INSERT INTO blog_posts (
 <ul>
   <li><strong>Best free option (casual):</strong> Partiful \u2014 free, no ads, great for social events</li>
   <li><strong>Best free option (weddings):</strong> Zola \u2014 free digital invitations integrated with wedding planning tools</li>
-  <li><strong>Best value under $15:</strong> <a href="/v2/create/">Ryvite</a> \u2014 AI-generated unique designs with flat per-event pricing, unlimited guests</li>
+  <li><strong>Best value under $15:</strong> <a href="/v2/create/">Ryvite</a> \u2014 AI-generated unique designs with pay-as-you-go pricing, unlimited guests</li>
   <li><strong>Best for small, formal events (under 25 guests):</strong> Greenvelope \u2014 elegant designs at reasonable per-card prices when guest counts are low</li>
   <li><strong>Best DIY option:</strong> Canva \u2014 free or $12.99/month for complete design control (no RSVP features)</li>
 </ul>
@@ -628,7 +628,7 @@ INSERT INTO blog_posts (
 
 <p>Before choosing a platform, calculate your actual cost based on your specific guest count\u2014not just the per-card or per-event sticker price. The cheapest-looking option isn''t always the cheapest in practice.</p>
 
-<blockquote>Want beautiful invitations without per-card pricing? <a href="/v2/create/">Try Ryvite</a>\u2014flat per-event pricing for AI-generated custom designs. Unlimited guests, no surprise costs.</blockquote>',
+<blockquote>Want beautiful invitations without per-card pricing? <a href="/v2/create/">Try Ryvite</a>\u2014pay-as-you-go pricing for AI-generated custom designs. Unlimited guests, no surprise costs.</blockquote>',
   '2026-03-13T15:00:00Z',
   '2026-03-13T15:00:00Z',
   'guides',
@@ -733,13 +733,13 @@ INSERT INTO blog_posts (
 
 <p><strong>The catch:</strong> Ads on the free tier, and the template designs feel somewhat dated compared to modern alternatives. The premium upgrade ($4.99/month) removes ads and adds more templates, but it''s a subscription rather than a one-time fee.</p>
 
-<h2>Almost Free: Under $5 But Worth It</h2>
+<h2>Almost Free: Pay Only for What You Use</h2>
 
 <p>Sometimes the best value isn''t free\u2014it''s almost free. A few platforms charge a small amount but deliver dramatically better quality than the free alternatives.</p>
 
 <h3>Ryvite</h3>
 
-<p><a href="/v2/create/">Ryvite</a> isn''t free, but at flat per-event pricing, it costs less than a cup of coffee for something no free platform can match: a completely unique, AI-generated invitation design. No templates, no ads, no shared designs. You describe your event and AI creates a one-of-a-kind invitation with custom illustrations, typography, and animations.</p>
+<p><a href="/v2/create/">Ryvite</a> isn''t free, but with pay-as-you-go pricing, it costs less than a cup of coffee for something no free platform can match: a completely unique, AI-generated invitation design. No templates, no ads, no shared designs. You describe your event and AI creates a one-of-a-kind invitation with custom illustrations, typography, and animations.</p>
 
 <p><strong>What you get:</strong></p>
 <ul>
@@ -877,7 +877,7 @@ INSERT INTO blog_posts (
   <li>Large guest lists (per-event pricing beats free-with-ads at scale)</li>
 </ul>
 
-<p>The gap between "free with ads" and "a few dollars for something beautiful and unique" is often larger than hosts expect. Browse <a href="/examples/">Ryvite''s example gallery</a> to see the difference AI-generated designs make compared to standard templates.</p>
+<p>The gap between "free with ads" and "a few dollars for something beautiful and unique" is often larger than hosts expect. Browse <a href="/inspiration/">Ryvite''s inspiration gallery</a> to see the difference AI-generated designs make compared to standard templates.</p>
 
 <blockquote>Want to see what a few dollars gets you? <a href="/v2/create/">Create an AI-generated invitation with Ryvite</a>\u2014describe your event and get a completely unique, animated design in seconds. No templates, no ads, unlimited guests.</blockquote>',
   '2026-03-13T16:00:00Z',
@@ -1072,7 +1072,7 @@ INSERT INTO blog_posts (
 
 <p>The hosts who''ve tried AI-generated invitations rarely go back to templates. Once you''ve experienced an invitation that was created specifically for your event\u2014with custom illustrations that match your theme, colors that reflect your palette, and animations that set the exact mood you want\u2014a generic template feels like settling.</p>
 
-<p>Browse <a href="/examples/">Ryvite''s example gallery</a> to see the difference, or check the <a href="/pricing/">pricing page</a> to see how AI-generated invitations compare in cost to premium template platforms.</p>
+<p>Browse <a href="/inspiration/">Ryvite''s inspiration gallery</a> to see the difference, or check the <a href="/pricing/">pricing page</a> to see how AI-generated invitations compare in cost to premium template platforms.</p>
 
 <blockquote>Ready to try AI-generated invitations? <a href="/v2/create/">Create your first invite with Ryvite</a>\u2014describe your event in a few sentences and watch a custom design come to life. No templates, no shared designs, no browsing required.</blockquote>',
   '2026-03-13T17:00:00Z',

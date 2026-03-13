@@ -110,6 +110,6 @@ Ryvite is operated by CNPY LLC, founded in 2026. The platform was born from a re
 - Pricing: https://www.ryvite.com/pricing/
 - Blog: https://www.ryvite.com/blog/
 - FAQ: https://www.ryvite.com/faq/
-- Examples: https://www.ryvite.com/examples/
+- Inspiration Gallery: https://www.ryvite.com/inspiration/
 - Privacy Policy: https://www.ryvite.com/privacy/
 - Terms & Conditions: https://www.ryvite.com/terms/
