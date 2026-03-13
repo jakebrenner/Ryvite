@@ -2439,6 +2439,65 @@ ${cssSnippet}`
       return res.status(200).json({ success: true });
     }
 
+    // ---- Admin Notification Preferences ----
+
+    if (action === 'getAdminNotifPrefs') {
+      const { data: prefs } = await supabaseAdmin
+        .from('admin_notification_prefs')
+        .select('phone, new_user_signup')
+        .eq('admin_user_id', admin.id)
+        .maybeSingle();
+
+      if (prefs) {
+        return res.status(200).json({ success: true, prefs });
+      }
+
+      // No prefs yet — return defaults, pre-populate phone from profile
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('phone')
+        .eq('id', admin.id)
+        .single();
+
+      return res.status(200).json({
+        success: true,
+        prefs: {
+          phone: profile?.phone || '',
+          new_user_signup: false
+        }
+      });
+    }
+
+    if (action === 'updateAdminNotifPrefs') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { phone, new_user_signup } = req.body || {};
+
+      // Validate phone
+      if (!phone || typeof phone !== 'string') {
+        return res.status(400).json({ error: 'Phone number is required' });
+      }
+      const digits = phone.replace(/\D/g, '');
+      const normalized = digits.length >= 10 ? digits.slice(-10) : null;
+      if (!normalized) {
+        return res.status(400).json({ error: 'Invalid phone number — must be a 10-digit US number' });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('admin_notification_prefs')
+        .upsert({
+          admin_user_id: admin.id,
+          phone: normalized,
+          new_user_signup: new_user_signup !== false
+        }, { onConflict: 'admin_user_id' });
+
+      if (error) {
+        return res.status(500).json({ error: 'Failed to save preferences: ' + error.message });
+      }
+
+      return res.status(200).json({ success: true });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
   } catch (err) {
     console.error('Admin API error:', err);

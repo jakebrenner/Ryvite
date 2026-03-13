@@ -78,6 +78,11 @@
     .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
     .btn-secondary { background: #f0f0f0; color: var(--midnight); }
     .btn-secondary:hover { background: #e0e0e0; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-danger:hover { background: #c82333; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-success:hover { background: #218838; }
+    .badge-red { background: #f8d7da; color: #721c24; }
     .btn-sm { padding: 6px 12px; font-size: 12px; }
     .date-preset { background: #f0f0f0; color: #555; border: 1px solid #ddd; }
     .date-preset:hover { background: #e0e0e0; }
@@ -548,6 +553,7 @@
         <button class="sidebar-item" data-tab="users" onclick="switchTab('users')">Users</button>
         <button class="sidebar-item" data-tab="subscriptions" onclick="switchTab('subscriptions');loadBillingTab();">Billing</button>
         <button class="sidebar-item" data-tab="coupons" onclick="switchTab('coupons');loadCoupons();">Coupons</button>
+        <button class="sidebar-item" data-tab="notifications" onclick="switchTab('notifications');loadAdminNotifPrefs();">Notifications</button>
       </div>
       <div class="sidebar-group">
         <div class="sidebar-group-label">AI &amp; Prompts</div>
@@ -743,6 +749,7 @@
           </div>
           <div class="ud-actions">
             <button class="btn btn-secondary btn-sm" id="udStripeLink" style="display:none;" onclick="openStripeCustomer()">View in Stripe</button>
+            <button class="btn btn-sm" id="udDeactivateBtn" style="display:none;" onclick="toggleUserActive()">Deactivate</button>
           </div>
         </div>
 
@@ -2168,6 +2175,34 @@
       </div>
     </div>
 
+    <!-- Notifications Tab -->
+    <div class="tab-content" id="tab-notifications">
+      <div class="config-section">
+        <h3>Admin SMS Notifications</h3>
+        <p style="font-size:13px;color:#888;margin-bottom:20px;">Receive text messages when key platform events occur. SMS notifications are sent to the phone number below.</p>
+
+        <div class="config-row">
+          <div class="config-field">
+            <label>Your Phone Number</label>
+            <input type="tel" id="adminNotifPhone" placeholder="(555) 123-4567" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;">
+            <div class="hint">US mobile number for receiving notifications</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;">
+            <input type="checkbox" id="adminNotifNewSignup" style="width:18px;height:18px;accent-color:var(--party-coral);cursor:pointer;">
+            <span><strong>New user signups</strong> — Get notified when someone creates an account</span>
+          </label>
+        </div>
+
+        <div class="config-actions">
+          <button class="btn btn-primary" onclick="saveAdminNotifPrefs()">Save Preferences</button>
+          <span class="config-saved" id="notifSaved">Saved!</span>
+        </div>
+      </div>
+    </div>
+
     </div><!-- end admin-main -->
   </div><!-- end admin-layout -->
 
@@ -2649,6 +2684,7 @@
       document.getElementById('udMeta').innerHTML =
         '<span>' + escapeHtml(u.email) + '</span><span class="sep">|</span>'
         + '<span class="badge ' + tierClass + '">' + escapeHtml(u.tier) + '</span>'
+        + (u.isBanned ? '<span class="sep">|</span><span class="badge badge-red">Deactivated</span>' : '')
         + '<span class="sep">|</span><span>Joined ' + formatDate(u.createdAt) + '</span>'
         + (u.phone ? '<span class="sep">|</span><span>' + escapeHtml(u.phone) + '</span>' : '');
 
@@ -2657,6 +2693,19 @@
         document.getElementById('udStripeLink').style.display = 'inline-block';
       } else {
         document.getElementById('udStripeLink').style.display = 'none';
+      }
+
+      // Deactivate/Reactivate button
+      var deactBtn = document.getElementById('udDeactivateBtn');
+      deactBtn.style.display = 'inline-block';
+      deactBtn.setAttribute('data-user-id', u.id);
+      deactBtn.setAttribute('data-is-banned', u.isBanned ? '1' : '0');
+      if (u.isBanned) {
+        deactBtn.textContent = 'Reactivate';
+        deactBtn.className = 'btn btn-success btn-sm';
+      } else {
+        deactBtn.textContent = 'Deactivate';
+        deactBtn.className = 'btn btn-danger btn-sm';
       }
 
       // ---- Overview KPIs ----
@@ -7338,6 +7387,101 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       document.getElementById('blogImportStep4').style.display = 'none';
       document.getElementById('blogImportProgressBar').style.width = '0%';
       document.getElementById('blogCsvFileInput').value = '';
+    }
+
+    // ---- Deactivate / Reactivate User ----
+
+    async function toggleUserActive() {
+      var btn = document.getElementById('udDeactivateBtn');
+      var userId = btn.getAttribute('data-user-id');
+      var isBanned = btn.getAttribute('data-is-banned') === '1';
+
+      var action = isBanned ? 'reactivateUser' : 'deactivateUser';
+      var confirmMsg = isBanned
+        ? 'Reactivate this user? They will be able to log in again.'
+        : 'Deactivate this user? They will be immediately logged out and unable to sign in.';
+
+      if (!confirm(confirmMsg)) return;
+
+      btn.disabled = true;
+      btn.textContent = isBanned ? 'Reactivating...' : 'Deactivating...';
+
+      try {
+        var resp = await fetch('/api/v2/admin?action=' + action, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ userId: userId })
+        });
+        var json = await resp.json();
+        if (json.success) {
+          viewUser(userId);
+        } else {
+          alert(json.error || 'Failed to ' + (isBanned ? 'reactivate' : 'deactivate') + ' user');
+          btn.disabled = false;
+          btn.textContent = isBanned ? 'Reactivate' : 'Deactivate';
+        }
+      } catch (e) {
+        alert('Network error');
+        btn.disabled = false;
+        btn.textContent = isBanned ? 'Reactivate' : 'Deactivate';
+      }
+    }
+
+    // ---- Admin Notification Preferences ----
+
+    var notifPrefsLoaded = false;
+
+    async function loadAdminNotifPrefs() {
+      if (notifPrefsLoaded) return;
+      try {
+        var resp = await fetch('/api/v2/admin?action=getAdminNotifPrefs', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        var json = await resp.json();
+        if (json.success && json.prefs) {
+          document.getElementById('adminNotifPhone').value = formatPhoneDisplay(json.prefs.phone || '');
+          document.getElementById('adminNotifNewSignup').checked = !!json.prefs.new_user_signup;
+          notifPrefsLoaded = true;
+        }
+      } catch (e) {
+        console.error('Failed to load notification prefs:', e);
+      }
+    }
+
+    function formatPhoneDisplay(digits) {
+      if (!digits) return '';
+      var d = digits.replace(/\D/g, '').slice(-10);
+      if (d.length === 10) return '(' + d.slice(0,3) + ') ' + d.slice(3,6) + '-' + d.slice(6);
+      return digits;
+    }
+
+    async function saveAdminNotifPrefs() {
+      var phone = document.getElementById('adminNotifPhone').value;
+      var newSignup = document.getElementById('adminNotifNewSignup').checked;
+
+      try {
+        var resp = await fetch('/api/v2/admin?action=updateAdminNotifPrefs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ phone: phone, new_user_signup: newSignup })
+        });
+        var json = await resp.json();
+        if (json.success) {
+          var saved = document.getElementById('notifSaved');
+          saved.style.display = 'inline';
+          setTimeout(function() { saved.style.display = 'none'; }, 2000);
+        } else {
+          alert(json.error || 'Failed to save preferences');
+        }
+      } catch (e) {
+        alert('Network error — could not save preferences');
+      }
     }
 
   </script>

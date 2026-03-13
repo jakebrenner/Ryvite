@@ -5,6 +5,67 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const CLICKSEND_API_URL = 'https://rest.clicksend.com/v3/sms/send';
+
+/**
+ * Send SMS to all admins who have new_user_signup notifications enabled.
+ * Fire-and-forget — errors are logged but never block the signup response.
+ */
+async function sendAdminSignupNotifications(userEmail, displayName, userPhone) {
+  try {
+    const CLICKSEND_USERNAME = process.env.CLICKSEND_USERNAME;
+    const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY;
+    if (!CLICKSEND_USERNAME || !CLICKSEND_API_KEY) return;
+
+    // Find all admins who want signup notifications
+    const { data: subscribers } = await supabase
+      .from('admin_notification_prefs')
+      .select('admin_user_id, phone')
+      .eq('new_user_signup', true);
+
+    if (!subscribers?.length) return;
+
+    // Build message with all available info
+    let body = `New Ryvite signup: ${userEmail}`;
+    if (displayName) body += ` (${displayName})`;
+    if (userPhone) body += ` | Phone: ${userPhone}`;
+
+    const credentials = Buffer.from(`${CLICKSEND_USERNAME}:${CLICKSEND_API_KEY}`).toString('base64');
+
+    for (const sub of subscribers) {
+      const digits = (sub.phone || '').replace(/\D/g, '');
+      const e164 = digits.length >= 10 ? `+1${digits.slice(-10)}` : null;
+      if (!e164) continue;
+
+      const response = await fetch(CLICKSEND_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${credentials}`
+        },
+        body: JSON.stringify({
+          messages: [{ to: e164, body, source: 'ryvite-admin-notif' }]
+        })
+      });
+
+      const result = await response.json();
+      const csMsg = result.data?.messages?.[0];
+
+      // Log to notification_log (no event_id, no billing — platform cost)
+      await supabase.from('notification_log').insert({
+        channel: 'sms',
+        recipient: digits.slice(-10),
+        status: csMsg?.status === 'SUCCESS' ? 'sent' : 'failed',
+        provider_id: csMsg?.message_id || null,
+        error: csMsg?.status !== 'SUCCESS' ? (csMsg?.status || 'unknown') : null,
+        sent_at: new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    console.error('Admin signup notification error:', err);
+  }
+}
+
 // Anon-key client for user-facing auth flows (OTP emails, token refresh)
 const supabaseAnon = createClient(
   process.env.SUPABASE_URL,
@@ -69,6 +130,9 @@ export default async function handler(req, res) {
           .update({ phone, display_name: displayName || '' })
           .eq('id', data.user.id);
       }
+
+      // Notify subscribed admins about the new signup (fire-and-forget)
+      sendAdminSignupNotifications(email, displayName, phone).catch(() => {});
 
       return res.status(200).json({ success: true, message: 'Check your email for login link' });
     }
