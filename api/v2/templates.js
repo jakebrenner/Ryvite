@@ -154,7 +154,7 @@ export default async function handler(req, res) {
 
     let query = supabase
       .from('gallery_templates')
-      .select('id, html, css, config, admin_rating, model, created_at, event_type', { count: 'exact' });
+      .select('id, html, css, config, admin_rating, model, created_at, event_type, source', { count: 'exact' });
 
     if (eventTypeFilter) {
       query = query.eq('event_type', eventTypeFilter);
@@ -177,9 +177,10 @@ export default async function handler(req, res) {
         eventTypeLabel: typeInfo.label,
         eventTypeSlug: typeInfo.slug,
         html: sanitizeHtml(t.html),
-        css: t.css,
+        css: t.css || '',
         config: t.config,
         adminRating: t.admin_rating,
+        source: t.source,
         dummyData
       };
     });
@@ -223,12 +224,12 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabase
       .from('gallery_templates')
-      .select('id, html, css, config, admin_rating, model, created_at, event_type')
+      .select('id, html, css, config, admin_rating, model, created_at, event_type, source')
       .eq('id', templateId)
       .single();
 
     if (error || !data) {
-      return res.status(404).json({ error: 'Template not found' });
+      return res.status(404).json({ error: 'Design not found' });
     }
 
     const eventType = data.event_type || 'other';
@@ -243,9 +244,10 @@ export default async function handler(req, res) {
         eventTypeLabel: typeInfo.label,
         eventTypeSlug: typeInfo.slug,
         html: sanitizeHtml(data.html),
-        css: data.css,
+        css: data.css || '',
         config: data.config,
         adminRating: data.admin_rating,
+        source: data.source,
         dummyData
       }
     });
