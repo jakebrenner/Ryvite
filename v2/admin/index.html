@@ -1521,6 +1521,7 @@
         <button class="archive-nav-btn active" data-view="templates" onclick="switchArchiveView('templates')">Templates <span class="nav-count" id="archiveCountTemplates">0</span></button>
         <button class="archive-nav-btn" data-view="lab" onclick="switchArchiveView('lab')">Lab Generations <span class="nav-count" id="archiveCountLab">0</span></button>
         <button class="archive-nav-btn" data-view="user" onclick="switchArchiveView('user')">User Generations <span class="nav-count" id="archiveCountUser">0</span></button>
+        <button class="archive-nav-btn" data-view="showcase" onclick="switchArchiveView('showcase')">Homepage Showcase <span class="nav-count" id="archiveCountShowcase">0</span></button>
       </div>
 
       <!-- Templates View (existing Style Library) -->
@@ -1705,6 +1706,19 @@
             <div style="color:#888;font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">Loading user generations...</div>
           </div>
           <div class="gen-pagination" id="userGenPagination" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Homepage Showcase View -->
+      <div class="archive-view" id="archiveView-showcase">
+        <div class="config-section">
+          <h3>Homepage Showcase</h3>
+          <p style="font-size:13px;color:#888;margin-bottom:16px;">
+            Manage the featured invites shown on the landing page demo carousel. Visitors see a typing prompt animation followed by the invite preview. Drag to reorder.
+          </p>
+          <div id="showcaseGrid" class="style-grid">
+            <div style="color:#888;font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">Loading showcases...</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1942,6 +1956,8 @@
         loadStyleLibrary();
         // Preload plans for tier dropdowns
         adminFetch('listPlans').then(function(r) { allPlans = (r && r.plans) || []; }).catch(function() {});
+        // Preload showcases for featured badge in detail views
+        loadShowcases();
       } catch (err) {
         var denied = document.getElementById('accessDenied');
         if (err.message && err.message.indexOf('Server error') !== -1) {
@@ -5426,6 +5442,9 @@ If provided, analyze them for color palette, visual mood, textures, typography s
 
     var labLoaded = false;
     var userLoaded = false;
+    var showcaseLoaded = false;
+    var featuredShowcaseMap = {}; // keyed by 'user_{themeId}' or 'lab_{testRunId}'
+    var featuredShowcases = [];
 
     function switchArchiveView(view) {
       currentArchiveView = view;
@@ -5446,6 +5465,10 @@ If provided, analyze them for color palette, visual mood, textures, typography s
         populateArchivePromptDropdowns();
         loadUserGenerations();
       }
+      if (view === 'showcase' && !showcaseLoaded) {
+        showcaseLoaded = true;
+        loadShowcases();
+      }
     }
 
     function populateArchivePromptDropdowns() {
@@ -5465,6 +5488,164 @@ If provided, analyze them for color palette, visual mood, textures, typography s
       if (el1) el1.textContent = styleLibrary.length;
       if (el2) el2.textContent = labGenTotal || '0';
       if (el3) el3.textContent = userGenTotal || '0';
+      var el4 = document.getElementById('archiveCountShowcase');
+      if (el4) el4.textContent = featuredShowcases.length;
+    }
+
+    // ── Homepage Showcases ──
+
+    async function loadShowcases() {
+      try {
+        var resp = await fetch('/api/v2/admin?action=listShowcases', { headers: { 'Authorization': 'Bearer ' + token } });
+        var data = await resp.json();
+        featuredShowcases = data.showcases || [];
+        featuredShowcaseMap = {};
+        featuredShowcases.forEach(function(s) {
+          if (s.event_theme_id) featuredShowcaseMap['user_' + s.event_theme_id] = s;
+          if (s.test_run_id) featuredShowcaseMap['lab_' + s.test_run_id] = s;
+        });
+        var countEl = document.getElementById('archiveCountShowcase');
+        if (countEl) countEl.textContent = featuredShowcases.length;
+        renderShowcaseGrid();
+      } catch (err) {
+        console.error('Failed to load showcases:', err);
+      }
+    }
+
+    function renderShowcaseGrid() {
+      var grid = document.getElementById('showcaseGrid');
+      if (!grid) return;
+      if (featuredShowcases.length === 0) {
+        grid.innerHTML = '<div style="color:#888;font-size:13px;padding:40px;text-align:center;grid-column:1/-1;">No showcases yet. Feature invites from Lab or User Generations to show them on the homepage.</div>';
+        return;
+      }
+      grid.innerHTML = '';
+      featuredShowcases.forEach(function(s, idx) {
+        var card = document.createElement('div');
+        card.className = 'style-card';
+        card.dataset.showcaseId = s.id;
+
+        // Phone preview
+        var previewDiv = document.createElement('div');
+        previewDiv.className = 'style-card-preview';
+        var phoneHtml = '<div class="phone-mockup phone-sm"><div class="phone-frame"><div class="phone-notch"></div><div class="phone-screen"><iframe sandbox="allow-scripts" style="width:393px;height:852px;border:none;border-radius:36px;transform-origin:top left;"></iframe></div><div class="phone-home-bar"></div></div></div>';
+        var phoneWrapper = document.createElement('div');
+        phoneWrapper.innerHTML = phoneHtml;
+        previewDiv.appendChild(phoneWrapper.firstChild);
+        card.appendChild(previewDiv);
+
+        // Prompt text
+        var promptDiv = document.createElement('div');
+        promptDiv.style.cssText = 'padding:8px 12px;font-size:12px;color:#555;border-top:1px solid #f0f0f0;';
+        promptDiv.innerHTML = '<strong style="color:#888;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Prompt:</strong><br>'
+          + escapeHtml(s.prompt_text.length > 80 ? s.prompt_text.substring(0, 80) + '...' : s.prompt_text);
+        card.appendChild(promptDiv);
+
+        // Info row
+        var infoDiv = document.createElement('div');
+        infoDiv.className = 'gen-card-info';
+        var etObj = ALL_EVENT_TYPES.find(function(x) { return x.value === s.event_type; });
+        infoDiv.innerHTML = '<span class="badge badge-blue">#' + (idx + 1) + '</span>'
+          + (etObj ? '<span class="style-tag" style="background:rgba(233,69,96,0.1);color:var(--party-coral);">' + etObj.label + '</span>' : '')
+          + '<span style="font-size:11px;color:#888;">' + escapeHtml(s.source_type === 'user_theme' ? 'User' : 'Lab') + '</span>';
+        card.appendChild(infoDiv);
+
+        // Action row
+        var actionsDiv = document.createElement('div');
+        actionsDiv.style.cssText = 'display:flex;gap:6px;padding:8px 12px;border-top:1px solid #f0f0f0;';
+        actionsDiv.innerHTML = (idx > 0 ? '<button class="btn btn-secondary btn-sm" onclick="reorderShowcase(\'' + s.id + '\', ' + (idx - 1) + ')">Move Up</button>' : '')
+          + (idx < featuredShowcases.length - 1 ? '<button class="btn btn-secondary btn-sm" onclick="reorderShowcase(\'' + s.id + '\', ' + (idx + 1) + ')">Move Down</button>' : '')
+          + '<button class="btn btn-secondary btn-sm" style="margin-left:auto;color:#dc3545;" onclick="removeFromShowcase(\'' + s.id + '\')">Remove</button>';
+        card.appendChild(actionsDiv);
+
+        grid.appendChild(card);
+
+        // Set preview HTML for lazy loading
+        var fontsImport = (s.config && s.config.googleFontsImport) || '';
+        card.dataset.previewHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+          + '<style>' + fontsImport + '</style>'
+          + '<style>' + (s.css || '') + '</style></head><body>' + (s.html || '') + '</body></html>';
+      });
+      requestAnimationFrame(function() { setupLazyIframes(grid); });
+    }
+
+    async function featureOnHomepage(sourceType, eventThemeId, testRunId, eventTitle, eventType) {
+      var promptInput = document.getElementById('showcasePromptInput');
+      var promptText = promptInput ? promptInput.value.trim() : '';
+      if (!promptText) { alert('Please enter a prompt text for the typing animation.'); return; }
+
+      try {
+        var resp = await fetch('/api/v2/admin?action=featureShowcase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({
+            sourceType: sourceType,
+            eventThemeId: eventThemeId,
+            testRunId: testRunId,
+            promptText: promptText,
+            eventTitle: eventTitle,
+            eventType: eventType
+          })
+        });
+        var data = await resp.json();
+        if (data.success) {
+          // Refresh showcase data
+          await loadShowcases();
+          // Close and reopen detail to refresh the feature button
+          closeGenDetailView();
+          showToast('Featured on homepage!');
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Failed to feature: ' + err.message);
+      }
+    }
+
+    async function removeFromShowcase(showcaseId) {
+      if (!confirm('Remove this invite from the homepage showcase?')) return;
+      try {
+        var resp = await fetch('/api/v2/admin?action=removeShowcase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ showcaseId: showcaseId })
+        });
+        var data = await resp.json();
+        if (data.success) {
+          await loadShowcases();
+          closeGenDetailView();
+          showToast('Removed from homepage.');
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Failed to remove: ' + err.message);
+      }
+    }
+
+    async function reorderShowcase(showcaseId, newIndex) {
+      // Swap display_order values
+      var current = featuredShowcases.find(function(s) { return s.id === showcaseId; });
+      var other = featuredShowcases[newIndex];
+      if (!current || !other) return;
+
+      try {
+        await Promise.all([
+          fetch('/api/v2/admin?action=updateShowcase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ showcaseId: current.id, displayOrder: other.display_order })
+          }),
+          fetch('/api/v2/admin?action=updateShowcase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ showcaseId: other.id, displayOrder: current.display_order })
+          })
+        ]);
+        await loadShowcases();
+      } catch (err) {
+        alert('Failed to reorder: ' + err.message);
+      }
     }
 
     // ── Lab Generations ──
@@ -5761,6 +5942,27 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           + '<span class="star-label" id="genDetailStarLabel">' + (userAlreadyRated ? STAR_LABELS[rating] + ' (yours)' : (rating ? STAR_LABELS[rating] : 'Not rated')) + '</span>'
           + '</div></div>';
 
+        // Feature on Homepage section
+        var isFeatured = featuredShowcaseMap && featuredShowcaseMap['user_' + item.id];
+        html += '<div class="detail-section"><h4>Homepage Showcase</h4>';
+        if (isFeatured) {
+          html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+            + '<span class="badge badge-green">Featured</span>'
+            + '<button class="btn btn-secondary btn-sm" onclick="removeFromShowcase(\'' + isFeatured.id + '\')">Remove from Homepage</button>'
+            + '</div>'
+            + '<div class="detail-row"><span class="detail-label">Prompt Text</span><span class="detail-value" style="font-size:12px;">' + escapeHtml(isFeatured.prompt_text) + '</span></div>';
+        } else {
+          var defaultPrompt = escapeHtml(item.prompt || item.eventTitle || '');
+          html += '<div id="showcaseFeatureForm">'
+            + '<div class="config-field" style="margin-bottom:8px;">'
+            + '<label>Prompt text (shown in typing animation)</label>'
+            + '<input type="text" id="showcasePromptInput" value="' + defaultPrompt + '" placeholder="e.g. Rainbow unicorn birthday party with sparkles and magic" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:\'Inter\',sans-serif;font-size:13px;">'
+            + '</div>'
+            + '<button class="btn btn-primary btn-sm" onclick="featureOnHomepage(\'user_theme\', \'' + item.id + '\', null, \'' + escapeHtml((item.eventTitle || '').replace(/'/g, '')) + '\', \'' + escapeHtml(item.eventType || 'other') + '\')">Feature on Homepage</button>'
+            + '</div>';
+        }
+        html += '</div>';
+
         // Event info
         html += '<div class="detail-section"><h4>Event</h4>';
         html += '<div class="detail-row"><span class="detail-label">Title</span><span class="detail-value">' + escapeHtml(item.eventTitle) + '</span></div>';
@@ -5811,6 +6013,28 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           + buildStarHtml(score) + '</div>'
           + '<span class="star-label" id="genDetailStarLabel">' + (score ? STAR_LABELS[score] : 'Not scored') + '</span>'
           + '</div></div>';
+
+        // Feature on Homepage section (lab)
+        var isFeaturedLab = featuredShowcaseMap && featuredShowcaseMap['lab_' + item.id];
+        html += '<div class="detail-section"><h4>Homepage Showcase</h4>';
+        if (isFeaturedLab) {
+          html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+            + '<span class="badge badge-green">Featured</span>'
+            + '<button class="btn btn-secondary btn-sm" onclick="removeFromShowcase(\'' + isFeaturedLab.id + '\')">Remove from Homepage</button>'
+            + '</div>'
+            + '<div class="detail-row"><span class="detail-label">Prompt Text</span><span class="detail-value" style="font-size:12px;">' + escapeHtml(isFeaturedLab.prompt_text) + '</span></div>';
+        } else {
+          var labEventTitle = (item.event_details && item.event_details.title) || '';
+          var defaultLabPrompt = escapeHtml(labEventTitle || item.event_type || '');
+          html += '<div id="showcaseFeatureForm">'
+            + '<div class="config-field" style="margin-bottom:8px;">'
+            + '<label>Prompt text (shown in typing animation)</label>'
+            + '<input type="text" id="showcasePromptInput" value="' + defaultLabPrompt + '" placeholder="e.g. Rainbow unicorn birthday party with sparkles and magic" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:\'Inter\',sans-serif;font-size:13px;">'
+            + '</div>'
+            + '<button class="btn btn-primary btn-sm" onclick="featureOnHomepage(\'lab_theme\', null, \'' + item.id + '\', \'' + escapeHtml((labEventTitle || '').replace(/'/g, '')) + '\', \'' + escapeHtml(item.event_type || 'other') + '\')">Feature on Homepage</button>'
+            + '</div>';
+        }
+        html += '</div>';
 
         // Test details
         html += '<div class="detail-section"><h4>Test Configuration</h4>';
@@ -5880,6 +6104,14 @@ If provided, analyze them for color palette, visual mood, textures, typography s
           + '<style>' + css + '</style></head><body>' + html + '</body></html>';
         iframe.srcdoc = fullHtml;
       });
+    }
+
+    function showToast(msg) {
+      var toast = document.createElement('div');
+      toast.textContent = msg;
+      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--midnight);color:white;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.3s ease;';
+      document.body.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 3000);
     }
 
     function closeGenDetailView() {
