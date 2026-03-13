@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Wedding Invitations — Fully Custom Digital Designs | Ryvite</title>
+<meta name="description" content="Create one-of-a-kind digital wedding invitations with AI. Describe your vision and get a custom design — no templates, no per-card fees.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Ryvite">
+<meta name="theme-color" content="#E94560">
+<link rel="canonical" href="https://www.ryvite.com/wedding-invitations/">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI Wedding Invitations — Fully Custom Digital Designs | Ryvite">
+<meta property="og:description" content="Create one-of-a-kind digital wedding invitations with AI. Describe your vision and get a custom design — no templates, no per-card fees.">
+<meta property="og:image" content="https://www.ryvite.com/api/v2/og-image?title=AI%20Wedding%20Invitations&subtitle=Fully%20Custom%20Digital%20Designs&type=wedding">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://www.ryvite.com/wedding-invitations/">
+<meta property="og:site_name" content="Ryvite">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI Wedding Invitations — Fully Custom Digital Designs | Ryvite">
+<meta name="twitter:description" content="Create one-of-a-kind digital wedding invitations with AI. Describe your vision and get a custom design — no templates, no per-card fees.">
+<meta name="twitter:image" content="https://www.ryvite.com/api/v2/og-image?title=AI%20Wedding%20Invitations&subtitle=Fully%20Custom%20Digital%20Designs&type=wedding">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --party-coral: #E94560;
+  --blush-pop: #FF6B6B;
+  --midnight: #1A1A2E;
+  --confetti-gold: #FFB74D;
+  --mint-fizz: #4ECDC4;
+  --party-purple: #A78BFA;
+  --cream: #FFFAF5;
+  --warm-canvas: #FFF5E6;
+  --slate: #6B7280;
+  --slate-light: #D1D5DB;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-smooth: all 0.6s ease-out;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-body); color: var(--midnight); background: white; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; }
+a { color: var(--party-coral); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== NAV ===== */
+.nav { position: fixed; top:0; left:0; right:0; z-index:100; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; background: rgba(26,26,46,0.95); backdrop-filter: blur(10px); box-shadow: 0 2px 20px rgba(0,0,0,0.2); }
+.nav-logo { display:flex; align-items:center; text-decoration:none; color:white; }
+.nav-logo-icon { height:56px; width:auto; }
+.nav-links { display:flex; gap:8px; align-items:center; }
+.nav-link { color:rgba(255,255,255,0.75); text-decoration:none; font-size:0.85rem; font-weight:500; padding:0.5rem 0.8rem; transition:color 0.2s; }
+.nav-link:hover { color:white; text-decoration:none; }
+.nav-cta { padding:0.6rem 1.4rem; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; border:none; border-radius:50px; font-family:var(--font-body); font-size:0.85rem; font-weight:600; cursor:pointer; text-decoration:none; transition: var(--transition); white-space:nowrap; }
+.nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(233,69,96,0.4); text-decoration:none; }
+.nav-cta-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.4); }
+
+/* ===== HERO ===== */
+.hero { background: linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color: white; padding: 10rem 2rem 6rem; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content:''; position:absolute; top:-50%; right:-10%; width:600px; height:600px; background:radial-gradient(circle, rgba(255,183,77,0.12) 0%, transparent 70%); border-radius:50%; }
+.hero::after { content:''; position:absolute; bottom:-30%; left:-5%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.1) 0%, transparent 70%); border-radius:50%; }
+.hero-content { position:relative; z-index:2; max-width:800px; margin:0 auto; }
+.hero h1 { font-size:3.5rem; margin-bottom:1.25rem; letter-spacing:-1px; }
+.hero .subtext { font-size:1.1rem; color:rgba(255,255,255,0.75); margin-bottom:2rem; max-width:600px; margin-left:auto; margin-right:auto; line-height:1.7; }
+.hero-cta { display:inline-block; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:600; text-decoration:none; font-size:1.05rem; transition:var(--transition); box-shadow:0 10px 30px rgba(233,69,96,0.3); border:none; cursor:pointer; font-family:var(--font-body); }
+.hero-cta:hover { transform:translateY(-3px); box-shadow:0 15px 45px rgba(233,69,96,0.5); text-decoration:none; }
+
+/* ===== SECTIONS ===== */
+.section { padding:5rem 2rem; }
+.container { max-width:1100px; margin:0 auto; }
+.section-label { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--party-coral); margin-bottom:0.75rem; }
+.section-title { font-size:2.5rem; margin-bottom:1rem; }
+.section-subtitle { font-size:1.05rem; color:var(--slate); max-width:600px; line-height:1.7; }
+.section-subtitle.center { margin:0 auto; text-align:center; }
+
+/* ===== HOW IT WORKS ===== */
+.how-section { background:var(--cream); }
+.steps-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:2rem; margin-top:3rem; }
+.step-card { text-align:center; padding:2rem 1.5rem; }
+.step-number { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; font-family:var(--font-display); font-size:1.25rem; font-weight:700; margin-bottom:1.25rem; }
+.step-card h4 { font-size:1.2rem; margin-bottom:0.75rem; }
+.step-card p { font-size:0.9rem; color:var(--slate); line-height:1.6; }
+
+/* ===== CONTENT ===== */
+.content-section { background:white; }
+.content-body { max-width:780px; margin:0 auto; }
+.content-body h2 { font-size:1.85rem; margin:2.5rem 0 1rem; color:var(--midnight); }
+.content-body h3 { font-size:1.35rem; margin:2rem 0 0.75rem; color:var(--midnight); }
+.content-body p { font-size:1rem; color:#374151; line-height:1.8; margin-bottom:1.25rem; }
+.content-body ul { margin:0 0 1.5rem 1.5rem; }
+.content-body li { font-size:0.95rem; color:#374151; line-height:1.8; margin-bottom:0.5rem; }
+
+/* ===== EXAMPLES ===== */
+.examples-section { background:var(--warm-canvas); }
+.examples-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:2rem; margin-top:3rem; }
+.example-card { background:white; border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); transition:var(--transition); }
+.example-card:hover { transform:translateY(-6px); box-shadow:0 20px 50px rgba(0,0,0,0.1); }
+.example-placeholder { width:100%; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:var(--slate); text-align:center; padding:1.5rem; line-height:1.5; }
+.example-placeholder.grad-1 { background:linear-gradient(135deg, #1A1A2E 0%, #0f3460 50%, #E94560 100%); color:rgba(255,255,255,0.7); }
+.example-placeholder.grad-2 { background:linear-gradient(135deg, #FFB74D 0%, #FF6B6B 100%); color:rgba(255,255,255,0.85); }
+.example-placeholder.grad-3 { background:linear-gradient(135deg, #4ECDC4 0%, #A78BFA 100%); color:rgba(255,255,255,0.85); }
+.example-info { padding:1.25rem 1.5rem; }
+.example-info h4 { font-size:1rem; margin-bottom:0.3rem; }
+.example-info p { font-size:0.8rem; color:var(--slate); margin:0; }
+
+/* ===== FAQ ===== */
+.faq-section { background:var(--cream); }
+.faq-list { max-width:780px; margin:2.5rem auto 0; }
+.faq-list details { background:white; border-radius:12px; margin-bottom:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.04); border:1px solid rgba(0,0,0,0.04); overflow:hidden; }
+.faq-list summary { padding:1.25rem 1.5rem; font-family:var(--font-display); font-size:1.1rem; font-weight:600; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; transition:color 0.2s; }
+.faq-list summary::-webkit-details-marker { display:none; }
+.faq-list summary::after { content:'+'; font-size:1.4rem; color:var(--party-coral); font-weight:300; transition:transform 0.3s; }
+.faq-list details[open] summary::after { transform:rotate(45deg); }
+.faq-list details[open] summary { color:var(--party-coral); }
+.faq-answer { padding:0 1.5rem 1.25rem; font-size:0.95rem; color:#374151; line-height:1.7; }
+
+/* ===== RELATED ===== */
+.related-section { background:white; }
+.related-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:1.5rem; margin-top:2.5rem; }
+.related-card { display:block; background:var(--warm-canvas); border-radius:12px; padding:2rem 1.5rem; text-align:center; text-decoration:none; color:var(--midnight); transition:var(--transition); border:1px solid rgba(0,0,0,0.04); }
+.related-card:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,0.08); text-decoration:none; }
+.related-card h4 { font-size:1.1rem; margin-bottom:0.5rem; }
+.related-card p { font-size:0.85rem; color:var(--slate); margin:0; }
+
+/* ===== CTA BANNER ===== */
+.cta-section { background:linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color:white; padding:5rem 2rem; text-align:center; position:relative; overflow:hidden; }
+.cta-section::before { content:''; position:absolute; top:-40%; right:-10%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.08) 0%, transparent 70%); border-radius:50%; }
+.cta-section h2 { font-size:2.5rem; margin-bottom:1rem; position:relative; z-index:1; }
+.cta-section p { font-size:1.05rem; color:rgba(255,255,255,0.7); margin-bottom:2rem; position:relative; z-index:1; max-width:550px; margin-left:auto; margin-right:auto; }
+
+/* ===== FOOTER ===== */
+.site-footer { background:var(--midnight); color:white; padding:4rem 2rem 2rem; border-top:1px solid rgba(255,255,255,0.06); }
+.footer-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:2.5rem; max-width:1100px; margin:0 auto 3rem; }
+.footer-col h5 { font-family:var(--font-display); font-size:0.95rem; font-weight:600; margin-bottom:1rem; color:white; }
+.footer-col a { display:block; color:rgba(255,255,255,0.55); text-decoration:none; font-size:0.85rem; margin-bottom:0.6rem; transition:color 0.2s; }
+.footer-col a:hover { color:var(--confetti-gold); text-decoration:none; }
+.footer-bottom { text-align:center; padding-top:2rem; border-top:1px solid rgba(255,255,255,0.06); max-width:1100px; margin:0 auto; }
+.footer-bottom p { font-size:0.78rem; color:rgba(255,255,255,0.35); margin-bottom:0.25rem; }
+
+/* ===== SCROLL REVEAL ===== */
+.scroll-reveal { opacity:0; transform:translateY(30px); transition:var(--transition-smooth); }
+.scroll-reveal.visible { opacity:1; transform:translateY(0); }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeInUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+.fade-in-up { animation: fadeInUp 0.8s ease-out both; }
+.fade-delay-1 { animation-delay: 0.15s; }
+.fade-delay-2 { animation-delay: 0.3s; }
+.fade-delay-3 { animation-delay: 0.45s; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .steps-grid, .examples-grid, .related-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .hero { padding:8rem 1.5rem 4rem; }
+  .hero h1 { font-size:2.25rem; }
+  .section { padding:3.5rem 1.5rem; }
+  .section-title { font-size:2rem; }
+  .steps-grid, .related-grid { grid-template-columns: 1fr; }
+  .examples-grid { grid-template-columns: 1fr 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap:1.5rem; }
+  .nav { padding:0.75rem 1rem; }
+  .nav-logo-icon { height:44px; }
+  .nav-cta { padding:0.5rem 1rem; font-size:0.8rem; }
+  .nav-link { display:none; }
+  .content-body h2 { font-size:1.5rem; }
+}
+</style>
+
+<!-- Organization JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Ryvite",
+  "url": "https://www.ryvite.com",
+  "logo": "https://www.ryvite.com/api/og.png",
+  "description": "AI-powered custom digital invitations. Describe your event, get a beautiful, unique invitation in seconds.",
+  "foundingDate": "2026"
+}
+</script>
+
+<!-- BreadcrumbList JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://www.ryvite.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Wedding Invitations",
+      "item": "https://www.ryvite.com/wedding-invitations/"
+    }
+  ]
+}
+</script>
+
+<!-- FAQPage JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do Ryvite wedding invitations compare to Paperless Post?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Paperless Post charges per card — typically $1 to $8 per guest. For a 100-guest wedding, that's $100 to $800 just for invitations. Ryvite charges a flat price per event regardless of guest count, so the same 100-guest wedding costs under $5. Beyond pricing, every Ryvite invitation is AI-generated from your description, meaning your design is truly one-of-a-kind — not a template that thousands of other couples have also used."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I create save-the-dates with Ryvite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Absolutely. You can create a separate event for your save-the-date with its own unique design, then create another event later for the formal wedding invitation. Many couples use a lighter, simpler design for the save-the-date and a more detailed, elegant design for the formal invite. Since each event is priced independently, you get two fully custom designs without breaking the budget."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do guests need to download an app to view my wedding invitation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Ryvite invitations are web-based — guests simply tap a link to view your invitation and RSVP directly in their browser. It works on every phone, tablet, and computer. No app downloads, no account creation, no friction. Guests of all ages and tech comfort levels can view and respond without any hurdles."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What custom RSVP fields can I add to my wedding invitation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ryvite lets you add any custom fields to your RSVP form. Popular choices for weddings include meal choice (chicken, fish, vegetarian), plus-one name, dietary restrictions or allergies, song requests for the DJ, whether guests will attend the ceremony, reception, or both, and hotel accommodation needs. You can add as many custom fields as you need, and all responses appear in your dashboard in real time."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Will my wedding invitation look unique or like everyone else's?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Every Ryvite invitation is generated from scratch by AI based on your specific description. There are no templates. When you describe your wedding — the colors, the venue, the mood, the season — the AI creates a completely original design with custom typography, illustrations, color palette, and layout. No other couple will have the same invitation. You can also upload an inspiration photo or describe a specific aesthetic to guide the design further."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="/" class="nav-logo"><svg class="nav-logo-icon" viewBox="0 0 210 80" xmlns="http://www.w3.org/2000/svg" style="height:56px;width:auto;"><circle cx="32" cy="40" r="22" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M18 30 L32 42 L46 30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 50 L46 50" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><text x="64" y="50" font-family="Playfair Display, serif" font-size="34" font-weight="600" fill="currentColor">Ryvite</text></svg></a>
+  <div class="nav-links">
+    <a href="/examples/" class="nav-link">Examples</a>
+    <a href="/pricing/" class="nav-link">Pricing</a>
+    <a href="/blog/" class="nav-link">Blog</a>
+    <a href="/v2/create/" class="nav-cta">Get Started</a>
+    <a href="/v2/login/" class="nav-cta nav-cta-ghost">Log In</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <h1 class="fade-in-up">AI-Powered Digital Wedding Invitations</h1>
+    <p class="subtext fade-in-up fade-delay-1">Describe the wedding you're planning — the colors, the venue, the feeling — and get a completely custom digital invitation in seconds. No templates, no per-card fees, no design skills needed.</p>
+    <a href="/v2/create/" class="hero-cta fade-in-up fade-delay-2">Create Your Wedding Invite</a>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section class="section how-section">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">How It Works</p>
+      <h2 class="section-title scroll-reveal">Wedding Invitations in Three Simple Steps</h2>
+      <p class="section-subtitle center scroll-reveal">From vision to invitation in under a minute.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card scroll-reveal">
+        <div class="step-number">1</div>
+        <h4>Describe Your Wedding</h4>
+        <p>Tell us about your venue, color palette, season, and style. Upload an inspiration photo or describe the mood you want to set.</p>
+      </div>
+      <div class="step-card scroll-reveal">
+        <div class="step-number">2</div>
+        <h4>AI Designs Your Invite</h4>
+        <p>In seconds, our AI generates a fully custom wedding invitation — unique to your celebration, not pulled from a template library.</p>
+      </div>
+      <div class="step-card scroll-reveal">
+        <div class="step-number">3</div>
+        <h4>Share and Track RSVPs</h4>
+        <p>Publish your invite, share the link with your guest list, and track every RSVP from your dashboard in real time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Content Section -->
+<section class="section content-section">
+  <div class="container">
+    <div class="content-body">
+      <p class="section-label">Wedding Invitations</p>
+      <h2>Why Couples Are Choosing AI-Generated Wedding Invitations</h2>
+      <p>Your wedding invitation is the first glimpse guests get of your celebration. It sets the tone, hints at the style, and builds anticipation for the day itself. Traditional invitation platforms give you templates — browse through hundreds of pre-made designs, swap in your names and date, and hope it feels personal enough. But a template used by thousands of other couples never truly feels like yours. Ryvite takes a fundamentally different approach: you describe your wedding in your own words, and AI generates a completely original invitation designed around your vision.</p>
+
+      <p>When you create a wedding invitation with Ryvite, you start by telling the AI about your celebration. Mention your color palette, the venue setting, the season, the mood. Want a romantic blush-and-gold design for a garden ceremony? A moody, dramatic invitation for a winter wedding in a candlelit ballroom? A breezy, tropical design for a beach destination wedding? Just describe it. The AI interprets your words and produces a custom HTML invitation — with typography, color palette, layout, and hand-drawn SVG illustrations — all generated uniquely for your event.</p>
+
+      <h2>Wedding Invitations for Every Style</h2>
+
+      <h3>Save the Dates</h3>
+      <p>Save-the-dates are typically sent six to eight months before the wedding, giving guests time to mark their calendars and make travel arrangements. With Ryvite, you can create a separate event for your save-the-date with its own unique design, then create a more detailed formal invitation closer to the date. Many couples opt for a lighter, more playful save-the-date design and reserve the elegant, detailed look for the formal invite. Since each event is independently priced, you get two fully custom designs without the cost doubling.</p>
+
+      <h3>Rehearsal Dinner Invitations</h3>
+      <p>The rehearsal dinner is an intimate gathering the night before the wedding, and the invitation should reflect that warmth. Whether it's a casual backyard barbecue or a formal seated dinner, Ryvite lets you describe the vibe and get a design that complements your wedding invitation without duplicating it. Mention "relaxed Italian dinner" or "elegant cocktail evening" and the AI will generate a design that strikes the right tone — coordinated with your wedding aesthetic but distinct enough to stand on its own.</p>
+
+      <h3>Reception and Ceremony Invitations</h3>
+      <p>For couples hosting the ceremony and reception at different venues, or those having a smaller ceremony with a larger reception to follow, separate invitations help communicate logistics clearly. Ryvite makes it easy to create invitations for each part of your wedding day with consistent design language. Describe the style once and the AI maintains the visual thread across each invitation, so your entire wedding stationery suite feels intentional and cohesive.</p>
+
+      <h3>Destination Wedding Invitations</h3>
+      <p>Destination weddings require extra information — travel details, hotel blocks, local activity suggestions, arrival and departure dates. Your invitation needs to be both beautiful and informative. With Ryvite, you can describe the destination setting and the AI will incorporate location-inspired design elements — tropical florals for a beach wedding in Mexico, olive branches for a Tuscan villa celebration, mountain motifs for a Colorado lodge ceremony. Custom RSVP fields let you collect travel-specific details like arrival dates and dietary needs in one place.</p>
+
+      <h2>The Real Cost of Wedding Invitations</h2>
+      <p>Wedding stationery costs add up faster than most couples expect. Traditional platforms like Paperless Post charge per card — typically $1 to $8 per guest depending on the design tier. For a wedding with 100 guests, that's $100 to $800 just for digital invitations. Add save-the-dates, rehearsal dinner invites, and thank-you cards, and you're looking at several hundred dollars on digital cards alone.</p>
+
+      <p>Ryvite charges a flat price per event, regardless of how many guests you invite. Send your wedding invitation to 50 people or 300 — the cost stays the same, under $5. For couples watching their wedding budget (which is most couples), the savings are significant and immediate. And unlike free invitation services that plaster ads on your cards or restrict you to their lowest-quality designs, Ryvite keeps every invitation ad-free and fully custom.</p>
+
+      <h2>Photo-Guided Wedding Invitation Design</h2>
+      <p>One of Ryvite's most powerful features for weddings is photo-guided design. Upload an engagement photo, a picture of your venue, a fabric swatch from your bridesmaid dresses, or a screenshot of a design you love. The AI analyzes the colors, mood, and style of your image and uses it to guide the invitation design. This is especially useful for couples who have a strong visual direction but struggle to articulate it in words. Show the AI what you want, and it translates your inspiration into a cohesive invitation design.</p>
+
+      <h2>Custom RSVP Fields for Weddings</h2>
+      <p>Wedding RSVPs are more complex than a simple yes or no. Ryvite lets you customize your RSVP form with fields tailored to your specific celebration:</p>
+      <ul>
+        <li>Meal choice (chicken, fish, vegetarian, vegan)</li>
+        <li>Plus-one name and meal selection</li>
+        <li>Dietary restrictions and allergies</li>
+        <li>Song requests for the DJ or band</li>
+        <li>Which events the guest will attend (ceremony, reception, or both)</li>
+        <li>Hotel accommodation needs or shuttle preferences</li>
+        <li>A personal message or well-wishes for the couple</li>
+      </ul>
+      <p>All responses are collected in your Ryvite dashboard and update in real time. No more chasing down RSVPs through text messages, no more manual spreadsheets, no more guessing at your headcount two weeks before the wedding. Every response is organized and accessible the moment a guest submits it.</p>
+
+      <h2>Designed to Match Your Wedding Aesthetic</h2>
+      <p>Whether your wedding style is rustic farmhouse, modern minimalist, classic elegance, bohemian garden, or black-tie glamour, Ryvite's AI adapts to your vision. Describe the aesthetic in plain language — "romantic garden party with soft pastels and calligraphy" or "sleek and modern with black, white, and metallics" — and the generated design will reflect those choices in every detail. Typography, color palette, decorative illustrations, and layout all respond to your description, creating an invitation that feels like a natural extension of your wedding day.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Example Invitations -->
+<section class="section examples-section">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">Example Designs</p>
+      <h2 class="section-title scroll-reveal">Wedding Invitation Inspiration</h2>
+      <p class="section-subtitle center scroll-reveal">Every design is AI-generated from a simple text description. No two are alike.</p>
+    </div>
+    <div class="examples-grid">
+      <div class="example-card scroll-reveal">
+        <div class="example-placeholder grad-1" role="img" aria-label="Elegant blush and gold garden wedding invitation with romantic calligraphy, floral illustrations, and soft watercolor accents">
+          Romantic garden wedding invitation with blush and gold palette, elegant calligraphy, and hand-drawn floral illustrations
+        </div>
+        <div class="example-info">
+          <h4>Garden Wedding — Romantic Elegance</h4>
+          <p>Blush, gold, and cream with calligraphy and florals</p>
+        </div>
+      </div>
+      <div class="example-card scroll-reveal">
+        <div class="example-placeholder grad-2" role="img" aria-label="Warm, rustic barn wedding invitation with earthy tones, botanical illustrations, and textured typography">
+          Rustic barn wedding invitation with warm earth tones, botanical line art, and organic texture
+        </div>
+        <div class="example-info">
+          <h4>Barn Wedding — Rustic Warmth</h4>
+          <p>Earth tones with botanical details and textured type</p>
+        </div>
+      </div>
+      <div class="example-card scroll-reveal">
+        <div class="example-placeholder grad-3" role="img" aria-label="Sleek modern wedding invitation with minimalist black and white design, clean lines, and contemporary sans-serif typography">
+          Modern minimalist wedding invitation with clean black and white design, geometric accents, and bold sans-serif type
+        </div>
+        <div class="example-info">
+          <h4>Modern Wedding — Sleek Minimalism</h4>
+          <p>Black, white, and metallic with contemporary layout</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section faq-section" id="faq">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">FAQ</p>
+      <h2 class="section-title scroll-reveal">Wedding Invitation Questions</h2>
+    </div>
+    <div class="faq-list">
+      <details class="scroll-reveal">
+        <summary>How do Ryvite wedding invitations compare to Paperless Post?</summary>
+        <div class="faq-answer">Paperless Post charges per card — typically $1 to $8 per guest. For a 100-guest wedding, that's $100 to $800 just for invitations. Ryvite charges a flat price per event regardless of guest count, so the same 100-guest wedding costs under $5. Beyond pricing, every Ryvite invitation is AI-generated from your description, meaning your design is truly one-of-a-kind — not a template that thousands of other couples have also used.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>Can I create save-the-dates with Ryvite?</summary>
+        <div class="faq-answer">Absolutely. You can create a separate event for your save-the-date with its own unique design, then create another event later for the formal wedding invitation. Many couples use a lighter, simpler design for the save-the-date and a more detailed, elegant design for the formal invite. Since each event is priced independently, you get two fully custom designs without breaking the budget.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>Do guests need to download an app to view my wedding invitation?</summary>
+        <div class="faq-answer">No. Ryvite invitations are web-based — guests simply tap a link to view your invitation and RSVP directly in their browser. It works on every phone, tablet, and computer. No app downloads, no account creation, no friction. Guests of all ages and tech comfort levels can view and respond without any hurdles.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>What custom RSVP fields can I add to my wedding invitation?</summary>
+        <div class="faq-answer">Ryvite lets you add any custom fields to your RSVP form. Popular choices for weddings include meal choice (chicken, fish, vegetarian), plus-one name, dietary restrictions or allergies, song requests for the DJ, whether guests will attend the ceremony, reception, or both, and hotel accommodation needs. You can add as many custom fields as you need, and all responses appear in your dashboard in real time.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>Will my wedding invitation look unique or like everyone else's?</summary>
+        <div class="faq-answer">Every Ryvite invitation is generated from scratch by AI based on your specific description. There are no templates. When you describe your wedding — the colors, the venue, the mood, the season — the AI creates a completely original design with custom typography, illustrations, color palette, and layout. No other couple will have the same invitation. You can also upload an inspiration photo or describe a specific aesthetic to guide the design further.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- Related Event Types -->
+<section class="section related-section">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">Explore More</p>
+      <h2 class="section-title scroll-reveal">Other Event Types</h2>
+    </div>
+    <div class="related-grid">
+      <a href="/baby-shower-invitations/" class="related-card scroll-reveal">
+        <h4>Baby Shower Invitations</h4>
+        <p>Sweet, custom AI-designed invitations for welcoming a new arrival.</p>
+      </a>
+      <a href="/corporate-event-invitations/" class="related-card scroll-reveal">
+        <h4>Corporate Event Invitations</h4>
+        <p>Professional, branded invitations for conferences, galas, and team events.</p>
+      </a>
+      <a href="/graduation-invitations/" class="related-card scroll-reveal">
+        <h4>Graduation Invitations</h4>
+        <p>Custom AI-generated invitations for every graduation milestone.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="fade-in-up">Ready to Create Your Wedding Invitation?</h2>
+  <p class="fade-in-up fade-delay-1">Describe your dream wedding and get a fully custom digital invitation in seconds. No templates, no per-card fees.</p>
+  <a href="/v2/create/" class="hero-cta fade-in-up fade-delay-2">Create Your Wedding Invite</a>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Product</h5>
+      <a href="/#how">How It Works</a>
+      <a href="/examples/">Examples</a>
+      <a href="/pricing/">Pricing</a>
+      <a href="/v2/create/">Create an Invite</a>
+    </div>
+    <div class="footer-col">
+      <h5>Event Types</h5>
+      <a href="/birthday-invitations/">Birthday</a>
+      <a href="/wedding-invitations/">Wedding</a>
+      <a href="/baby-shower-invitations/">Baby Shower</a>
+      <a href="/graduation-invitations/">Graduation</a>
+      <a href="/holiday-party-invitations/">Holiday Party</a>
+      <a href="/corporate-event-invitations/">Corporate</a>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <a href="/blog/">Blog</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/#story">Our Story</a>
+    </div>
+    <div class="footer-col">
+      <h5>Legal</h5>
+      <a href="/terms/">Terms of Service</a>
+      <a href="/privacy/">Privacy Policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 CNPY LLC. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const revealEls = document.querySelectorAll('.scroll-reveal');
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.15 });
+revealEls.forEach(el => revealObs.observe(el));
+</script>
+</body>
+</html>

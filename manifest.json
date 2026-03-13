@@ -1,0 +1,9 @@
+{
+  "name": "Ryvite",
+  "short_name": "Ryvite",
+  "description": "AI-powered custom digital invitations. Describe your event, get a beautiful unique invitation in seconds.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#E94560"
+}
