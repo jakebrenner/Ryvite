@@ -561,6 +561,7 @@ export default async function handler(req, res) {
 
     // ============================================================
     // USE CASE 6: Send invite emails to guests via Resend
+    // Styled to match the AI-generated event theme
     // ============================================================
     if (action === 'sendEmailInvites') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
@@ -573,6 +574,26 @@ export default async function handler(req, res) {
 
       const { event, error: ownerError } = await verifyEventOwnership(user.id, eventId);
       if (ownerError) return res.status(403).json({ success: false, error: ownerError });
+
+      // Fetch active theme for this event — use its colors/fonts in the email
+      const { data: theme } = await supabaseAdmin
+        .from('event_themes')
+        .select('config')
+        .eq('event_id', eventId)
+        .eq('is_active', true)
+        .single();
+
+      const cfg = theme?.config || {};
+      const primaryColor = cfg.primaryColor || '#E94560';
+      const secondaryColor = cfg.secondaryColor || '#FF6B6B';
+      const accentColor = cfg.accentColor || '#2196F3';
+      const bgColor = cfg.backgroundColor || '#FFFAF5';
+      const textColor = cfg.textColor || '#1A1A2E';
+      const headlineFont = cfg.fontHeadline || 'Playfair Display';
+      const bodyFont = cfg.fontBody || 'Inter';
+      const fontsImport = cfg.googleFontsImport || '';
+      // Derive a light tint from primaryColor for the event details card
+      const detailsBg = primaryColor + '12'; // 7% opacity hex
 
       // Fetch guests with emails
       let query = supabaseAdmin
@@ -603,7 +624,7 @@ export default async function handler(req, res) {
       const hostName = profile?.display_name || 'Someone';
       const baseUrl = req.headers.origin || `https://${req.headers['x-forwarded-host'] || req.headers.host}`;
       const eventTitle = event.title || 'an event';
-      const emailSubject = subject || `${hostName} invited you to ${eventTitle}`;
+      const emailSubject = subject || `You're invited to ${eventTitle}!`;
       const eventDate = event.event_date
         ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
         : '';
@@ -617,45 +638,69 @@ export default async function handler(req, res) {
         const guestLink = `${baseUrl}/v2/event/${event.slug}?gid=${guest.id}`;
         const guestName = guest.name || 'Guest';
 
-        // Build custom message body if provided, otherwise use default
+        // Build message body
         let bodyHtml = '';
         if (message) {
           const resolvedMsg = message
             .replace(/\{name\}/gi, guestName)
             .replace(/\{link\}/gi, guestLink)
             .replace(/\n/g, '<br>');
-          bodyHtml = `<p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 20px;">${resolvedMsg}</p>`;
+          bodyHtml = `<p style="color:${textColor};opacity:0.8;font-size:15px;line-height:1.6;margin:0 0 24px;">${resolvedMsg}</p>`;
         } else {
           bodyHtml = `
-            <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 16px;">
-              Hi <strong>${guestName}</strong>,
-            </p>
-            <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 20px;">
-              <strong>${hostName}</strong> has invited you to:
+            <p style="color:${textColor};opacity:0.8;font-size:16px;line-height:1.6;margin:0 0 24px;">
+              Hi <strong>${guestName}</strong>, <strong>${hostName}</strong> has invited you to:
             </p>`;
         }
 
-        const html = `
-          <div style="font-family:'Inter',Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#FFFAF5;border-radius:16px;">
-            <div style="text-align:center;margin-bottom:24px;">
-              <span style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#1A1A2E;">Ryvite</span>
-            </div>
-            <div style="background:white;border-radius:12px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-              <h2 style="font-size:20px;color:#1A1A2E;margin:0 0 16px;">You're invited!</h2>
-              ${bodyHtml}
-              <div style="background:#f8f4f0;border-radius:8px;padding:16px;margin-bottom:20px;">
-                <div style="font-size:18px;font-weight:600;color:#1A1A2E;margin-bottom:6px;">${eventTitle}</div>
-                ${eventDate ? `<div style="font-size:14px;color:#666;">${eventDate}</div>` : ''}
-                ${event.location_name ? `<div style="font-size:14px;color:#666;">${event.location_name}</div>` : ''}
-              </div>
-              <div style="text-align:center;">
-                <a href="${guestLink}" style="display:inline-block;background:#E94560;color:white;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;text-decoration:none;">RSVP Now</a>
-              </div>
-            </div>
-            <p style="color:#999;font-size:11px;text-align:center;margin-top:16px;">
-              Sent via <a href="https://ryvite.com" style="color:#999;">Ryvite</a>
-            </p>
-          </div>`;
+        // Theme-styled email — uses the event's AI-generated color palette and fonts
+        const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+${fontsImport ? `<style>${fontsImport}</style>` : ''}
+</head><body style="margin:0;padding:0;background:#f4f4f4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;">
+<tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:${bgColor};border-radius:20px;overflow:hidden;">
+
+  <!-- Colored header band -->
+  <tr><td style="background:${primaryColor};height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+  <!-- Main content -->
+  <tr><td style="padding:36px 32px 32px;">
+    <!-- Headline -->
+    <h1 style="font-family:'${headlineFont}',Georgia,serif;font-size:28px;font-weight:700;color:${textColor};margin:0 0 8px;text-align:center;">You're Invited!</h1>
+    <div style="width:40px;height:3px;background:${primaryColor};margin:0 auto 28px;border-radius:2px;"></div>
+
+    ${bodyHtml}
+
+    <!-- Event details card -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${detailsBg};border-radius:12px;margin-bottom:28px;">
+    <tr><td style="padding:20px 24px;">
+      <div style="font-family:'${headlineFont}',Georgia,serif;font-size:20px;font-weight:700;color:${textColor};margin-bottom:8px;">${eventTitle}</div>
+      ${eventDate ? `<div style="font-family:'${bodyFont}',Arial,sans-serif;font-size:14px;color:${textColor};opacity:0.7;margin-bottom:4px;">${eventDate}</div>` : ''}
+      ${event.location_name ? `<div style="font-family:'${bodyFont}',Arial,sans-serif;font-size:14px;color:${textColor};opacity:0.7;">${event.location_name}</div>` : ''}
+    </td></tr>
+    </table>
+
+    <!-- CTA button -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr><td align="center">
+      <a href="${guestLink}" style="display:inline-block;background:${primaryColor};color:#ffffff;padding:16px 40px;border-radius:12px;font-family:'${bodyFont}',Arial,sans-serif;font-weight:700;font-size:16px;text-decoration:none;letter-spacing:0.3px;">RSVP Now</a>
+    </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="padding:0 32px 28px;text-align:center;">
+    <p style="font-family:'${bodyFont}',Arial,sans-serif;color:${textColor};opacity:0.35;font-size:11px;margin:0;">
+      Sent via <a href="https://ryvite.com" style="color:${textColor};opacity:0.5;">Ryvite</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`;
 
         try {
           await resend.emails.send({
