@@ -100,7 +100,7 @@
     .archive-x-btn:hover { background: rgba(220,53,69,0.85); transform: scale(1.1); }
     .event-card-header.has-preview { padding: 0; }
     .event-card-header.no-preview { background: linear-gradient(135deg, var(--party-coral), var(--confetti-gold)); padding: 20px; color: white; display: flex; flex-direction: column; justify-content: space-between; }
-    .event-card-header iframe { width: 393px; height: 852px; border: none; pointer-events: none; transform-origin: top left; position: absolute; top: 0; left: 50%; }
+    .event-card-header iframe { width: 393px; height: 852px; border: none; pointer-events: none; transform-origin: top left; position: absolute; top: 0; left: 0; }
     .event-card-header-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: linear-gradient(transparent, rgba(0,0,0,0.6)); color: white; z-index: 1; }
     .event-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
     .event-card-date { font-size: 13px; opacity: 0.9; }
@@ -721,7 +721,8 @@
           var cardWidth = header.offsetWidth;
           var scale = cardWidth / 393;
           iframe.style.transform = 'scale(' + scale + ')';
-          iframe.style.marginLeft = '-' + (393 / 2) + 'px';
+          iframe.style.left = '50%';
+          iframe.style.marginLeft = '-' + ((393 * scale) / 2) + 'px';
           header.style.height = '180px';
         });
       });
@@ -854,7 +855,8 @@
           var scale = cardWidth / 393;
           var visibleHeight = 180;
           iframe.style.transform = 'scale(' + scale + ')';
-          iframe.style.marginLeft = '-' + (393 / 2) + 'px';
+          iframe.style.left = '50%';
+          iframe.style.marginLeft = '-' + ((393 * scale) / 2) + 'px';
           header.style.height = visibleHeight + 'px';
         });
       });
@@ -1771,6 +1773,11 @@
 
     loadDashboard();
     loadUsageSummary();
+
+    // Refresh dashboard when user returns to the tab (e.g. after regenerating a theme)
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) loadDashboard();
+    });
   </script>
 </body>
 </html>
