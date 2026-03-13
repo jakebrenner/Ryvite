@@ -999,7 +999,18 @@
                 renderVersionGallery();
                 sessionStorage.setItem('ryvite_theme_' + ev.id, JSON.stringify(themeVersions));
               }
-              initDesignChatIfNeeded(false);
+              // Restore design chat phase for "Start from Design" flow
+              var chatPhase = ev.settings && ev.settings.design_chat_phase;
+              if (chatPhase === 'collecting_details' || chatPhase === 'rsvp_fields') {
+                designChatPhase = chatPhase;
+                var welcomeMsg = chatPhase === 'collecting_details'
+                  ? "Welcome back! Let's continue personalizing your design.\n\nTell me about your event — what's the occasion, when and where is it, and who's hosting?"
+                  : "Welcome back! Let's finalize your RSVP fields.\n\nYou can say things like \"remove email\", \"add plus-one count\", or \"make dietary restrictions required\".\nWhen you're happy, just say \"looks good\"!";
+                designChatHistory = [{ role: 'assistant', content: welcomeMsg }];
+                renderDesignChat();
+              } else {
+                initDesignChatIfNeeded(false);
+              }
             }
           }).catch(function(e) { console.warn('Background refresh failed:', e); });
           return;
@@ -1083,10 +1094,21 @@
               document.getElementById('generatedView').style.display = 'block';
               renderPreview(themeVersions[0]);
               renderVersionGallery();
-              // Set pending rating so it shows when design chat initializes
-              var activeTheme2 = themeVersions[activeVersionIndex >= 0 ? activeVersionIndex : 0];
-              if (activeTheme2 && activeTheme2.id) pendingRatingThemeId = activeTheme2.id;
-              initDesignChatIfNeeded(false);
+              // Restore "Start from Design" collecting-details phase if applicable
+              var chatPhase = ev.settings && ev.settings.design_chat_phase;
+              if (chatPhase === 'collecting_details' || chatPhase === 'rsvp_fields') {
+                designChatPhase = chatPhase;
+                var welcomeMsg = chatPhase === 'collecting_details'
+                  ? "Welcome back! Let's continue personalizing your design.\n\nTell me about your event — what's the occasion, when and where is it, and who's hosting?"
+                  : "Welcome back! Let's finalize your RSVP fields.\n\nYou can say things like \"remove email\", \"add plus-one count\", or \"make dietary restrictions required\".\nWhen you're happy, just say \"looks good\"!";
+                designChatHistory = [{ role: 'assistant', content: welcomeMsg }];
+                renderDesignChat();
+              } else {
+                // Set pending rating so it shows when design chat initializes
+                var activeTheme2 = themeVersions[activeVersionIndex >= 0 ? activeVersionIndex : 0];
+                if (activeTheme2 && activeTheme2.id) pendingRatingThemeId = activeTheme2.id;
+                initDesignChatIfNeeded(false);
+              }
               goToStep(2);
               initCostTracker();
               // Cache themes for fast reload
@@ -1134,12 +1156,47 @@
             // Set event type from template
             if (tpl.eventType) extractedData.eventType = tpl.eventType;
 
-            // Push template as preview-only theme version (no DB save yet)
+            // Push template as initial theme version
             themeVersions = [{ id: null, version: 0, html: tpl.html, css: tpl.css || '', config: tpl.config || {}, isActive: true }];
             activeVersionIndex = 0;
 
             // Create draft event so we have an eventId
             await createDraftEvent();
+
+            // Persist template theme to DB immediately so "Continue" can restore it
+            if (currentEvent) {
+              try {
+                var saveThemeRes = await authFetch('/api/v2/events?action=saveTheme', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    eventId: currentEvent.id,
+                    html: tpl.html,
+                    css: tpl.css || '',
+                    config: tpl.config || {}
+                  })
+                });
+                var saveThemeResult = await saveThemeRes.json();
+                if (saveThemeResult.success && saveThemeResult.themeId) {
+                  themeVersions[0].id = saveThemeResult.themeId;
+                  themeVersions[0].version = 1;
+                }
+              } catch (e) {
+                console.error('Template theme save failed:', e);
+              }
+              // Store template source ID and design chat phase in settings for resume
+              authFetch('/api/v2/events?action=update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  eventId: currentEvent.id,
+                  eventType: tpl.eventType || 'other',
+                  settings: { creation_step: 2, template_source_id: tpl.id || templateId, design_chat_phase: 'collecting_details' }
+                })
+              }).catch(function(e) { console.error('Settings save failed:', e); });
+              // Cache themes for fast reload on Continue
+              try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
+            }
 
             // Jump to Step 2 split layout (preview + design chat)
             document.getElementById('generatingView').style.display = 'none';
@@ -4364,33 +4421,16 @@
             // Save event details to DB
             await saveEventToDB();
 
-            // Save template as the event's first theme version
-            var tpl = window._templateSource;
-            try {
-              var saveThemeRes = await authFetch('/api/v2/events?action=saveTheme', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  eventId: currentEvent.id,
-                  html: tpl.html,
-                  css: tpl.css || '',
-                  config: tpl.config || {}
-                })
-              });
-              var saveThemeResult = await saveThemeRes.json();
-              if (saveThemeResult.success && saveThemeResult.themeId) {
-                themeVersions[0].id = saveThemeResult.themeId;
-                themeVersions[0].version = 1;
-              }
-            } catch (e) {
-              console.error('Theme save failed:', e);
-            }
+            // Template theme was already saved at draft creation — skip duplicate save
+            // (themeVersions[0].id is already set if save succeeded)
 
             // Re-render preview with final extracted data
             renderPreview(themeVersions[activeVersionIndex]);
 
             // Transition to RSVP fields phase
             designChatPhase = 'rsvp_fields';
+            // Persist phase for resume
+            if (currentEvent) authFetch('/api/v2/events?action=update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ eventId: currentEvent.id, settings: { design_chat_phase: 'rsvp_fields' } }) }).catch(function() {});
             var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
             var fieldListStr = enabledFields.map(function(f) {
               return '- ' + f.label + (f.is_required ? ' (required)' : '');
@@ -4444,7 +4484,7 @@
         if (currentEvent) {
           authFetch('/api/v2/events?action=update', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 2 } })
+            body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 2, design_chat_phase: 'tweaking' } })
           }).catch(function() {});
         }
 
