@@ -167,11 +167,19 @@ export default async function handler(req, res) {
     const { data, error, count } = await query;
     if (error) return res.status(400).json({ error: error.message });
 
-    const templates = (data || []).map(t => {
+    // Deduplicate by HTML content — same design can appear from multiple sources
+    // or from independently-rated identical generations
+    const seenHtml = new Set();
+    const templates = [];
+    for (const t of (data || [])) {
+      // Use first 500 chars of HTML as fingerprint (enough to identify identical designs)
+      const fingerprint = (t.html || '').substring(0, 500);
+      if (seenHtml.has(fingerprint)) continue;
+      seenHtml.add(fingerprint);
       const eventType = t.event_type || 'other';
       const typeInfo = EVENT_TYPES[eventType] || EVENT_TYPES.other;
       const dummyData = DUMMY_DATA[eventType] || DUMMY_DATA.other;
-      return {
+      templates.push({
         id: t.id,
         eventType,
         eventTypeLabel: typeInfo.label,
@@ -182,18 +190,22 @@ export default async function handler(req, res) {
         adminRating: t.admin_rating,
         source: t.source,
         dummyData
-      };
-    });
+      });
+    }
 
-    // Get event types with counts for the filter bar
+    // Get event types with counts for the filter bar (deduplicated)
     const { data: typeCounts, error: typeErr } = await supabase
       .from('gallery_templates')
-      .select('event_type');
+      .select('event_type, html');
 
     let eventTypes = [];
     if (!typeErr && typeCounts) {
       const counts = {};
+      const seenCountHtml = new Set();
       typeCounts.forEach(r => {
+        const fp = (r.html || '').substring(0, 500);
+        if (seenCountHtml.has(fp)) return;
+        seenCountHtml.add(fp);
         const et = r.event_type || 'other';
         counts[et] = (counts[et] || 0) + 1;
       });
