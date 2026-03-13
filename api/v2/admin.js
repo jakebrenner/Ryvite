@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import Anthropic from '@anthropic-ai/sdk';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -2308,6 +2309,134 @@ export default async function handler(req, res) {
         updated: Object.keys(updateData).filter(k => k !== 'updated_at'),
         tierSync: tierSyncResult
       });
+    }
+
+    // ---- FEATURED SHOWCASES (homepage demo carousel) ----
+
+    if (action === 'listShowcases') {
+      const { data, error } = await supabaseAdmin
+        .from('featured_showcases')
+        .select('*')
+        .order('display_order', { ascending: true });
+      if (error) return res.status(400).json({ error: error.message });
+      return res.status(200).json({ success: true, showcases: data || [] });
+    }
+
+    if (action === 'featureShowcase') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { sourceType, eventThemeId, testRunId, promptText, eventTitle, eventType } = req.body;
+
+      if (!sourceType) return res.status(400).json({ error: 'sourceType required' });
+
+      // Fetch source HTML/CSS/config
+      let html, css, config;
+      if (sourceType === 'user_theme') {
+        if (!eventThemeId) return res.status(400).json({ error: 'eventThemeId required for user_theme' });
+        const { data: theme, error: tErr } = await supabaseAdmin
+          .from('event_themes').select('html, css, config').eq('id', eventThemeId).single();
+        if (tErr || !theme) return res.status(404).json({ error: 'Theme not found' });
+        html = theme.html; css = theme.css; config = theme.config;
+      } else if (sourceType === 'lab_theme') {
+        if (!testRunId) return res.status(400).json({ error: 'testRunId required for lab_theme' });
+        const { data: run, error: rErr } = await supabaseAdmin
+          .from('prompt_test_runs').select('result_html, result_css, result_config').eq('id', testRunId).single();
+        if (rErr || !run) return res.status(404).json({ error: 'Test run not found' });
+        html = run.result_html; css = run.result_css; config = run.result_config;
+      } else {
+        return res.status(400).json({ error: 'sourceType must be user_theme or lab_theme' });
+      }
+
+      if (!html) return res.status(400).json({ error: 'Source has no HTML content' });
+
+      // Auto-generate prompt text from the invite design using Haiku
+      let finalPromptText = promptText || '';
+      if (!finalPromptText) {
+        try {
+          const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+          // Send a trimmed version of HTML + CSS (first 3000 chars each to stay small)
+          const htmlSnippet = (html || '').substring(0, 3000);
+          const cssSnippet = (css || '').substring(0, 2000);
+          const colorInfo = config ? `Colors: ${JSON.stringify({ primary: config.primaryColor, secondary: config.secondaryColor, accent: config.accentColor, mood: config.mood })}` : '';
+
+          const aiResponse = await anthropic.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 150,
+            messages: [{
+              role: 'user',
+              content: `You're looking at an AI-generated party invitation. Write a short, natural prompt (1-2 sentences, max 120 chars) that a user might type to request this design. Write it as a casual, first-person request — like what someone would actually type into a chat. Don't use quotes. Don't explain what you're doing. Just output the prompt text.
+
+Event type: ${eventType || 'party'}
+Event title: ${eventTitle || 'Party'}
+${colorInfo}
+
+HTML (excerpt):
+${htmlSnippet}
+
+CSS (excerpt):
+${cssSnippet}`
+            }]
+          });
+
+          finalPromptText = (aiResponse.content[0]?.text || '').trim();
+        } catch (aiErr) {
+          console.error('Auto-prompt generation failed, using fallback:', aiErr.message);
+          finalPromptText = eventTitle || 'A beautiful custom invitation';
+        }
+      }
+
+      // Get next display_order
+      const { data: maxRow } = await supabaseAdmin
+        .from('featured_showcases')
+        .select('display_order')
+        .order('display_order', { ascending: false })
+        .limit(1);
+      const nextOrder = (maxRow && maxRow.length > 0) ? maxRow[0].display_order + 1 : 0;
+
+      const insertData = {
+        source_type: sourceType,
+        event_theme_id: sourceType === 'user_theme' ? eventThemeId : null,
+        test_run_id: sourceType === 'lab_theme' ? testRunId : null,
+        prompt_text: finalPromptText,
+        display_order: nextOrder,
+        html: html,
+        css: css || '',
+        config: config || {},
+        event_title: eventTitle || '',
+        event_type: eventType || 'other',
+        created_by: admin.email
+      };
+
+      const { data: inserted, error: iErr } = await supabaseAdmin
+        .from('featured_showcases').insert(insertData).select('id').single();
+      if (iErr) return res.status(500).json({ error: 'Failed to feature: ' + iErr.message });
+
+      return res.status(200).json({ success: true, showcaseId: inserted.id, promptText: finalPromptText });
+    }
+
+    if (action === 'removeShowcase') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { showcaseId } = req.body;
+      if (!showcaseId) return res.status(400).json({ error: 'showcaseId required' });
+
+      const { error } = await supabaseAdmin.from('featured_showcases').delete().eq('id', showcaseId);
+      if (error) return res.status(500).json({ error: 'Failed to remove: ' + error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    if (action === 'updateShowcase') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { showcaseId, promptText, displayOrder } = req.body;
+      if (!showcaseId) return res.status(400).json({ error: 'showcaseId required' });
+
+      const updates = {};
+      if (promptText !== undefined) updates.prompt_text = promptText;
+      if (displayOrder !== undefined) updates.display_order = displayOrder;
+
+      if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Nothing to update' });
+
+      const { error } = await supabaseAdmin.from('featured_showcases').update(updates).eq('id', showcaseId);
+      if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
+      return res.status(200).json({ success: true });
     }
 
     return res.status(400).json({ error: 'Unknown action' });

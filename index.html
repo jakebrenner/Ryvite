@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ryvite — Prompt to Party</title>
-<meta name="description" content="AI-powered invitations. Fairly priced per event. Beautiful forever. It started as a birthday invite for a 1-year-old. It became a completely over-engineered labor of love.">
+<meta name="description" content="AI-powered invitations. Fairly priced per event. Beautiful forever. Describe your event and get a fully custom invitation in seconds.">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
@@ -61,7 +61,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
 .hero-logo svg { width:100%; height:100%; }
 .hero h1 { font-size:4.5rem; margin-bottom:1rem; letter-spacing:-1px; }
 .hero .subtext { font-size:1.05rem; color:rgba(255,255,255,0.7); margin-bottom:0.5rem; max-width:550px; margin-left:auto; margin-right:auto; }
-.hero .origin { font-size:0.9rem; color:rgba(255,183,77,0.85); font-style:italic; margin-bottom:2.5rem; }
 .hero-cta { display:inline-block; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:600; text-decoration:none; font-size:1.05rem; transition:var(--transition); box-shadow:0 10px 30px rgba(233,69,96,0.3); border:none; cursor:pointer; font-family:var(--font-body); }
 .hero-cta:hover { transform:translateY(-3px); box-shadow:0 15px 45px rgba(233,69,96,0.5); }
 
@@ -88,12 +87,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
 @keyframes fly-rl-1 { 0%{transform:translate(110vw,0) scaleX(-1);} 25%{transform:translate(75vw,-8px) scaleX(-1);} 50%{transform:translate(50vw,10px) scaleX(-1);} 75%{transform:translate(25vw,-5px) scaleX(-1);} 100%{transform:translate(-15vw,4px) scaleX(-1);} }
 @keyframes fly-lr-2 { 0%{transform:translate(-15vw,5px);} 30%{transform:translate(30vw,-12px);} 60%{transform:translate(60vw,10px);} 100%{transform:translate(110vw,-4px);} }
 
-/* ===== MARQUEE ===== */
-.marquee { background:var(--party-coral); color:white; padding:1.25rem 0; overflow:hidden; }
-.marquee-track { display:flex; animation:marquee-scroll 25s linear infinite; white-space:nowrap; gap:2.5rem; }
-.marquee-item { font-size:1rem; font-weight:600; flex-shrink:0; display:flex; align-items:center; gap:0.75rem; }
-.marquee-item::before { content:''; font-size:1.2rem; }
-@keyframes marquee-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
 /* ===== SECTIONS ===== */
 .section { padding:6rem 2rem; }
@@ -138,34 +131,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
 /* ===== CTA / CONTACT ===== */
 .cta-section { background:linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color:white; position:relative; overflow:hidden; }
 .cta-section::before { content:''; position:absolute; top:-40%; right:-10%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.08) 0%, transparent 70%); border-radius:50%; }
-.cta-inner { display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center; position:relative; z-index:2; }
-.cta-left h2 { font-size:2.5rem; margin-bottom:1rem; line-height:1.15; }
-.cta-left p { color:rgba(255,255,255,0.7); font-size:1rem; line-height:1.7; margin-bottom:1.5rem; }
-.cta-left .cta-note { font-size:0.85rem; color:var(--confetti-gold); font-style:italic; }
-.contact-form { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:2.5rem; }
-.contact-form h3 { font-size:1.4rem; margin-bottom:0.5rem; text-align:center; }
-.contact-form .form-sub { text-align:center; font-size:0.85rem; color:rgba(255,255,255,0.5); margin-bottom:1.75rem; }
-.form-group { margin-bottom:1rem; }
-.form-group label { display:block; font-size:0.8rem; font-weight:600; color:rgba(255,255,255,0.6); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.5px; }
-.form-group input, .form-group textarea { width:100%; padding:0.85rem 1rem; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:white; font-family:var(--font-body); font-size:0.95rem; outline:none; transition:border-color 0.3s; }
-.form-group input::placeholder, .form-group textarea::placeholder { color:rgba(255,255,255,0.3); }
-.form-group input:focus, .form-group textarea:focus { border-color:var(--party-coral); }
-.form-group textarea { resize:vertical; min-height:80px; }
-.form-checkbox { display:flex; align-items:flex-start; gap:0.6rem; margin-bottom:1rem; cursor:pointer; }
-.form-checkbox input[type="checkbox"] { appearance:none; -webkit-appearance:none; width:18px; height:18px; min-width:18px; border:1px solid rgba(255,255,255,0.3); border-radius:4px; background:rgba(255,255,255,0.08); cursor:pointer; position:relative; margin-top:2px; transition:border-color 0.3s, background 0.3s; }
-.form-checkbox input[type="checkbox"]:checked { background:var(--party-coral); border-color:var(--party-coral); }
-.form-checkbox input[type="checkbox"]:checked::after { content:'\2713'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:white; font-size:12px; font-weight:700; }
-.form-checkbox label { font-size:0.78rem; color:rgba(255,255,255,0.55); line-height:1.5; cursor:pointer; }
-.form-checkbox label a { color:var(--confetti-gold); text-decoration:none; }
-.form-checkbox label a:hover { text-decoration:underline; }
-.submit-btn { width:100%; padding:1rem; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; border:none; border-radius:12px; font-family:var(--font-body); font-size:1rem; font-weight:600; cursor:pointer; transition:var(--transition); margin-top:0.5rem; }
-.submit-btn:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(233,69,96,0.4); }
-.submit-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none; }
-.form-success { display:none; text-align:center; padding:2rem 1rem; }
-.form-success .check { font-size:3rem; margin-bottom:1rem; }
-.form-success h4 { font-size:1.3rem; margin-bottom:0.5rem; }
-.form-success p { font-size:0.9rem; color:rgba(255,255,255,0.6); margin:0; }
-.form-error { display:none; text-align:center; padding:0.75rem; background:rgba(220,38,38,0.15); border:1px solid rgba(220,38,38,0.3); border-radius:8px; color:#ff6b6b; font-size:0.85rem; margin-bottom:1rem; }
 
 /* ===== FOOTER ===== */
 .site-footer { background:var(--midnight); color:white; padding:3rem 2rem; text-align:center; border-top:1px solid rgba(255,255,255,0.06); }
@@ -194,7 +159,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
 @media (max-width: 900px) {
   .steps-grid { grid-template-columns: repeat(2, 1fr); }
   .features-grid { grid-template-columns: repeat(2, 1fr); }
-  .cta-inner { grid-template-columns: 1fr; gap:2.5rem; }
 }
 @media (max-width: 600px) {
   .hero { padding:8rem 1.5rem 5rem; }
@@ -207,8 +171,56 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
   .nav { padding:0.75rem 1rem; }
   .nav-logo-icon { height:50px; }
   .nav-cta { padding:0.5rem 1rem; font-size:0.8rem; }
-  .cta-left h2 { font-size:2rem; }
-  .contact-form { padding:1.75rem; }
+}
+
+/* ===== DEMO SHOWCASE ===== */
+.demo-section { background:var(--cream); padding:5rem 2rem; }
+.demo-stage { display:grid; grid-template-columns:1fr 1fr; gap:3rem; align-items:center; margin-top:3rem; max-width:960px; margin-left:auto; margin-right:auto; }
+.demo-prompt-area { display:flex; flex-direction:column; justify-content:center; }
+.demo-chat-bubble { background:white; border-radius:20px; padding:2rem 2rem 1.5rem; box-shadow:0 4px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); position:relative; height:200px; overflow:hidden; }
+.demo-prompt-label { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--party-coral); margin-bottom:0.75rem; }
+.demo-prompt-text { font-size:1.05rem; line-height:1.7; color:var(--midnight); overflow:hidden; font-family:var(--font-body); }
+.demo-cursor { display:inline-block; width:2px; height:1.2em; background:var(--party-coral); margin-left:2px; vertical-align:text-bottom; animation:demoBlink 0.8s ease-in-out infinite; }
+@keyframes demoBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+.demo-event-label { margin-top:1rem; padding-top:0.75rem; border-top:1px solid rgba(0,0,0,0.06); font-size:0.8rem; color:var(--slate); font-weight:500; }
+.demo-event-label strong { color:var(--midnight); }
+
+/* Phone mockup for demo */
+.demo-phone { position:relative; width:280px; margin:0 auto; }
+.demo-phone-frame { background:linear-gradient(145deg, #2a2a2e 0%, #1a1a1e 100%); border-radius:40px; padding:8px; box-shadow:0 24px 64px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.08) inset; position:relative; }
+.demo-phone-notch { width:80px; height:20px; background:#000; border-radius:14px; position:absolute; top:14px; left:50%; transform:translateX(-50%); z-index:3; }
+.demo-phone-screen { background:white; border-radius:34px; overflow:hidden; position:relative; aspect-ratio:393/852; width:100%; }
+.demo-phone-screen iframe { width:393px; height:852px; border:none; border-radius:34px; transform-origin:top left; pointer-events:none; }
+.demo-phone-home { width:90px; height:4px; background:rgba(255,255,255,0.25); border-radius:2px; margin:5px auto 2px; }
+
+/* Demo nav dots */
+.demo-nav { display:flex; justify-content:center; gap:10px; margin-top:2.5rem; }
+.demo-dot { width:10px; height:10px; border-radius:50%; background:var(--slate-light); border:none; cursor:pointer; transition:all 0.3s; padding:0; }
+.demo-dot.active { background:var(--party-coral); transform:scale(1.3); }
+
+/* Demo cost callout */
+.demo-cost { margin-top:2.5rem; display:inline-flex; flex-direction:column; align-items:center; gap:0.75rem; background:white; border-radius:16px; padding:1.5rem 2.5rem; box-shadow:0 4px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.demo-cost-header { font-size:0.85rem; font-weight:700; color:var(--midnight); text-transform:uppercase; letter-spacing:0.5px; }
+.demo-cost-columns { display:flex; align-items:center; gap:1.25rem; }
+.demo-cost-amount { font-family:var(--font-display); font-size:2.5rem; font-weight:700; color:var(--party-coral); line-height:1; white-space:nowrap; }
+.demo-cost-detail { text-align:left; display:flex; flex-direction:column; gap:2px; }
+.demo-cost-unlimited { font-size:0.85rem; font-weight:600; color:var(--mint-fizz); display:block; }
+.demo-cost-sub { font-size:0.72rem; color:var(--slate); display:block; }
+
+/* Demo fade transitions */
+.demo-fade { transition:opacity 0.5s ease; }
+.demo-fade.fading { opacity:0; }
+
+@media (max-width: 900px) {
+  .demo-stage { grid-template-columns:1fr; text-align:center; }
+  .demo-prompt-area { order:1; }
+  .demo-preview-area { order:2; }
+}
+@media (max-width: 600px) {
+  .demo-section { padding:3.5rem 1.5rem; }
+  .demo-phone { width:220px; }
+  .demo-chat-bubble { padding:1.5rem; height:180px; }
+  .demo-prompt-text { font-size:0.95rem; }
 }
 </style>
 </head>
@@ -244,28 +256,43 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
         <circle cx="78" cy="40" r="3" fill="#4ECDC4" opacity="0.5"/>
       </svg>
     </div>
-    <h1 class="fade-in-up fade-delay-1">Prompt to Party</h1>
-    <p class="subtext fade-in-up fade-delay-2">Beautiful, custom invitations generated by AI. Fairly priced per event. Beautiful forever.</p>
-    <p class="origin fade-in-up fade-delay-2">It started as a birthday invite for a 1-year-old. It became a completely over-engineered labor of love.</p>
+    <h1 class="fade-in-up fade-delay-1">AI Invitations. Always Unique.</h1>
+    <p class="subtext fade-in-up fade-delay-2">Fully custom, beautiful invitations generated by AI in seconds. No templates. No two alike.</p>
     <a href="/v2/create/" class="hero-cta fade-in-up fade-delay-3">Create Your Invite</a>
   </div>
 </section>
 
-<!-- Marquee -->
-<div class="marquee">
-  <div class="marquee-track">
-    <span class="marquee-item">Prompt to Party</span>
-    <span class="marquee-item">Every Moment Deserves Beauty</span>
-    <span class="marquee-item">AI-Powered Invitations</span>
-    <span class="marquee-item">Fairly Priced Per Event</span>
-    <span class="marquee-item">Totally Over-Engineered</span>
-    <span class="marquee-item">Prompt to Party</span>
-    <span class="marquee-item">Every Moment Deserves Beauty</span>
-    <span class="marquee-item">AI-Powered Invitations</span>
-    <span class="marquee-item">Fairly Priced Per Event</span>
-    <span class="marquee-item">Totally Over-Engineered</span>
+<!-- Demo Showcase (hidden until showcases load) -->
+<section class="section demo-section" id="demo" style="display:none;">
+  <div class="container" style="text-align:center;">
+    <p class="section-label scroll-reveal">See It In Action</p>
+    <h2 class="section-title scroll-reveal">Prompt to Party</h2>
+    <p class="section-subtitle center scroll-reveal">Describe your event and get a fully custom invitation in seconds. Most events are under $2 — for unlimited invites.</p>
+    <div class="demo-stage scroll-reveal">
+      <div class="demo-prompt-area">
+        <div class="demo-chat-bubble demo-fade" id="demoBubble">
+          <div class="demo-prompt-label">Your prompt</div>
+          <p class="demo-prompt-text" id="demoPromptText"></p>
+          <span class="demo-cursor" id="demoCursor"></span>
+          <div class="demo-event-label" id="demoEventLabel" style="display:none;"></div>
+        </div>
+      </div>
+      <div class="demo-preview-area">
+        <div class="demo-phone demo-fade" id="demoPhone">
+          <div class="demo-phone-frame">
+            <div class="demo-phone-notch"></div>
+            <div class="demo-phone-screen">
+              <iframe id="demoPreviewFrame" sandbox="allow-scripts"></iframe>
+            </div>
+            <div class="demo-phone-home"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-nav" id="demoNav"></div>
+    <div class="demo-cost" id="demoCost" style="display:none;"></div>
   </div>
-</div>
+</section>
 
 <!-- How It Works -->
 <section class="section how-section" id="how">
@@ -304,10 +331,10 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
       <div class="story-content scroll-reveal">
         <div class="story-text">
           <p>Rylan was turning 1, and his dad needed an invite. <em>How hard could it be?</em></p>
-          <p>Turns out, $8 per invite on Paperless Post hard. Or "pick from 200 of the same template" hard. So instead of just making the invite, dad opened Claude, described the vibe, uploaded a few inspiration photos, and got back a fully custom, beautifully designed HTML invitation in about 90 seconds. It looked better than anything on the premium platforms. And it was free.</p>
+          <p>Turns out, pretty hard. Premium invite platforms charge per guest, and template sites all look the same. So instead of settling, dad described the vibe to an AI, uploaded a few inspiration photos, and got back a fully custom, beautifully designed invitation in about 90 seconds. It looked better than anything on the premium platforms.</p>
           <p>That should have been the end of it. Make the invite. Send the invite. Eat the cake. But instead, the thought crept in: <em>"What if everyone could do this?"</em> And then the completely over-engineered fun project began.</p>
-          <p>Ryvite is fairly priced per event because beautiful invitations shouldn't cost $8 a pop.</p>
-          <div class="donation-badge">&#127891; Fairly priced per event</div>
+          <p>Ryvite is fairly priced per event because beautiful invitations shouldn't cost a fortune.</p>
+          <a href="/v2/create/" class="hero-cta" style="display:inline-block; margin-top:1.5rem;">Try It for Yourself</a>
         </div>
       </div>
       <div class="rylan-photo scroll-reveal">
@@ -360,52 +387,13 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
   </div>
 </section>
 
-<!-- Contact CTA -->
+<!-- Get Started CTA -->
 <section class="section cta-section" id="contact">
-  <div class="container">
-    <div class="cta-inner">
-      <div class="cta-left scroll-reveal">
-        <p class="section-label" style="color:var(--confetti-gold);">Get Started</p>
-        <h2>Create Your Invite</h2>
-        <p>Tell us about your event and we'll get back to you with a custom, AI-generated invitation that's uniquely yours. No templates. No fees. Just magic.</p>
-        <p class="cta-note">We'll reach out within 24 hours to get your invite started.</p>
-      </div>
-      <div class="scroll-reveal">
-        <div class="contact-form" id="contactFormCard">
-          <h3>Let's Make It</h3>
-          <p class="form-sub">Tell us about your event</p>
-          <div class="form-error" id="formError"></div>
-          <form id="contactForm">
-            <div class="form-group">
-              <label for="contactName">Your Name</label>
-              <input type="text" id="contactName" name="name" placeholder="First & Last Name" required>
-            </div>
-            <div class="form-group">
-              <label for="contactEmail">Email</label>
-              <input type="email" id="contactEmail" name="email" placeholder="you@email.com" required>
-            </div>
-            <div class="form-group">
-              <label for="contactPhone">Phone</label>
-              <input type="tel" id="contactPhone" name="phone" placeholder="(555) 123-4567" required>
-            </div>
-            <div class="form-group">
-              <label for="contactEvent">Tell Us About Your Event</label>
-              <textarea id="contactEvent" name="event" placeholder="What's the occasion? Any theme or vibe in mind?" required></textarea>
-            </div>
-            <div class="form-checkbox">
-              <input type="checkbox" id="smsConsent" name="smsConsent" required>
-              <label for="smsConsent">I understand that Ryvite will send transactional SMS messages (such as event updates and RSVP notifications) on my behalf only to contacts with whom I have a personal relationship. I agree to the <a href="/terms/" target="_blank">Terms &amp; Conditions</a> and <a href="/privacy/" target="_blank">Privacy Policy</a>.</label>
-            </div>
-            <button type="submit" class="submit-btn" id="submitBtn">Send Request</button>
-          </form>
-          <div class="form-success" id="formSuccess">
-            <div class="check">&#127881;</div>
-            <h4>Request Sent!</h4>
-            <p>We'll be in touch within 24 hours to get your invite started.</p>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="container" style="text-align:center; max-width:640px;">
+    <p class="section-label scroll-reveal" style="color:var(--confetti-gold);">Ready?</p>
+    <h2 class="section-title scroll-reveal">Create Your Invite</h2>
+    <p class="scroll-reveal" style="color:rgba(255,255,255,0.7); font-size:1.05rem; line-height:1.7; margin-bottom:2.5rem;">Describe your event, pick a design, and send beautiful invitations — all in minutes. No templates, no subscriptions. Browse our inspiration library to spark ideas or start from scratch.</p>
+    <a href="/v2/create/" class="nav-cta scroll-reveal" style="display:inline-block; padding:1rem 2.5rem; font-size:1.1rem; border-radius:14px;">Get Started</a>
   </div>
 </section>
 
@@ -487,44 +475,177 @@ document.querySelectorAll(".scroll-reveal").forEach(function(el) {
   observer.observe(el);
 });
 
-// Contact form
-document.getElementById("contactForm").addEventListener("submit", function(e) {
-  e.preventDefault();
-  var btn = document.getElementById("submitBtn");
-  var errEl = document.getElementById("formError");
-  errEl.style.display = "none";
 
-  if (!document.getElementById("smsConsent").checked) {
-    errEl.textContent = "Please agree to the SMS consent, Terms & Conditions, and Privacy Policy to continue.";
-    errEl.style.display = "block";
-    return;
+// ===== DEMO SHOWCASE =====
+(function() {
+  var showcases = [];
+  var currentIdx = 0;
+  var cycleTimer = null;
+  var typingTimer = null;
+  var CYCLE_MS = 10000;
+  var TYPE_MS = 35;
+
+  function initDemo() {
+    fetch("/api/v2/showcases")
+      .then(function(r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        showcases = (data && data.showcases) || [];
+        console.log("[Demo] Loaded " + showcases.length + " showcases");
+        if (showcases.length === 0) return;
+        document.getElementById("demo").style.display = "";
+        // Double rAF to ensure browser has reflowed the now-visible section
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            scalePhone();
+            buildDots();
+            showShowcase(0);
+            startCycle();
+          });
+        });
+      })
+      .catch(function(err) {
+        console.error("[Demo] Failed to load showcases:", err);
+      });
+
+    // Fetch estimated event cost
+    fetch("/api/v2/billing?action=estimateCost")
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success || !data.estimate) return;
+        var est = data.estimate;
+        var dollars = (est.aiCostCents / 100).toFixed(2);
+        var costEl = document.getElementById("demoCost");
+        if (!costEl) return;
+        costEl.innerHTML = '<span class="demo-cost-header">Average per event</span>'
+          + '<span class="demo-cost-columns">'
+          + '<span class="demo-cost-amount">~$' + dollars + '</span>'
+          + '<span class="demo-cost-detail">'
+          + '<span class="demo-cost-unlimited">Unlimited invites included</span>'
+          + '<span class="demo-cost-sub">You only pay for AI generation. + Optional SMS.</span>'
+          + '</span>'
+          + '</span>';
+        costEl.style.display = "";
+      })
+      .catch(function() {});
   }
 
-  btn.disabled = true;
-  btn.textContent = "Sending...";
+  function scalePhone() {
+    var screen = document.querySelector(".demo-phone-screen");
+    var iframe = document.getElementById("demoPreviewFrame");
+    if (!screen || !iframe) return;
+    var w = screen.offsetWidth;
+    var scale = w / 393;
+    iframe.style.transform = "scale(" + scale + ")";
+  }
 
-  var data = {
-    name: document.getElementById("contactName").value.trim(),
-    email: document.getElementById("contactEmail").value.trim(),
-    phone: document.getElementById("contactPhone").value.trim(),
-    event: document.getElementById("contactEvent").value.trim()
-  };
+  function buildDots() {
+    var nav = document.getElementById("demoNav");
+    if (!nav || showcases.length < 2) return;
+    nav.innerHTML = "";
+    showcases.forEach(function(_, i) {
+      var dot = document.createElement("button");
+      dot.className = "demo-dot" + (i === 0 ? " active" : "");
+      dot.setAttribute("aria-label", "Show showcase " + (i + 1));
+      dot.onclick = function() {
+        clearInterval(cycleTimer);
+        showShowcase(i);
+        startCycle();
+      };
+      nav.appendChild(dot);
+    });
+  }
 
-  fetch("/api/contact", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  }).then(function(res) {
-    if (!res.ok) throw new Error("Failed to send");
-    document.getElementById("contactForm").style.display = "none";
-    document.getElementById("formSuccess").style.display = "block";
-  }).catch(function(err) {
-    btn.disabled = false;
-    btn.textContent = "Send Request";
-    errEl.textContent = "Something went wrong. Please try again or email jake@getmrkt.com directly.";
-    errEl.style.display = "block";
-  });
-});
+  function showShowcase(idx) {
+    currentIdx = idx;
+    var s = showcases[idx];
+    if (!s) return;
+
+    // Update dots
+    document.querySelectorAll(".demo-dot").forEach(function(d, i) {
+      d.classList.toggle("active", i === idx);
+    });
+
+    // Fade out
+    var bubble = document.getElementById("demoBubble");
+    var phone = document.getElementById("demoPhone");
+    bubble.classList.add("fading");
+    phone.classList.add("fading");
+
+    setTimeout(function() {
+      // Clear and start typing
+      var textEl = document.getElementById("demoPromptText");
+      var cursor = document.getElementById("demoCursor");
+      var label = document.getElementById("demoEventLabel");
+      textEl.textContent = "";
+      cursor.style.display = "inline-block";
+
+      // Set event label
+      if (s.event_title) {
+        label.innerHTML = "<strong>" + escapeH(s.event_title) + "</strong>";
+        label.style.display = "";
+      } else {
+        label.style.display = "none";
+      }
+
+      // Load preview
+      var fontsImport = (s.config && s.config.googleFontsImport) || "";
+      var srcdoc = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=393, initial-scale=1.0\">"
+        + "<style>" + fontsImport + "</style>"
+        + "<style>" + (s.css || "") + "</style>"
+        + "<style>.rsvp-slot,.details-slot{display:none}</style>"
+        + "</head><body>" + (s.html || "") + "</body></html>";
+      var iframe = document.getElementById("demoPreviewFrame");
+      iframe.srcdoc = srcdoc;
+
+      // Fade in
+      bubble.classList.remove("fading");
+      phone.classList.remove("fading");
+
+      // Type the prompt
+      typeText(textEl, s.prompt_text, cursor);
+    }, 500);
+  }
+
+  function typeText(el, text, cursor) {
+    if (typingTimer) clearInterval(typingTimer);
+    var i = 0;
+    typingTimer = setInterval(function() {
+      if (i < text.length) {
+        el.textContent += text[i];
+        i++;
+      } else {
+        clearInterval(typingTimer);
+        typingTimer = null;
+        // Hide cursor after typing completes
+        setTimeout(function() { cursor.style.display = "none"; }, 1500);
+      }
+    }, TYPE_MS);
+  }
+
+  function startCycle() {
+    if (showcases.length < 2) return;
+    cycleTimer = setInterval(function() {
+      var next = (currentIdx + 1) % showcases.length;
+      showShowcase(next);
+    }, CYCLE_MS);
+  }
+
+  function escapeH(s) {
+    var d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  window.addEventListener("resize", scalePhone);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDemo);
+  } else {
+    initDemo();
+  }
+})();
 </script>
 </body>
 </html>
