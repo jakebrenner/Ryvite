@@ -10,11 +10,13 @@ const supabase = createClient(
 
 const DEFAULT_CHAT_MODEL = 'claude-haiku-4-5-20251001';
 
-// AI model pricing per 1M tokens (must match billing.js / generate-theme.js)
+// AI model pricing per 1M tokens — must match billing.js, generate-theme.js, ratings.js, admin.js
 const AI_MODEL_PRICING = {
-  'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
-  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
-  'claude-opus-4-6': { input: 15.00, output: 75.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-6':         { input: 3.00, output: 15.00 },
+  'claude-opus-4-20250514':    { input: 15.00, output: 75.00 },
+  'claude-opus-4-6':           { input: 15.00, output: 75.00 },
 };
 
 function calcGenerationCost(model, inputTokens, outputTokens, markupPct = 50) {
@@ -194,13 +196,15 @@ export default async function handler(req, res) {
     // Increment persistent event cost if we have an eventId
     if (eventId) {
       supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: chatCost.totalCostCents })
-        .catch(() => {
-          supabase.from('events').select('total_cost_cents').eq('id', eventId).single()
-            .then(({ data }) => {
-              if (data) supabase.from('events')
-                .update({ total_cost_cents: (data.total_cost_cents || 0) + chatCost.totalCostCents })
-                .eq('id', eventId).catch(() => {});
-            }).catch(() => {});
+        .then(({ error }) => {
+          if (error) {
+            supabase.from('events').select('total_cost_cents').eq('id', eventId).single()
+              .then(({ data }) => {
+                if (data) supabase.from('events')
+                  .update({ total_cost_cents: (data.total_cost_cents || 0) + chatCost.totalCostCents })
+                  .eq('id', eventId).then(() => {});
+              });
+          }
         });
     }
 

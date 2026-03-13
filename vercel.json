@@ -56,7 +56,7 @@
     },
     {
       "source": "/v2/event/:slug",
-      "destination": "/v2/event/index.html"
+      "destination": "/api/v2/event-page?slug=:slug"
     },
     {
       "source": "/v2/cohost",

@@ -71,6 +71,47 @@
   <script>
     let currentEventData = null;
 
+    // Fix double-escaped whitespace from AI model output (pre-fix DB themes)
+    function sanitizeThemeText(str) {
+      if (!str) return str;
+      if (str.indexOf('\\n') !== -1) str = str.replace(/\\n/g, '\n');
+      if (str.indexOf('\\t') !== -1) str = str.replace(/\\t/g, '\t');
+      return str;
+    }
+
+    function buildEventDetailsHtml(event) {
+      var items = [];
+      if (event.event_date || event.eventDate) {
+        var dateStr = event.event_date || event.eventDate;
+        var startDate = new Date(dateStr);
+        var endDateStr = event.end_date || event.endDate;
+        var formatted = startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        var timeStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        if (endDateStr) {
+          var endDate = new Date(endDateStr);
+          timeStr += ' \u2013 ' + endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        items.push({ icon: '&#128197;', label: 'Date', value: formatted + '<br>' + timeStr });
+      }
+      var locName = event.location_name || event.locationName || '';
+      var locAddr = event.location_address || event.locationAddress || '';
+      if (locName || locAddr) {
+        var loc = [locName, locAddr].filter(Boolean).join('<br>');
+        items.push({ icon: '&#128205;', label: 'Location', value: loc });
+      }
+      var dressCode = event.dress_code || event.dressCode || '';
+      if (dressCode) {
+        items.push({ icon: '&#128087;', label: 'Dress Code', value: dressCode });
+      }
+      return items.map(function(item) {
+        return '<div class="detail-item">'
+          + '<div class="detail-icon">' + item.icon + '</div>'
+          + '<div class="detail-text"><div class="detail-label">' + item.label + '</div>'
+          + '<div class="detail-value">' + item.value + '</div></div>'
+          + '</div>';
+      }).join('');
+    }
+
     async function loadEvent() {
       var params = new URLSearchParams(window.location.search);
       var slug = params.get('slug');
@@ -102,9 +143,19 @@
           var fontsImport = config.googleFontsImport || '';
           var fontsTag = fontsImport ? '<style>' + fontsImport + '</style>' : '';
           var iframe = document.getElementById('themeFrame');
-          iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' + fontsTag + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; }</style><style>' + result.event.themeCss + '</style></head><body>' + result.event.themeHtml + '</body></html>';
+          iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' + fontsTag + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { padding: 20px; background: #f9f9f9; }</style><style>' + sanitizeThemeText(result.event.themeCss) + '</style></head><body>' + sanitizeThemeText(result.event.themeHtml) + '</body></html>';
           iframe.style.display = 'block';
-          iframe.onload = function() { try { iframe.style.height = Math.max(iframe.contentDocument.body.scrollHeight + 40, 600) + 'px'; } catch(e) {} };
+          iframe.onload = function() {
+            try {
+              iframe.style.height = Math.max(iframe.contentDocument.body.scrollHeight + 40, 600) + 'px';
+              // Inject event details into .details-slot for new themes
+              var doc = iframe.contentDocument;
+              var detailsSlot = doc.querySelector('.details-slot');
+              if (detailsSlot) {
+                detailsSlot.innerHTML = buildEventDetailsHtml(result.event);
+              }
+            } catch(e) {}
+          };
         }
 
         renderRSVPForm(result.event);

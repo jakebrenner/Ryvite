@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-scroll">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Create Event — Ryvite</title>
   <meta name="description" content="Create a beautiful AI-designed event invitation in minutes.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +17,9 @@
       --confetti-gold: #FFB74D; --mint-fizz: #4ECDC4; --party-purple: #A78BFA; --cream: #FFFAF5;
     }
     html, body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--midnight); height: 100%; }
+    /* overflow:hidden during chat steps prevents body scroll when iOS keyboard opens;
+       removed on design step so user can scroll past preview to edit/regenerate buttons */
+    html.no-scroll, body.no-scroll { overflow: hidden; }
     .header { background: white; border-bottom: 1px solid #eee; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
     .header-left { display: flex; align-items: center; }
     .header-left > a { text-decoration: none; display: flex; align-items: center; }
@@ -69,7 +72,7 @@
     .message.success { background: #d4edda; color: #155724; display: block; }
 
     /* Chat UI */
-    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 110px); max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 110px); height: calc(100dvh - 110px); max-width: 720px; margin: 0 auto; padding: 0 20px; }
     .chat-messages { flex: 1; overflow-y: auto; padding: 24px 0; display: flex; flex-direction: column; gap: 16px; min-height: 0; justify-content: flex-end; }
     .chat-bubble { max-width: 85%; padding: 14px 18px; border-radius: 16px; font-size: 14px; line-height: 1.6; animation: fadeIn 0.3s; }
     .chat-bubble.assistant { background: white; border: 1px solid #eee; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
@@ -176,6 +179,9 @@
       .generated-layout { gap: 16px !important; }
       #editPanel { max-width: 100% !important; min-width: 0 !important; width: 100%; order: 2; }
       #previewColumn { order: 1; width: 100%; display: flex; flex-direction: column; align-items: center; }
+      /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+      .chat-input { font-size: 16px; }
+      .design-chat-input-area textarea { font-size: 16px; }
     }
     @media (max-width: 640px) {
       .phone-mockup { width: 320px; margin: 12px auto; }
@@ -256,6 +262,10 @@
     .design-chat-send:disabled { background: #ccc; cursor: not-allowed; }
     .design-chat-photo-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; transition: all 0.2s; }
     .design-chat-photo-btn:hover { border-color: var(--party-coral); background: rgba(233,69,96,0.05); }
+    /* Mobile keyboard compensation — applied via JS when textarea is focused on mobile */
+    .design-chat-keyboard-active { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: white; border-top: 1px solid #eee; box-shadow: 0 -4px 16px rgba(0,0,0,0.1); padding: 0 12px; display: flex; flex-direction: column; }
+    .design-chat-keyboard-active .design-chat-messages { max-height: 40vh; }
+    .design-chat-keyboard-active .design-chat-input-area { padding-bottom: env(safe-area-inset-bottom, 8px); }
     .design-chat-photo-preview { display: flex; gap: 6px; padding: 6px 0; flex-wrap: wrap; }
     .design-chat-photo-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
     .design-chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -288,7 +298,8 @@
     .gen-emoji-float { font-size: 48px; animation: genFloat 3s ease-in-out infinite; }
     @keyframes genFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
     .gen-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--midnight); margin: 16px 0 6px; }
-    .gen-subtitle { font-size: 14px; color: #888; margin-bottom: 24px; font-style: italic; min-height: 20px; transition: opacity 0.3s; }
+    .gen-subtitle { font-size: 14px; color: #888; margin-bottom: 8px; font-style: italic; min-height: 20px; transition: opacity 0.3s; }
+    .gen-time-hint { font-size: 12px; color: #bbb; margin-bottom: 24px; }
     .gen-progress-track { width: 100%; height: 6px; background: #f0e8ea; border-radius: 3px; overflow: hidden; margin-bottom: 28px; }
     .gen-progress-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--party-coral), var(--blush-pop), var(--mint-fizz)); background-size: 200% 100%; animation: genShimmer 2s ease-in-out infinite; transition: width 0.8s ease; width: 5%; }
     @keyframes genShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
@@ -355,7 +366,7 @@
     .empty-contacts svg { margin-bottom: 8px; }
   </style>
 </head>
-<body>
+<body class="no-scroll">
   <div class="header">
     <div class="header-left">
       <a href="/v2/dashboard/" style="display:flex;align-items:center;"><svg viewBox="0 0 210 80" xmlns="http://www.w3.org/2000/svg" style="height:56px;width:auto;"><circle cx="32" cy="40" r="22" fill="none" stroke="var(--party-coral)" stroke-width="2.2"/><path d="M18 30 L32 42 L46 30" fill="none" stroke="var(--party-coral)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 50 L46 50" fill="none" stroke="var(--party-coral)" stroke-width="1.8" stroke-linecap="round"/><text x="64" y="52" font-family="Playfair Display, serif" font-size="34" font-weight="700" fill="var(--midnight)">Ryvite</text></svg></a>
@@ -436,6 +447,7 @@
             <div class="gen-emoji-float" id="genEmoji">🎨</div>
             <h3 class="gen-title">Creating Your Invite</h3>
             <p class="gen-subtitle" id="generatingPun">Our AI is designing something special...</p>
+            <p class="gen-time-hint">This usually takes 30–60 seconds — good things take time!</p>
             <div class="gen-progress-track"><div class="gen-progress-bar" id="genProgressBar"></div></div>
             <div class="gen-stages" id="genStages">
               <div class="gen-stage active" data-stage="analyze">
@@ -576,7 +588,7 @@
               <div id="costTracker" class="cost-tracker hidden">
                 <div class="cost-tracker-row">
                   <span class="cost-tracker-label">Current Invite Cost</span>
-                  <span class="cost-tracker-value" id="costTrackerTotal">$0.50</span>
+                  <span class="cost-tracker-value" id="costTrackerTotal">$0.00</span>
                 </div>
               </div>
               <div style="margin-bottom:16px;">
@@ -748,8 +760,8 @@
     var currentPreviewMode = 'invite';
 
     // Cost tracking state — tracks cumulative cost for this event (persisted across sessions)
-    var TRANSACTION_FEE_CENTS = 50; // $0.50 minimum to cover transaction charges
     var eventCostCents = 0;
+    var _genRetried = false; // prevents infinite retry on mobile "Load failed"
     var eventGenCount = 0;
     var usagePlanUser = false;
 
@@ -895,6 +907,9 @@
           document.getElementById('generatedView').style.display = 'block';
           renderPreview(themeVersions[activeVersionIndex]);
           renderVersionGallery();
+          // Set pending rating so it shows when design chat initializes
+          var activeTheme = themeVersions[activeVersionIndex];
+          if (activeTheme && activeTheme.id) pendingRatingThemeId = activeTheme.id;
           goToStep(2);
           initCostTracker();
           // Still fetch fresh data in background to update event details
@@ -988,6 +1003,7 @@
               + '<div class="gen-emoji-float" id="genEmoji">🎨</div>'
               + '<h3 class="gen-title">Creating Your Invite</h3>'
               + '<p class="gen-subtitle" id="generatingPun">Our AI is designing something special...</p>'
+              + '<p class="gen-time-hint">This usually takes 30\u201360 seconds \u2014 good things take time!</p>'
               + '<div class="gen-progress-track"><div class="gen-progress-bar" id="genProgressBar"></div></div>'
               + '<div class="gen-stages" id="genStages">'
               + '<div class="gen-stage active" data-stage="analyze"><div class="gen-stage-icon"><div class="gen-spinner"></div></div><div class="gen-stage-text">Analyzing your event details</div></div>'
@@ -1007,6 +1023,9 @@
               document.getElementById('generatedView').style.display = 'block';
               renderPreview(themeVersions[0]);
               renderVersionGallery();
+              // Set pending rating so it shows when design chat initializes
+              var activeTheme2 = themeVersions[activeVersionIndex >= 0 ? activeVersionIndex : 0];
+              if (activeTheme2 && activeTheme2.id) pendingRatingThemeId = activeTheme2.id;
               initDesignChatIfNeeded(false);
               goToStep(2);
               initCostTracker();
@@ -1434,7 +1453,7 @@
       // If draft already exists, update it with extracted details
       if (currentEvent) {
         try {
-          await authFetch('/api/v2/events?action=update', {
+          var updateRes = await authFetch('/api/v2/events?action=update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1450,6 +1469,10 @@
               settings: { creation_step: 1 }
             })
           });
+          var updateResult = await updateRes.json();
+          if (updateResult.success && updateResult.event) {
+            currentEvent.slug = updateResult.event.slug;
+          }
           await saveCustomFields();
           return true;
         } catch (err) {
@@ -1559,6 +1582,7 @@
             + '<div class="gen-emoji-float" id="genEmoji">🎨</div>'
             + '<h3 class="gen-title">Creating Your Invite</h3>'
             + '<p class="gen-subtitle" id="generatingPun">Starting up...</p>'
+            + '<p class="gen-time-hint">This usually takes 30\u201360 seconds \u2014 good things take time!</p>'
             + '<div class="gen-progress-track"><div class="gen-progress-bar" id="genProgressBar"></div></div>'
             + '<div class="gen-stages" id="genStages">'
             + '<div class="gen-stage active" data-stage="analyze"><div class="gen-stage-icon"><div class="gen-spinner"></div></div><div class="gen-stage-text">Analyzing your event details</div></div>'
@@ -2663,6 +2687,16 @@
     function goToStep(step) {
       document.querySelector('.chat-container').style.display = step === 1 ? 'flex' : 'none';
 
+      // Lock body scroll on chat/summary steps (prevents iOS keyboard body-scroll);
+      // unlock on design step so user can scroll past preview to edit/regenerate buttons
+      if (step === 2) {
+        document.documentElement.classList.remove('no-scroll');
+        document.body.classList.remove('no-scroll');
+      } else {
+        document.documentElement.classList.add('no-scroll');
+        document.body.classList.add('no-scroll');
+      }
+
       document.querySelectorAll('.container .step').forEach(function(s) { s.classList.remove('active'); });
       if (step > 1) {
         document.querySelector('.container .step[data-step="' + step + '"]').classList.add('active');
@@ -2734,7 +2768,16 @@
       // On desktop, constrain edit panel height to match preview column
       syncEditPanelHeight();
     }
-    window.addEventListener('resize', updateMobileLayout);
+    // Gate resize to width-only changes — keyboard open/close only changes height,
+    // so skip expensive updateMobileLayout during keyboard transitions
+    (function() {
+      var lastWidth = window.innerWidth;
+      window.addEventListener('resize', function() {
+        if (window.innerWidth === lastWidth) return;
+        lastWidth = window.innerWidth;
+        updateMobileLayout();
+      });
+    })();
 
     function syncEditPanelHeight() {
       var editPanel = document.getElementById('editPanel');
@@ -2787,35 +2830,39 @@
       }, 4000);
       genStageTimers.push(emojiTimer);
 
-      // Progress bar animation
+      // Progress bar animation — calibrated for typical 20-45s generation
       var bar = document.getElementById('genProgressBar');
       if (bar) {
         bar.style.width = '5%';
-        setTimeout(function() { bar.style.width = '25%'; }, 500);
-        setTimeout(function() { bar.style.width = '50%'; }, 4000);
-        setTimeout(function() { bar.style.width = '70%'; }, 10000);
-        setTimeout(function() { bar.style.width = '85%'; }, 20000);
-        setTimeout(function() { bar.style.width = '92%'; }, 30000);
+        setTimeout(function() { bar.style.width = '15%'; }, 500);
+        setTimeout(function() { bar.style.width = '30%'; }, 3000);
+        setTimeout(function() { bar.style.width = '45%'; }, 8000);
+        setTimeout(function() { bar.style.width = '60%'; }, 15000);
+        setTimeout(function() { bar.style.width = '72%'; }, 22000);
+        setTimeout(function() { bar.style.width = '82%'; }, 30000);
+        setTimeout(function() { bar.style.width = '88%'; }, 40000);
+        setTimeout(function() { bar.style.width = '93%'; }, 50000);
       }
 
-      // Animate stage progression
+      // Animate stage progression — spread across typical generation time
       var stages = document.querySelectorAll('#genStages .gen-stage');
       if (stages.length >= 3) {
-        // Stage 1 already active
+        // Stage 1 already active — transition at ~8s (AI has started generating)
         genStageTimers.push(setTimeout(function() {
           stages[0].classList.remove('active');
           stages[0].classList.add('done');
           stages[0].querySelector('.gen-stage-icon').innerHTML = '✓';
           stages[1].classList.add('active');
           stages[1].querySelector('.gen-stage-icon').innerHTML = '<div class="gen-spinner"></div>';
-        }, 5000));
+        }, 8000));
+        // Stage 2→3 at ~25s (design mostly done, polishing)
         genStageTimers.push(setTimeout(function() {
           stages[1].classList.remove('active');
           stages[1].classList.add('done');
           stages[1].querySelector('.gen-stage-icon').innerHTML = '✓';
           stages[2].classList.add('active');
           stages[2].querySelector('.gen-stage-icon').innerHTML = '<div class="gen-spinner"></div>';
-        }, 15000));
+        }, 25000));
       }
 
       // Show "How did you hear about us?" after a few seconds (first time only)
@@ -2983,7 +3030,7 @@
           }
 
           console.log('[generate-theme] Parse complete. Result:', !!genResult, 'Error:', genError);
-          window._lastGenDebug = 'Status: ' + res2.status + ' | Bytes: ' + fullText.length + ' | Elapsed: ' + elapsed + 's | Result: ' + !!genResult + ' | Build: 2026-03-11e';
+          window._lastGenDebug = 'Status: ' + res2.status + ' | Bytes: ' + fullText.length + ' | Elapsed: ' + elapsed + 's | Result: ' + !!genResult + ' | Build: 2026-03-12a';
 
           if (genResult && genResult.success) {
             var ver = {
@@ -3003,10 +3050,13 @@
             document.getElementById('generatedView').style.display = 'block';
             renderPreview(ver);
             renderVersionGallery();
+            // Set pending rating BEFORE initDesignChat so it gets picked up
+            pendingRatingThemeId = ver.id;
             initDesignChatIfNeeded();
-            // Track generation cost
+            // Track generation cost — show estimate immediately, then refresh from DB
             if (genResult.metadata) updateCostFromGeneration(genResult.metadata);
-            if (eventGenCount <= 1) initCostTracker();
+            // Always re-fetch accurate cost from DB after background save completes
+            setTimeout(function() { initCostTracker(); }, 6000);
             // Persist creation_step so resume returns to preview
             if (currentEvent) {
               authFetch('/api/v2/events?action=update', {
@@ -3014,8 +3064,6 @@
                 body: JSON.stringify({ eventId: currentEvent.id, settings: { creation_step: 2 } })
               }).catch(function() {});
             }
-
-            pendingRatingThemeId = ver.id;
             updateMobileLayout();
             // Cache theme in sessionStorage for fast reload
             try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
@@ -3023,11 +3071,18 @@
             stopGeneratingPuns();
             console.error('[generate-theme] Generation failed. genError:', genError, 'genResult:', genResult ? JSON.stringify(genResult).substring(0, 500) : null);
             var errMsg = (genError && (genError.message || genError.error)) || (genResult && !genResult.success ? 'Server returned failure' : 'No response received from server');
-            window._lastGenDebug = 'Bytes: ' + fullText.length + ' | Error: ' + JSON.stringify(genError) + ' | Result keys: ' + (genResult ? Object.keys(genResult).join(',') : 'null') + ' | Build: 2026-03-11e';
+            window._lastGenDebug = 'Bytes: ' + fullText.length + ' | Error: ' + JSON.stringify(genError) + ' | Result keys: ' + (genResult ? Object.keys(genResult).join(',') : 'null') + ' | Build: 2026-03-12a';
             showGeneratingError(errMsg);
           }
         }
       } catch (err) {
+        // Mobile Safari "Load failed" — connection dropped during SSE stream.
+        // Auto-retry once since the server likely completed the generation.
+        if (err.message === 'Load failed' && !_genRetried) {
+          console.warn('[generate-theme] Mobile connection dropped, retrying...');
+          _genRetried = true;
+          try { return await generateTheme(feedback); } finally { _genRetried = false; }
+        }
         console.error('[generate-theme] CATCH error:', err, err.stack);
         stopGeneratingPuns();
         var catchMsg = err.message || 'Error generating theme';
@@ -3051,7 +3106,7 @@
         + '<h3 class="gen-title" style="color:var(--party-coral);">Oops!</h3>'
         + '<p style="margin-bottom:12px;font-size:14px;color:#888;">' + escapeHtml(msg) + '</p>'
         + '<details style="margin-bottom:20px;text-align:left;max-width:100%;"><summary style="font-size:11px;color:#aaa;cursor:pointer;">Debug info</summary>'
-        + '<pre style="font-size:10px;color:#999;background:#f5f5f5;padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:4px;">' + escapeHtml(window._lastGenDebug || 'No debug info') + '\nBuild: 2026-03-11e</pre></details>'
+        + '<pre style="font-size:10px;color:#999;background:#f5f5f5;padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:4px;">' + escapeHtml(window._lastGenDebug || 'No debug info') + '\nBuild: 2026-03-12a</pre></details>'
         + buttons + '</div>';
     }
 
@@ -3068,6 +3123,7 @@
         + '<div class="gen-emoji-float" id="genEmoji">🎨</div>'
         + '<h3 class="gen-title">Creating Your Invite</h3>'
         + '<p class="gen-subtitle" id="generatingPun">One more try...</p>'
+        + '<p class="gen-time-hint">This usually takes 30\u201360 seconds \u2014 good things take time!</p>'
         + '<div class="gen-progress-track"><div class="gen-progress-bar" id="genProgressBar"></div></div>'
         + '<div class="gen-stages" id="genStages">'
         + '<div class="gen-stage active" data-stage="analyze"><div class="gen-stage-icon"><div class="gen-spinner"></div></div><div class="gen-stage-text">Analyzing your event details</div></div>'
@@ -3159,72 +3215,231 @@
       return result;
     }
 
+    // Fix double-escaped whitespace from AI model output (cached themes or pre-fix DB themes)
+    function sanitizeThemeText(str) {
+      if (!str) return str;
+      if (str.indexOf('\\n') !== -1) str = str.replace(/\\n/g, '\n');
+      if (str.indexOf('\\t') !== -1) str = str.replace(/\\t/g, '\t');
+      return str;
+    }
+
     function buildSrcdoc(ver) {
-      var fontsImport = ver.config.googleFontsImport || '';
+      var config = ver.config || {};
+      var fontsImport = config.googleFontsImport || '';
       // Normalize: ensure it's a full @import statement, not just a URL
       if (fontsImport && !fontsImport.startsWith('@import')) {
         fontsImport = "@import url('" + fontsImport + "');";
       }
-      var themeHtml = ver.html;
-      // Inject functional form inputs into rsvp-slot
-      var rsvpFormHtml = buildRsvpFormHtml();
-
-      // Build detail overrides from current extractedData
-      var detailOverrides = {};
-      if (extractedData.title) detailOverrides.title = extractedData.title;
-      if (extractedData.startDate) detailOverrides.datetime = formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate);
-      var locParts = [];
-      if (extractedData.locationName) locParts.push(extractedData.locationName);
-      if (extractedData.locationAddress) locParts.push(extractedData.locationAddress);
-      if (locParts.length > 0) detailOverrides.location = locParts.join('<br>');
-      if (extractedData.dressCode) detailOverrides.dresscode = extractedData.dressCode;
-
-      // Script that injects RSVP form and updates data-field elements
-      var rsvpScript = '<script>'
-        + 'document.addEventListener("DOMContentLoaded", function() {'
-        + '  var slot = document.querySelector(".rsvp-slot");'
-        + '  if (slot) {'
-        + '    var btn = slot.querySelector(".rsvp-button");'
-        + '    var btnHtml = btn ? btn.outerHTML : "";'
-        + '    slot.innerHTML = ' + JSON.stringify(rsvpFormHtml) + ' + btnHtml;'
-        + '  }'
-        + '  var overrides = ' + JSON.stringify(detailOverrides) + ';'
-        + '  Object.keys(overrides).forEach(function(key) {'
-        + '    var el = document.querySelector("[data-field=\\"" + key + "\\"]");'
-        + '    if (!el) return;'
-        // Preserve text color: capture the computed color from the element or its first
-        // styled child before replacing innerHTML, then re-apply it. This prevents the
-        // "flash of wrong color" when AI puts color on child elements that get stripped.
-        + '    var cs = window.getComputedStyle(el);'
-        + '    var origColor = cs.color;'
-        // Also check first child — AI often puts color on a span/p inside the data-field container
-        + '    if (el.firstElementChild) {'
-        + '      var childColor = window.getComputedStyle(el.firstElementChild).color;'
-        + '      if (childColor !== origColor) origColor = childColor;'
-        + '    }'
-        + '    el.innerHTML = overrides[key];'
-        // Re-apply the color to the container so the new plain text inherits it
-        + '    if (origColor && !el.style.color) el.style.color = origColor;'
-        + '  });'
-        + '  var dc = document.querySelector("[data-field=\\"dresscode\\"]");'
-        + '  if (dc && !overrides.dresscode) { dc.style.display = "none"; }'
-        + '  else if (dc && overrides.dresscode) { dc.style.display = ""; }'
-        + '});'
-        + '<\/script>';
       // Google Fonts @import MUST be the very first thing in the first <style> block —
       // browsers silently ignore @import after any other CSS rules
       var fontsStyle = fontsImport ? '<style>' + fontsImport + '</style>' : '';
-      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=393, initial-scale=1.0">'
+
+      // Extract body attributes (AI often puts background/color on <body>)
+      var bodyTagMatch = ver.html.match(/<body\b([^>]*)>/i);
+      var bodyAttrs = bodyTagMatch ? bodyTagMatch[1].trim() : '';
+
+      // Extract CSS content from <head> <style> blocks before stripping
+      var headStyles = '';
+      var headMatch = ver.html.match(/<head(?:\s[^>]*)?>[\s\S]*?<\/head\s*>/i);
+      if (headMatch) {
+        var headStyleMatches = headMatch[0].match(/<style[^>]*>([\s\S]*?)<\/style\s*>/gi);
+        if (headStyleMatches) {
+          // Extract inner CSS content (strip <style> tags), sanitize, and re-wrap
+          var headCss = headStyleMatches.map(function(s) {
+            return s.replace(/<style[^>]*>/gi, '').replace(/<\/style\s*>/gi, '');
+          }).join('\n');
+          headCss = sanitizeThemeText(headCss).replace(/<\/style/gi, '<\\/style');
+          if (headCss.trim()) headStyles = '<style>' + headCss + '</style>';
+        }
+      }
+
+      // Strip document-level tags — our template provides these
+      // IMPORTANT: use <head> or <head\s not <head[^>]* which would also match <header>
+      var themeHtml = sanitizeThemeText(ver.html)
+        .replace(/<!DOCTYPE[^>]*>/gi, '')
+        .replace(/<html\b[^>]*>/gi, '')
+        .replace(/<\/html\s*>/gi, '')
+        .replace(/<head(?:\s[^>]*)?>[\s\S]*?<\/head\s*>/gi, '')
+        .replace(/<body\b[^>]*>/gi, '')
+        .replace(/<\/body\s*>/gi, '')
+        .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '');
+
+      // RSVP form and data-field overrides are injected via iframe.onload in the parent
+      // (see injectRsvpForm) — NO script injection in srcdoc.
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+        + '<meta name="viewport" content="width=393, initial-scale=1.0">'
         + fontsStyle
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 100%; overflow-x: hidden; }</style>'
-        + '<style>' + ver.css + '</style></head><body>' + themeHtml + rsvpScript + '</body></html>';
+        + (headStyles || '')
+        + '<style>' + sanitizeThemeText(ver.css || '').replace(/<\/style/gi, '<\\/style') + '</style>'
+        + '</head><body' + (bodyAttrs ? ' ' + bodyAttrs : '') + '>' + themeHtml + '</body></html>';
+    }
+
+    // Color helpers for data-field text contrast detection
+    function parseRgb(color) {
+      if (!color) return null;
+      var m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (m) return { r: +m[1], g: +m[2], b: +m[3] };
+      // Handle hex
+      var h = color.match(/^#([0-9a-f]{3,8})$/i);
+      if (h) {
+        var hex = h[1];
+        if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+        return { r: parseInt(hex.substr(0,2),16), g: parseInt(hex.substr(2,2),16), b: parseInt(hex.substr(4,2),16) };
+      }
+      return null;
+    }
+    function relativeLuminance(rgb) {
+      if (!rgb) return 0;
+      var rs = rgb.r/255, gs = rgb.g/255, bs = rgb.b/255;
+      var r = rs <= 0.03928 ? rs/12.92 : Math.pow((rs+0.055)/1.055, 2.4);
+      var g = gs <= 0.03928 ? gs/12.92 : Math.pow((gs+0.055)/1.055, 2.4);
+      var b = bs <= 0.03928 ? bs/12.92 : Math.pow((bs+0.055)/1.055, 2.4);
+      return 0.2126*r + 0.7152*g + 0.0722*b;
+    }
+    function isDarkColor(color) {
+      var rgb = parseRgb(color);
+      return rgb ? relativeLuminance(rgb) < 0.2 : false;
+    }
+    // Walk up ancestors to find the first non-transparent background color
+    function findEffectiveBgColor(el, win) {
+      var node = el;
+      while (node && node.nodeType === 1) {
+        var bg = win.getComputedStyle(node).backgroundColor;
+        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+        node = node.parentElement;
+      }
+      return '';
+    }
+
+    // Build event details HTML for injection into .details-slot
+    function buildDetailsHtml() {
+      var items = [];
+      if (extractedData.startDate) {
+        items.push({ icon: '&#128197;', label: 'Date', value: formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate) });
+      }
+      if (extractedData.locationName || extractedData.locationAddress) {
+        var loc = [extractedData.locationName, extractedData.locationAddress].filter(Boolean).join('<br>');
+        items.push({ icon: '&#128205;', label: 'Location', value: loc });
+      }
+      if (extractedData.dressCode) {
+        items.push({ icon: '&#128087;', label: 'Dress Code', value: extractedData.dressCode });
+      }
+      return items.map(function(item) {
+        return '<div class="detail-item">'
+          + '<div class="detail-icon">' + item.icon + '</div>'
+          + '<div class="detail-text"><div class="detail-label">' + item.label + '</div>'
+          + '<div class="detail-value">' + item.value + '</div></div>'
+          + '</div>';
+      }).join('');
+    }
+
+    // Inject RSVP form and event details into iframe after it loads.
+    // Runs from the PARENT page via iframe.contentDocument — no scripts inside srcdoc.
+    function injectRsvpForm(iframe) {
+      try {
+        var doc = iframe.contentDocument;
+        if (!doc) return;
+
+        // Inject RSVP form into .rsvp-slot
+        var slot = doc.querySelector('.rsvp-slot');
+        if (slot) {
+          var btn = slot.querySelector('.rsvp-button');
+          var btnHtml = btn ? btn.outerHTML : '';
+          slot.innerHTML = buildRsvpFormHtml() + btnHtml;
+        }
+
+        // Inject event details into .details-slot (new pattern — platform controls details HTML)
+        var detailsSlot = doc.querySelector('.details-slot');
+        if (detailsSlot) {
+          detailsSlot.innerHTML = buildDetailsHtml();
+        }
+
+        // Override title data-field (always kept — title is part of hero design)
+        if (extractedData.title) {
+          var titleEl = doc.querySelector('[data-field="title"]');
+          if (titleEl) {
+            var win = iframe.contentWindow || doc.defaultView;
+            var walker = titleEl;
+            while (walker.firstElementChild) walker = walker.firstElementChild;
+            var origColor = '';
+            try { origColor = win.getComputedStyle(walker).color; } catch(e) {}
+            titleEl.innerHTML = extractedData.title;
+            if (origColor) titleEl.style.setProperty('color', origColor, 'important');
+          }
+        }
+
+        // Legacy fallback: for old themes without .details-slot, override data-field elements
+        if (!detailsSlot) {
+          var overrides = {};
+          if (extractedData.startDate) overrides.datetime = formatDateTimeForDisplay(extractedData.startDate, extractedData.endDate);
+          var locParts = [];
+          if (extractedData.locationName) locParts.push(extractedData.locationName);
+          if (extractedData.locationAddress) locParts.push(extractedData.locationAddress);
+          if (locParts.length > 0) overrides.location = locParts.join('<br>');
+          if (extractedData.dressCode) overrides.dresscode = extractedData.dressCode;
+
+          var win2 = iframe.contentWindow || doc.defaultView;
+          Object.keys(overrides).forEach(function(key) {
+            var el = doc.querySelector('[data-field="' + key + '"]');
+            if (!el) return;
+            var w = el;
+            while (w.firstElementChild) w = w.firstElementChild;
+            var origColor = '';
+            try { origColor = win2.getComputedStyle(w).color; } catch(e) {}
+            var bgColor = '';
+            try { bgColor = findEffectiveBgColor(el, win2); } catch(e) {}
+            if ((!origColor || isDarkColor(origColor)) && bgColor && isDarkColor(bgColor)) {
+              origColor = '#FFFFFF';
+            }
+            el.innerHTML = overrides[key];
+            if (origColor) el.style.setProperty('color', origColor, 'important');
+          });
+
+          var dc = doc.querySelector('[data-field="dresscode"]');
+          if (dc && !overrides.dresscode) dc.style.display = 'none';
+          else if (dc && overrides.dresscode) dc.style.display = '';
+        }
+      } catch (e) {
+        console.warn('[injectRsvpForm] Failed:', e.message);
+      }
     }
 
     function renderPreview(ver) {
+      var iframe = document.getElementById('previewFrame');
       if (currentPreviewMode === 'thankyou') {
-        document.getElementById('previewFrame').srcdoc = buildThankYouSrcdoc(ver);
+        // Set onload BEFORE srcdoc to avoid race on fast loads
+        iframe.onload = function() { injectCalendarHandlers(iframe); };
+        iframe.srcdoc = buildThankYouSrcdoc(ver);
       } else {
-        document.getElementById('previewFrame').srcdoc = buildSrcdoc(ver);
+        iframe.onload = function() {
+          // Delay one frame so the iframe's styles are fully resolved before we
+          // read computed colors. Mobile Safari can fire onload before paint.
+          var win = iframe.contentWindow;
+          if (win && win.requestAnimationFrame) {
+            win.requestAnimationFrame(function() { injectRsvpForm(iframe); });
+          } else {
+            setTimeout(function() { injectRsvpForm(iframe); }, 50);
+          }
+        };
+        iframe.srcdoc = buildSrcdoc(ver);
+      }
+    }
+
+    // Wire calendar button clicks from thank-you iframe via parent page (no script in srcdoc)
+    function injectCalendarHandlers(iframe) {
+      try {
+        var doc = iframe.contentDocument;
+        if (!doc) return;
+        doc.addEventListener('click', function(e) {
+          var btn = e.target.closest('.cal-btn,[data-cal]');
+          if (btn) {
+            var t = btn.getAttribute('data-cal') || btn.textContent.trim().toLowerCase();
+            window.postMessage({ type: 'calendar', cal: t }, '*');
+          }
+        });
+      } catch (e) {
+        console.warn('[injectCalendarHandlers] Failed:', e.message);
       }
     }
 
@@ -3238,8 +3453,12 @@
         var costData = await costRes.json();
         if (!costData.success) return;
 
-        eventCostCents = costData.totalCostCents || 0;
-        eventGenCount = costData.generationCount || 0;
+        // Use the higher of DB cost vs locally tracked cost (handles race where
+        // local updateCostFromGeneration ran before DB write completed)
+        var dbCost = costData.totalCostCents || 0;
+        console.log('[cost] initCostTracker: dbCost=' + dbCost + ' localCost=' + eventCostCents + ' using=' + Math.max(dbCost, eventCostCents));
+        eventCostCents = Math.max(dbCost, eventCostCents);
+        eventGenCount = Math.max(costData.generationCount || 0, eventGenCount);
         usagePlanUser = true;
 
         updateCostTrackerUI();
@@ -3253,20 +3472,21 @@
     function updateCostFromGeneration(metadata) {
       if (!metadata || !metadata.cost) return;
       var genCost = metadata.cost.totalCostCents || 0;
+      console.log('[cost] updateCostFromGeneration:', JSON.stringify(metadata.cost), 'tokens:', JSON.stringify(metadata.tokens), 'model:', metadata.model, 'adding:', genCost, 'to existing:', eventCostCents);
       eventCostCents += genCost;
       eventGenCount++;
-      if (usagePlanUser) {
-        document.getElementById('costTracker').classList.remove('hidden');
-        updateCostTrackerUI();
-        var el = document.getElementById('costTracker');
-        el.classList.remove('cost-flash');
-        void el.offsetWidth;
-        el.classList.add('cost-flash');
-      }
+      // Show cost tracker immediately even if initCostTracker hasn't returned yet
+      usagePlanUser = true;
+      document.getElementById('costTracker').classList.remove('hidden');
+      updateCostTrackerUI();
+      var el = document.getElementById('costTracker');
+      el.classList.remove('cost-flash');
+      void el.offsetWidth;
+      el.classList.add('cost-flash');
     }
 
     function updateCostTrackerUI() {
-      document.getElementById('costTrackerTotal').textContent = formatCents(TRANSACTION_FEE_CENTS + eventCostCents);
+      document.getElementById('costTrackerTotal').textContent = formatCents(eventCostCents);
     }
 
     function formatCents(cents) {
@@ -3330,23 +3550,20 @@
       }
       var ver = themeVersions[activeVersionIndex];
       if (!ver) return;
-      if (mode === 'thankyou') {
-        document.getElementById('previewFrame').srcdoc = buildThankYouSrcdoc(ver);
-      } else {
-        renderPreview(ver);
-      }
+      renderPreview(ver);
     }
 
     // Build guaranteed thank you page structure
     // AI provides: .thankyou-page background/decorative styling, .thankyou-hero heading + subtitle, and CSS
     // We guarantee: calendar buttons, footer, layout structure
     function buildThankYouSrcdoc(ver) {
-      var fontsImport = ver.config.googleFontsImport || '';
+      var config = ver.config || {};
+      var fontsImport = config.googleFontsImport || '';
       var guestName = 'Sarah';
       var title = extractedData.title || 'the event';
-      var pc = ver.config.primaryColor || '#333';
-      var sc = ver.config.secondaryColor || '#4CAF50';
-      var ac = ver.config.accentColor || '#2196F3';
+      var pc = config.primaryColor || '#333';
+      var sc = config.secondaryColor || '#4CAF50';
+      var ac = config.accentColor || '#2196F3';
 
       // Guaranteed CSS — these are the structural styles we control
       var guaranteedCSS = '.thankyou-page { max-width:393px; margin:0 auto; padding:60px 32px 40px; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }'
@@ -3374,11 +3591,19 @@
         + '</div></div>';
       var guaranteedFooterHTML = '<p class="thankyou-footer">Made with &#10084; by <a href="https://www.ryvite.com">Ryvite</a></p>';
 
-      var calScript = '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".cal-btn,[data-cal]");if(btn){var t=btn.getAttribute("data-cal")||btn.textContent.trim().toLowerCase();window.parent.postMessage({type:"calendar",cal:t},"*");}});<\/script>';
+      // Calendar button click handling is wired via iframe.onload in renderPreview
+      // (see injectCalendarHandlers) — no script injection in srcdoc.
 
-      if (ver.config.thankyouHtml) {
-        var tyHtml = ver.config.thankyouHtml;
-        // Replace guest/event placeholders
+      if (config.thankyouHtml) {
+        var tyHtml = sanitizeThemeText(config.thankyouHtml);
+
+        // New simplified format: AI provides empty .thankyou-hero — platform fills it
+        var heroContent = '<h1 class="thankyou-title">Thank You!</h1>'
+          + '<p class="thankyou-subtitle">Thanks for RSVPing, <span class="thankyou-guest">' + escapeHtml(guestName) + '</span>! We can\'t wait to see you at <span class="thankyou-event">' + escapeHtml(title) + '</span>.</p>';
+        // Check if .thankyou-hero is empty (new themes) — inject hero content
+        tyHtml = tyHtml.replace(/<div class="thankyou-hero">\s*<\/div>/, '<div class="thankyou-hero">' + heroContent + '</div>');
+
+        // Legacy: replace guest/event placeholders if AI generated them
         tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');
         tyHtml = tyHtml.replace(/<span class="thankyou-event">[^<]*<\/span>/g, '<span class="thankyou-event">' + escapeHtml(title) + '</span>');
 
@@ -3405,16 +3630,16 @@
           + fontsStyle2
           + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
           + '<style>' + guaranteedCSS + '</style>'
-          + '<style>' + (ver.css || '') + '</style>'
-          + '</head><body>' + tyHtml + calScript + '</body></html>';
+          + '<style>' + sanitizeThemeText(ver.css || '') + '</style>'
+          + '</head><body>' + tyHtml + '</body></html>';
       }
 
       // Fallback: build entirely from theme config
-      var accent = ver.config.accentColor || ver.config.primaryColor || '#E94560';
-      var bgColor = ver.config.backgroundColor || '#FFFAF5';
-      var textColor = ver.config.textColor || '#1A1A2E';
-      var headlineFont = ver.config.fontHeadline || 'serif';
-      var bodyFont = ver.config.fontBody || 'sans-serif';
+      var accent = config.accentColor || config.primaryColor || '#E94560';
+      var bgColor = config.backgroundColor || '#FFFAF5';
+      var textColor = config.textColor || '#1A1A2E';
+      var headlineFont = config.fontHeadline || 'serif';
+      var bodyFont = config.fontBody || 'sans-serif';
 
       var thankYouHtml = '<div class="thankyou-page" style="background:' + bgColor + ';color:' + textColor + ';font-family:' + bodyFont + ',sans-serif;">'
         + '<div class="thankyou-hero">'
@@ -3430,7 +3655,7 @@
         + fontsStyle3
         + '<style>* { margin:0; padding:0; box-sizing:border-box; } html, body { width: 393px; min-height: 852px; overflow-x: hidden; }</style>'
         + '<style>' + guaranteedCSS + '</style>'
-        + '</head><body>' + thankYouHtml + calScript + '</body></html>';
+        + '</head><body>' + thankYouHtml + '</body></html>';
     }
 
     // Handle calendar button clicks from thank you preview iframe
@@ -3556,7 +3781,14 @@
     }
 
     function initDesignChatIfNeeded(showLoader) {
-      if (designChatHistory.length === 0) initDesignChat(showLoader);
+      if (designChatHistory.length === 0) {
+        initDesignChat(showLoader);
+      } else if (pendingRatingThemeId) {
+        // Chat already initialized (regeneration/resume) — show rating directly
+        showThemeRating(pendingRatingThemeId);
+        pendingRatingThemeId = null;
+        renderDesignChat();
+      }
     }
 
     function initDesignChat(showLoader) {
@@ -3810,9 +4042,84 @@
       if (container) container.scrollTop = container.scrollHeight;
     }
 
+    var _autoResizeRAF = null;
     function autoResizeTextarea(el) {
-      el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+      if (_autoResizeRAF) cancelAnimationFrame(_autoResizeRAF);
+      _autoResizeRAF = requestAnimationFrame(function() {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+        _autoResizeRAF = null;
+      });
+    }
+
+    // Mobile keyboard handler — keeps design chat input visible above the virtual keyboard
+    function setupDesignChatKeyboardHandler() {
+      if (!('visualViewport' in window)) return;
+      var textarea = document.getElementById('designChatInput');
+      if (!textarea) return;
+      var chatEl = null;
+      var isActive = false;
+      var originalParent = null;
+      var originalNextSibling = null;
+
+      function isMobile() { return window.innerWidth <= 900; }
+
+      function getChat() {
+        if (!chatEl) chatEl = textarea.closest('.design-chat');
+        return chatEl;
+      }
+
+      function activate() {
+        if (isActive || !isMobile()) return;
+        var dc = getChat();
+        if (!dc) return;
+        isActive = true;
+        originalParent = dc.parentNode;
+        originalNextSibling = dc.nextSibling;
+        // Move to body so position:fixed works reliably on iOS Safari
+        document.body.appendChild(dc);
+        dc.classList.add('design-chat-keyboard-active');
+        document.body.style.overflow = 'hidden';
+        updateHeight();
+        window.visualViewport.addEventListener('resize', updateHeight);
+        scrollDesignChat();
+      }
+
+      function deactivate() {
+        if (!isActive) return;
+        var dc = getChat();
+        if (!dc) return;
+        isActive = false;
+        window.visualViewport.removeEventListener('resize', updateHeight);
+        dc.classList.remove('design-chat-keyboard-active');
+        dc.style.height = '';
+        document.body.style.overflow = '';
+        // Restore to original DOM position
+        if (originalNextSibling) {
+          originalParent.insertBefore(dc, originalNextSibling);
+        } else {
+          originalParent.appendChild(dc);
+        }
+      }
+
+      function updateHeight() {
+        var dc = getChat();
+        if (!dc || !isActive) return;
+        var h = Math.min(window.visualViewport.height * 0.55, 360);
+        dc.style.height = h + 'px';
+        scrollDesignChat();
+      }
+
+      textarea.addEventListener('focus', function() {
+        if (!isMobile()) return;
+        setTimeout(activate, 100);
+      });
+
+      textarea.addEventListener('blur', function() {
+        setTimeout(function() {
+          if (document.activeElement !== textarea) deactivate();
+        }, 150);
+      });
     }
 
     async function handleDesignChatPhoto(event) {
@@ -3901,6 +4208,7 @@
           renderDesignChat();
           input.value = '';
           input.style.height = 'auto';
+          if (window.innerWidth <= 900) input.focus();
           return;
         }
       }
@@ -3926,6 +4234,22 @@
         // Re-call sendDesignChat with the combined message
         sendDesignChat();
         return;
+      }
+
+      // Detect if user is asking to change event details (date, time, location, etc.)
+      // These are data changes, not design changes — redirect to the Details tab
+      if (text && !hasPhotos) {
+        var detailChangePattern = /\b(change|update|move|switch|set|make)\b.{0,20}\b(date|time|day|event date|start time|end time|location|venue|address|place|dress code|dresscode|title|event name)\b/i;
+        var dateChangePattern = /\b(a day|one day|two days?|a week|next week|later|earlier|sooner|different day|different date|different time)\b/i;
+        if (detailChangePattern.test(text) || (dateChangePattern.test(text) && /\b(change|update|move|push|bump)\b/i.test(text))) {
+          designChatHistory.push({ role: 'user', content: text });
+          designChatHistory.push({ role: 'assistant', content: "I handle the visual design of your invite, but I can't change event details like dates, times, or locations. You can update those in the **Details** tab above — just tap \"Details\" and edit from there!\n\nIs there anything design-related I can help with?" });
+          renderDesignChat();
+          input.value = '';
+          input.style.height = 'auto';
+          if (window.innerWidth <= 900) input.focus();
+          return;
+        }
       }
 
       // Detect if user is asking for a new design OR is vague/unsure about what to change
@@ -3970,6 +4294,7 @@
           renderDesignChat();
           input.value = '';
           input.style.height = 'auto';
+          if (window.innerWidth <= 900) input.focus();
           return;
         }
       }
@@ -3983,6 +4308,7 @@
       renderDesignChat();
       input.value = '';
       input.style.height = 'auto';
+      if (window.innerWidth <= 900) input.focus();
 
       var sendBtn = document.getElementById('designChatSendBtn');
       sendBtn.disabled = true;
@@ -4201,7 +4527,7 @@
           clearInterval(tweakPunInterval);
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
 
-          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-11k');
+          console.log('[tweak] Parse result:', !!tweakResult, 'Error:', tweakError, 'Lines:', tweakLines.length, 'Text preview:', tweakFullText.substring(0, 500), 'Build: 2026-03-12a');
 
           if (tweakResult && tweakResult.success && tweakResult.chatOnly) {
             // AI returned conversational text instead of a theme change — display it
@@ -4214,7 +4540,8 @@
           }
 
           if (tweakResult && tweakResult.success) {
-            var newVer = { id: tweakResult.theme.id, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
+            var tweakId = tweakResult.theme.id === 'pending' ? ('pending-' + Date.now()) : tweakResult.theme.id;
+            var newVer = { id: tweakId, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
             themeVersions.push(newVer);
             activeVersionIndex = themeVersions.length - 1;
             currentEvent.themeHtml = newVer.html;
@@ -4232,8 +4559,9 @@
             // Update sessionStorage cache
             try { if (currentEvent) sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
             var chatMsg = (tweakResult.chatResponse || tweakResult.chat_response || 'Done! I\'ve updated the design. Take a look at the preview.') + '\n\nWant to make any more changes?';
-            // Track tweak cost
+            // Track tweak cost — show estimate immediately, then refresh from DB
             if (tweakResult.metadata) updateCostFromGeneration(tweakResult.metadata);
+            setTimeout(function() { initCostTracker(); }, 6000);
             designChatHistory.push({ role: 'assistant', content: chatMsg });
             // Show rating widget for every generation (tweaks included)
             showThemeRating(newVer.id);
@@ -5115,6 +5443,8 @@
     document.getElementById('chatInput').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
+
+    setupDesignChatKeyboardHandler();
   </script>
 </body>
 </html>

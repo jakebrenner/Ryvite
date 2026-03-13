@@ -173,11 +173,13 @@ export default async function handler(req, res) {
 
     // ---- ESTIMATED COST PER EVENT (public) ----
     if (action === 'estimateCost') {
-      // Model pricing per 1M tokens (input / output)
+      // Model pricing per 1M tokens (input / output) — must match AI_MODEL_PRICING
       const MODEL_PRICING = {
-        'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00, label: 'Haiku 4.5' },
-        'claude-sonnet-4-6': { input: 3.00, output: 15.00, label: 'Sonnet 4.6' },
-        'claude-opus-4-6': { input: 15.00, output: 75.00, label: 'Opus 4.6' },
+        'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00, label: 'Haiku 4.5' },
+        'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00, label: 'Sonnet 4' },
+        'claude-sonnet-4-6':         { input: 3.00, output: 15.00, label: 'Sonnet 4.6' },
+        'claude-opus-4-20250514':    { input: 15.00, output: 75.00, label: 'Opus 4' },
+        'claude-opus-4-6':           { input: 15.00, output: 75.00, label: 'Opus 4.6' },
       };
 
       // Fetch admin-configured theme model
@@ -679,7 +681,7 @@ export default async function handler(req, res) {
           user_id: user.id,
           subscription_id: subscription.id
         });
-        await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: coupon.id }).catch(() => {});
+        await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: coupon.id }).then(() => {});
       }
 
       return res.status(200).json({
@@ -1150,7 +1152,7 @@ export default async function handler(req, res) {
             });
 
             // Update charge count and threshold
-            await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: uid }).catch(() => {});
+            await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: uid }).then(() => {});
 
             // Update sweep timestamp
             await supabaseAdmin
@@ -1822,7 +1824,7 @@ export async function checkAndChargeSmsUsage(userId) {
     });
 
     // Update successful charge count and threshold tier
-    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).catch(() => {});
+    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).then(() => {});
 
     return { charged: true, amountCents: chargeAmount, creditsApplied, messageCount: unbilledMessages.length };
   } catch (e) {
@@ -1836,10 +1838,13 @@ export async function checkAndChargeSmsUsage(userId) {
 // Only applies to users on 'usage' billing type plans.
 // Called after each AI generation. Batches charges to avoid micro-transactions.
 
+// AI model pricing per 1M tokens — must match generate-theme.js, chat.js, ratings.js, admin.js
 const AI_MODEL_PRICING = {
-  'claude-haiku-4-5-20251001': { input: 0.80, output: 4.00 },
-  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
-  'claude-opus-4-6': { input: 15.00, output: 75.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-20250514':  { input: 3.00, output: 15.00 },
+  'claude-sonnet-4-6':         { input: 3.00, output: 15.00 },
+  'claude-opus-4-20250514':    { input: 15.00, output: 75.00 },
+  'claude-opus-4-6':           { input: 15.00, output: 75.00 },
 };
 
 export async function checkAndChargeAiUsage(userId) {
@@ -1971,7 +1976,7 @@ export async function checkAndChargeAiUsage(userId) {
     });
 
     // Update successful charge count and threshold tier
-    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).catch(() => {});
+    await supabaseAdmin.rpc('increment_successful_charges', { p_user_id: userId }).then(() => {});
 
     return { charged: true, amountCents: chargeAmount, creditsApplied, generationCount: unbilledGens.length };
   } catch (e) {

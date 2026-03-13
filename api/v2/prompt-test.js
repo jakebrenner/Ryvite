@@ -9,6 +9,22 @@ const supabaseAdmin = createClient(
 
 const FOUNDER_EMAIL = 'jake@getmrkt.com';
 
+// Log test generation to generation_log so admin cost tracking is accurate
+function logTestGeneration(userId, model, inputTokens, outputTokens, latencyMs, promptVersionId) {
+  supabaseAdmin.from('generation_log').insert({
+    user_id: userId,
+    event_id: null,
+    prompt: 'prompt_test' + (promptVersionId ? ': version ' + promptVersionId : ''),
+    model,
+    input_tokens: inputTokens || 0,
+    output_tokens: outputTokens || 0,
+    latency_ms: latencyMs || 0,
+    status: 'success',
+    is_tweak: false,
+    prompt_version_id: promptVersionId || null,
+  }).then(() => {}).catch(e => console.warn('Failed to log test generation:', e.message));
+}
+
 async function verifyAdmin(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) return null;
@@ -204,7 +220,7 @@ Return a JSON object with exactly these keys:
 ## PAGE STRUCTURE — REQUIRED SECTIONS
 1. **THEMATIC HEADER** — An animated or illustrated element specific to this event type.
 2. **HERO SECTION** — Large display headline with event title/names/tagline.
-3. **EVENT DETAILS** — Icon + text layout for date, time, location.
+3. **EVENT DETAILS** — \`<div class="details-slot"></div>\`. The platform injects event details (date, time, location, dress code) at runtime — just like the RSVP form. You MUST NOT put any text, icons, or labels inside this div. Style it via CSS to match the theme. The platform injects children with classes: \`.detail-item\`, \`.detail-icon\`, \`.detail-label\`, \`.detail-value\` — style these in theme_css.
 4. **RSVP SECTION** — \`<div class="rsvp-slot"><button class="rsvp-button">...</button></div>\`. The rsvp-slot MUST contain ONLY the button. Make the button text fun and on-theme but NEVER use commitment words like "I'm Coming", "Count Me In", "I'll Be There", "RSVP Yes", "Sign Me Up". The RSVP status is handled by the form — the button just opens it. Use neutral action phrases like "Let's Party!", "RSVP Now!", "Open the Invite!", "Get the Details!" instead.
 
 ## RSVP BUTTON — CRITICAL PLATFORM RULES
@@ -222,7 +238,16 @@ Return a JSON object with exactly these keys:
 - All inputs inside \`.rsvp-slot\` must be full-width (width: 100%) — no 50% widths, no multi-column layouts
 
 ## REQUIRED DATA ATTRIBUTES
-- \`data-field="title"\` \`data-field="datetime"\` \`data-field="location"\` \`data-field="dresscode"\` \`data-field="host"\`
+- \`data-field="title"\` — on the element containing the event title text (the ONLY data-field you generate)
+
+## DETAILS SLOT — CSS STYLING GUIDE (platform injects the HTML at runtime)
+Style these classes in theme_css to match the theme:
+- \`.details-slot\` — container for all event details. Set background, border-radius, padding, margins.
+- \`.detail-item\` — each detail row. Use \`display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;\`
+- \`.detail-icon\` — 24px icon area with emoji. Set font-size: 20px.
+- \`.detail-label\` — small label. Set font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;
+- \`.detail-value\` — detail text. Set font-size: 15px; font-weight: 500;
+- **CRITICAL CONTRAST**: If \`.details-slot\` has a dark/colored background, \`.detail-label\` and \`.detail-value\` color MUST be #FFFFFF or #FAFAFA.
 
 ## TECHNICAL CONSTRAINTS — NON-NEGOTIABLE
 - Max-width 393px, centered, mobile-first. Min 14px body, WCAG AA contrast.
@@ -231,9 +256,14 @@ Return a JSON object with exactly these keys:
 - No JavaScript. No fixed positioning. No iframes. Google Fonts only.
 - Keep height reasonable — 3-5 phone screen scrolls.
 
-## THANK YOU PAGE (theme_thankyou_html)
-Provide ONLY .thankyou-page > .thankyou-hero. NO calendar buttons, NO footer. Include \`<span class="thankyou-guest">Guest</span>\` in subtitle.
-**BRANDED BACKGROUND — CRITICAL**: Use the SAME background (color, gradient, pattern, texture) and fonts as the invite. The thank-you page must feel like a cohesive continuation of the invite design, NOT a plain white page. Carry over decorative elements (subtle SVG ornaments, floating particles, gradients) for a polished experience.
+## THANK YOU PAGE (theme_thankyou_html) — SIMPLIFIED
+The platform injects the hero text, calendar buttons, and footer. You provide:
+- \`<div class="thankyou-page"><div class="thankyou-hero"></div></div>\`
+- \`.thankyou-page\` MUST have a branded background matching the invite (gradient, pattern, texture, or solid color)
+- \`.thankyou-hero\` must be EMPTY — the platform fills it
+- Optional: ONE small decorative SVG element inside \`.thankyou-page\` but outside \`.thankyou-hero\` (under 1KB)
+- NO text content, NO emojis, NO calendar buttons, NO footer
+- Include CSS for .thankyou-page, .thankyou-hero, .thankyou-title, .thankyou-subtitle in theme_css
 
 ## TEXT CONTRAST — CRITICAL, NEVER VIOLATE
 - EVERY piece of text must have sufficient contrast against its background (WCAG AA minimum)
@@ -242,7 +272,7 @@ Provide ONLY .thankyou-page > .thankyou-hero. NO calendar buttons, NO footer. In
 - Button text MUST contrast against the button background color
 
 ### CONCRETE CONTRAST RULES FOR EACH SECTION:
-- **Event details band** (date, time, location): If the band background is dark (green, navy, black, charcoal, etc.), the text color MUST be white or very light. If the band is light, text MUST be dark. NEVER use a warm/muted color like coral, salmon, or rose on a dark background — it will be unreadable.
+- **Details slot** (\`.details-slot\`): If background is dark, \`.detail-label\` and \`.detail-value\` MUST be white (#FFFFFF/#FAFAFA). If light, use dark text (#1A1A1A). NEVER use accent colors as text on dark backgrounds.
 - **Hero section**: If the background is dark or uses a dark gradient, title and subtitle text MUST be white/cream/very light.
 - **RSVP section**: Button text must be white on dark buttons or dark on light buttons. No exceptions.
 - **SIMPLE RULE**: For ANY section with a colored/dark background, set the text color to #FFFFFF or #FAFAFA. For any section with a light/white background, set text to #1A1A1A or darker. Do NOT try to match text color to theme accent colors on dark backgrounds — it almost always fails contrast.`;
@@ -449,24 +479,27 @@ function normalizeThemeKeys(theme) {
   if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\"')) {
     theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\"/g, '"');
   }
+  // Fix double-escaped whitespace (models sometimes output \\n inside JSON string values)
+  // After JSON.parse, \\n becomes literal backslash-n text — convert to real whitespace
+  if (theme.theme_html && theme.theme_html.includes('\\n')) theme.theme_html = theme.theme_html.replace(/\\n/g, '\n');
+  if (theme.theme_css && theme.theme_css.includes('\\n')) theme.theme_css = theme.theme_css.replace(/\\n/g, '\n');
+  if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\n')) theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\n/g, '\n');
+  if (theme.theme_html && theme.theme_html.includes('\\t')) theme.theme_html = theme.theme_html.replace(/\\t/g, '\t');
+  if (theme.theme_css && theme.theme_css.includes('\\t')) theme.theme_css = theme.theme_css.replace(/\\t/g, '\t');
 
-  // If CSS is missing but embedded in HTML <style> tags, extract it
-  if (theme.theme_html && !theme.theme_css) {
+  // Always extract <style> blocks from theme_html and merge into theme_css.
+  // AI may put CSS in both theme_css AND inline <style> tags in the HTML.
+  if (theme.theme_html) {
     const styleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
     if (styleMatch) {
-      theme.theme_css = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+      const extractedCss = styleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
+      theme.theme_css = theme.theme_css ? (theme.theme_css + '\n' + extractedCss) : extractedCss;
       theme.theme_html = theme.theme_html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     }
   }
 
-  // If HTML is a full document, extract body content and head styles
+  // If HTML is a full document, extract body content
   if (theme.theme_html && (theme.theme_html.includes('<!DOCTYPE') || theme.theme_html.includes('<html'))) {
-    if (!theme.theme_css) {
-      const headStyleMatch = theme.theme_html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-      if (headStyleMatch) {
-        theme.theme_css = headStyleMatch.map(s => s.replace(/<\/?style[^>]*>/gi, '')).join('\n');
-      }
-    }
     const bodyMatch = theme.theme_html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
     if (bodyMatch) theme.theme_html = bodyMatch[1].trim();
   }
@@ -510,6 +543,7 @@ export default async function handler(req, res) {
     if (!html) return res.status(400).json({ error: 'html is required' });
 
     try {
+      const autoTagStart = Date.now();
       const response = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
@@ -548,6 +582,9 @@ Guidelines:
       if (!parsed) {
         return res.status(500).json({ error: 'Failed to parse auto-tag response' });
       }
+
+      // Log autoTag call to generation_log
+      logTestGeneration(admin.id, 'claude-haiku-4-5-20251001', response.usage?.input_tokens || 0, response.usage?.output_tokens || 0, Date.now() - autoTagStart, null);
 
       return res.status(200).json({
         success: true,
@@ -887,6 +924,12 @@ Return a JSON object with exactly these keys:
       const totalInputTokens = draftResult.metadata.tokens.input + (refineFailed ? 0 : refinedResult.metadata.tokens.input);
       const totalOutputTokens = draftResult.metadata.tokens.output + (refineFailed ? 0 : refinedResult.metadata.tokens.output);
 
+      // Log both draft and refine steps
+      logTestGeneration(admin.id, draftModel, draftResult.metadata.tokens.input, draftResult.metadata.tokens.output, draftResult.metadata.latencyMs, usedPromptVersionId);
+      if (!refineFailed) {
+        logTestGeneration(admin.id, refineModel, refinedResult.metadata.tokens.input, refinedResult.metadata.tokens.output, refinedResult.metadata.latencyMs, usedPromptVersionId);
+      }
+
       return res.status(200).json({
         success: true,
         theme: refinedResult.theme,
@@ -911,13 +954,15 @@ Return a JSON object with exactly these keys:
         models.map(m => generateWithModel(m, userMessage, activeSystemPrompt))
       );
 
-      const COST_PER_M_IN = { 'claude-haiku-4-5-20251001': 0.80, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-6': 15.00 };
-      const COST_PER_M_OUT = { 'claude-haiku-4-5-20251001': 4.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-6': 75.00 };
+      const COST_PER_M_IN = { 'claude-haiku-4-5-20251001': 1.00, 'claude-sonnet-4-20250514': 3.00, 'claude-sonnet-4-6': 3.00, 'claude-opus-4-20250514': 15.00, 'claude-opus-4-6': 15.00 };
+      const COST_PER_M_OUT = { 'claude-haiku-4-5-20251001': 5.00, 'claude-sonnet-4-20250514': 15.00, 'claude-sonnet-4-6': 15.00, 'claude-opus-4-20250514': 75.00, 'claude-opus-4-6': 75.00 };
 
       const outputs = results.map((r, i) => {
         if (r.status === 'fulfilled') {
           const m = r.value.metadata;
           const estCost = (m.tokens.input * (COST_PER_M_IN[m.model] || 3) + m.tokens.output * (COST_PER_M_OUT[m.model] || 15)) / 1000000;
+          // Log each model's generation
+          logTestGeneration(admin.id, m.model, m.tokens.input, m.tokens.output, m.latencyMs, usedPromptVersionId);
           return { success: true, ...r.value, estCost };
         } else {
           return { success: false, model: models[i], error: r.reason?.message || 'Generation failed' };
@@ -928,6 +973,7 @@ Return a JSON object with exactly these keys:
     } else {
       // Single model
       const result = await generateWithModel(model, userMessage, activeSystemPrompt);
+      logTestGeneration(admin.id, model, result.metadata.tokens.input, result.metadata.tokens.output, result.metadata.latencyMs, usedPromptVersionId);
       return res.status(200).json({ success: true, ...result, promptVersionId: usedPromptVersionId });
     }
   } catch (err) {
