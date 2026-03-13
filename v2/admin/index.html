@@ -25,11 +25,25 @@
     .header-actions a:hover { color: white; }
     .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
 
-    /* Tabs */
-    .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: white; border-radius: 8px; padding: 4px; border: 1px solid #eee; }
-    .tab { flex: 1; padding: 10px 16px; text-align: center; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #888; background: transparent; border: none; font-family: 'Inter', sans-serif; }
-    .tab.active { background: var(--midnight); color: white; }
-    .tab:hover:not(.active) { background: #f0f0f0; color: var(--midnight); }
+    /* Sidebar layout */
+    .admin-layout { display: flex; min-height: calc(100vh - 60px); }
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 16px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-group { margin-bottom: 12px; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #aaa; padding: 8px 20px 4px; }
+    .sidebar-item { display: block; width: 100%; text-align: left; padding: 9px 20px; font-size: 13px; font-weight: 500; color: #666; border: none; background: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; border-right: 3px solid transparent; }
+    .sidebar-item:hover { background: #f8f8f8; color: var(--midnight); }
+    .sidebar-item.active { color: var(--party-coral); background: #fff0f0; border-right-color: var(--party-coral); font-weight: 600; }
+    .admin-main { flex: 1; padding: 24px 32px; max-width: 1100px; min-width: 0; }
+    .sidebar-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 48px; height: 48px; border-radius: 50%; background: var(--midnight); color: #fff; border: none; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); align-items: center; justify-content: center; }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; }
+    @media (max-width: 768px) {
+      .sidebar { position: fixed; left: -260px; top: 0; height: 100vh; z-index: 1000; width: 260px; transition: left 0.25s ease; padding-top: 72px; box-shadow: none; }
+      .sidebar.open { left: 0; box-shadow: 4px 0 20px rgba(0,0,0,0.15); }
+      .sidebar-overlay.open { display: block; }
+      .sidebar-toggle { display: flex; }
+      .admin-main { padding: 16px; max-width: 100%; }
+      .config-row { grid-template-columns: 1fr !important; }
+    }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
@@ -522,21 +536,40 @@
     <a href="/v2/dashboard/" class="btn btn-primary">Back to Dashboard</a>
   </div>
 
-  <div id="adminContent" class="container" style="display:none;">
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
-      <button class="tab" data-tab="users" onclick="switchTab('users')">Users</button>
-      <button class="tab" data-tab="subscriptions" onclick="switchTab('subscriptions');loadBillingTab();">Billing</button>
-      <button class="tab" data-tab="coupons" onclick="switchTab('coupons');loadCoupons();">Coupons</button>
-      <button class="tab" data-tab="settings" onclick="switchTab('settings')">AI Models</button>
-      <button class="tab" data-tab="promptversions" onclick="switchTab('promptversions')">Prompt Versions</button>
-      <button class="tab" data-tab="promptlab" onclick="switchTab('promptlab')">Prompt Lab</button>
-      <button class="tab" data-tab="stylelibrary" onclick="switchTab('stylelibrary')">Generations</button>
-      <button class="tab" data-tab="blogposts" onclick="switchTab('blogposts');loadBlogPosts();">Blog Posts</button>
-      <button class="tab" data-tab="blogcategories" onclick="switchTab('blogcategories');loadBlogCategories();">Blog Categories</button>
-      <button class="tab" data-tab="blogimport" onclick="switchTab('blogimport');">Blog Import</button>
-    </div>
+  <div id="adminContent" class="admin-layout" style="display:none;">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="adminSidebar">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Dashboard</div>
+        <button class="sidebar-item active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Users &amp; Revenue</div>
+        <button class="sidebar-item" data-tab="users" onclick="switchTab('users')">Users</button>
+        <button class="sidebar-item" data-tab="subscriptions" onclick="switchTab('subscriptions');loadBillingTab();">Billing</button>
+        <button class="sidebar-item" data-tab="coupons" onclick="switchTab('coupons');loadCoupons();">Coupons</button>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">AI &amp; Prompts</div>
+        <button class="sidebar-item" data-tab="settings" onclick="switchTab('settings')">AI Models</button>
+        <button class="sidebar-item" data-tab="promptversions" onclick="switchTab('promptversions')">Prompt Versions</button>
+        <button class="sidebar-item" data-tab="promptlab" onclick="switchTab('promptlab')">Prompt Lab</button>
+        <button class="sidebar-item" data-tab="stylelibrary" onclick="switchTab('stylelibrary')">Generations</button>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Blog</div>
+        <button class="sidebar-item" data-tab="blogposts" onclick="switchTab('blogposts');loadBlogPosts();">Posts</button>
+        <button class="sidebar-item" data-tab="blogcategories" onclick="switchTab('blogcategories');loadBlogCategories();">Categories</button>
+        <button class="sidebar-item" data-tab="blogimport" onclick="switchTab('blogimport');">Import</button>
+      </div>
+    </nav>
+
+    <!-- Mobile sidebar overlay + toggle -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+
+    <!-- Main content area -->
+    <div class="admin-main">
 
     <!-- Overview Tab -->
     <div class="tab-content active" id="tab-overview">
@@ -2137,6 +2170,9 @@
       </div>
     </div>
 
+    </div><!-- end admin-main -->
+  </div><!-- end admin-layout -->
+
   <script>
     var token = localStorage.getItem('sb_access_token');
     var user = JSON.parse(localStorage.getItem('v2_user') || 'null');
@@ -2289,7 +2325,7 @@
       try {
         var res = await adminFetch('stats');
         if (!res.success) throw new Error('Not admin');
-        document.getElementById('adminContent').style.display = 'block';
+        document.getElementById('adminContent').style.display = 'flex';
         showStats(res.stats);
         loadUsers();
         loadConfig();
@@ -2338,8 +2374,18 @@
 
     // ---- Tabs ----
     function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-tab') === tab); });
+      document.querySelectorAll('.sidebar-item').forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-tab') === tab); });
       document.querySelectorAll('.tab-content').forEach(function(tc) { tc.classList.toggle('active', tc.id === 'tab-' + tab); });
+      closeSidebar();
+    }
+
+    function toggleSidebar() {
+      document.getElementById('adminSidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+    function closeSidebar() {
+      document.getElementById('adminSidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
     }
 
     // ---- Stats ----
