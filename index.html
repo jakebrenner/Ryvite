@@ -132,34 +132,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
 /* ===== CTA / CONTACT ===== */
 .cta-section { background:linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color:white; position:relative; overflow:hidden; }
 .cta-section::before { content:''; position:absolute; top:-40%; right:-10%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.08) 0%, transparent 70%); border-radius:50%; }
-.cta-inner { display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center; position:relative; z-index:2; }
-.cta-left h2 { font-size:2.5rem; margin-bottom:1rem; line-height:1.15; }
-.cta-left p { color:rgba(255,255,255,0.7); font-size:1rem; line-height:1.7; margin-bottom:1.5rem; }
-.cta-left .cta-note { font-size:0.85rem; color:var(--confetti-gold); font-style:italic; }
-.contact-form { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:2.5rem; }
-.contact-form h3 { font-size:1.4rem; margin-bottom:0.5rem; text-align:center; }
-.contact-form .form-sub { text-align:center; font-size:0.85rem; color:rgba(255,255,255,0.5); margin-bottom:1.75rem; }
-.form-group { margin-bottom:1rem; }
-.form-group label { display:block; font-size:0.8rem; font-weight:600; color:rgba(255,255,255,0.6); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.5px; }
-.form-group input, .form-group textarea { width:100%; padding:0.85rem 1rem; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:white; font-family:var(--font-body); font-size:0.95rem; outline:none; transition:border-color 0.3s; }
-.form-group input::placeholder, .form-group textarea::placeholder { color:rgba(255,255,255,0.3); }
-.form-group input:focus, .form-group textarea:focus { border-color:var(--party-coral); }
-.form-group textarea { resize:vertical; min-height:80px; }
-.form-checkbox { display:flex; align-items:flex-start; gap:0.6rem; margin-bottom:1rem; cursor:pointer; }
-.form-checkbox input[type="checkbox"] { appearance:none; -webkit-appearance:none; width:18px; height:18px; min-width:18px; border:1px solid rgba(255,255,255,0.3); border-radius:4px; background:rgba(255,255,255,0.08); cursor:pointer; position:relative; margin-top:2px; transition:border-color 0.3s, background 0.3s; }
-.form-checkbox input[type="checkbox"]:checked { background:var(--party-coral); border-color:var(--party-coral); }
-.form-checkbox input[type="checkbox"]:checked::after { content:'\2713'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:white; font-size:12px; font-weight:700; }
-.form-checkbox label { font-size:0.78rem; color:rgba(255,255,255,0.55); line-height:1.5; cursor:pointer; }
-.form-checkbox label a { color:var(--confetti-gold); text-decoration:none; }
-.form-checkbox label a:hover { text-decoration:underline; }
-.submit-btn { width:100%; padding:1rem; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; border:none; border-radius:12px; font-family:var(--font-body); font-size:1rem; font-weight:600; cursor:pointer; transition:var(--transition); margin-top:0.5rem; }
-.submit-btn:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(233,69,96,0.4); }
-.submit-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none; }
-.form-success { display:none; text-align:center; padding:2rem 1rem; }
-.form-success .check { font-size:3rem; margin-bottom:1rem; }
-.form-success h4 { font-size:1.3rem; margin-bottom:0.5rem; }
-.form-success p { font-size:0.9rem; color:rgba(255,255,255,0.6); margin:0; }
-.form-error { display:none; text-align:center; padding:0.75rem; background:rgba(220,38,38,0.15); border:1px solid rgba(220,38,38,0.3); border-radius:8px; color:#ff6b6b; font-size:0.85rem; margin-bottom:1rem; }
 
 /* ===== FOOTER ===== */
 .site-footer { background:var(--midnight); color:white; padding:3rem 2rem; text-align:center; border-top:1px solid rgba(255,255,255,0.06); }
@@ -188,7 +160,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
 @media (max-width: 900px) {
   .steps-grid { grid-template-columns: repeat(2, 1fr); }
   .features-grid { grid-template-columns: repeat(2, 1fr); }
-  .cta-inner { grid-template-columns: 1fr; gap:2.5rem; }
 }
 @media (max-width: 600px) {
   .hero { padding:8rem 1.5rem 5rem; }
@@ -201,8 +172,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
   .nav { padding:0.75rem 1rem; }
   .nav-logo-icon { height:50px; }
   .nav-cta { padding:0.5rem 1rem; font-size:0.8rem; }
-  .cta-left h2 { font-size:2rem; }
-  .contact-form { padding:1.75rem; }
 }
 
 /* ===== DEMO SHOWCASE ===== */
@@ -288,7 +257,7 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
       </svg>
     </div>
     <h1 class="fade-in-up fade-delay-1">AI Invitations. Always Unique.</h1>
-    <p class="subtext fade-in-up fade-delay-2">Fully custom, beautiful invitations generated by AI in seconds. No templates. No two alike. About $1 per event — not per invite.</p>
+    <p class="subtext fade-in-up fade-delay-2">Fully custom, beautiful invitations generated by AI in seconds. No templates. No two alike. Pennies per event — send unlimited invites.</p>
     <p class="origin fade-in-up fade-delay-2">It started as a birthday invite for a 1-year-old. It became a completely over-engineered labor of love.</p>
     <a href="/v2/create/" class="hero-cta fade-in-up fade-delay-3">Create Your Invite</a>
   </div>
@@ -419,52 +388,13 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-hei
   </div>
 </section>
 
-<!-- Contact CTA -->
+<!-- Get Started CTA -->
 <section class="section cta-section" id="contact">
-  <div class="container">
-    <div class="cta-inner">
-      <div class="cta-left scroll-reveal">
-        <p class="section-label" style="color:var(--confetti-gold);">Get Started</p>
-        <h2>Create Your Invite</h2>
-        <p>Tell us about your event and we'll get back to you with a custom, AI-generated invitation that's uniquely yours. No templates. No fees. Just magic.</p>
-        <p class="cta-note">We'll reach out within 24 hours to get your invite started.</p>
-      </div>
-      <div class="scroll-reveal">
-        <div class="contact-form" id="contactFormCard">
-          <h3>Let's Make It</h3>
-          <p class="form-sub">Tell us about your event</p>
-          <div class="form-error" id="formError"></div>
-          <form id="contactForm">
-            <div class="form-group">
-              <label for="contactName">Your Name</label>
-              <input type="text" id="contactName" name="name" placeholder="First & Last Name" required>
-            </div>
-            <div class="form-group">
-              <label for="contactEmail">Email</label>
-              <input type="email" id="contactEmail" name="email" placeholder="you@email.com" required>
-            </div>
-            <div class="form-group">
-              <label for="contactPhone">Phone</label>
-              <input type="tel" id="contactPhone" name="phone" placeholder="(555) 123-4567" required>
-            </div>
-            <div class="form-group">
-              <label for="contactEvent">Tell Us About Your Event</label>
-              <textarea id="contactEvent" name="event" placeholder="What's the occasion? Any theme or vibe in mind?" required></textarea>
-            </div>
-            <div class="form-checkbox">
-              <input type="checkbox" id="smsConsent" name="smsConsent" required>
-              <label for="smsConsent">I understand that Ryvite will send transactional SMS messages (such as event updates and RSVP notifications) on my behalf only to contacts with whom I have a personal relationship. I agree to the <a href="/terms/" target="_blank">Terms &amp; Conditions</a> and <a href="/privacy/" target="_blank">Privacy Policy</a>.</label>
-            </div>
-            <button type="submit" class="submit-btn" id="submitBtn">Send Request</button>
-          </form>
-          <div class="form-success" id="formSuccess">
-            <div class="check">&#127881;</div>
-            <h4>Request Sent!</h4>
-            <p>We'll be in touch within 24 hours to get your invite started.</p>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="container" style="text-align:center; max-width:640px;">
+    <p class="section-label scroll-reveal" style="color:var(--confetti-gold);">Ready?</p>
+    <h2 class="section-title scroll-reveal">Create Your Invite</h2>
+    <p class="scroll-reveal" style="color:rgba(255,255,255,0.7); font-size:1.05rem; line-height:1.7; margin-bottom:2.5rem;">Describe your event, pick a design, and send beautiful invitations — all in minutes. No templates, no subscriptions, no waiting.</p>
+    <a href="/v2/create/" class="nav-cta scroll-reveal" style="display:inline-block; padding:1rem 2.5rem; font-size:1.1rem; border-radius:14px;">Get Started Free</a>
   </div>
 </section>
 
@@ -546,44 +476,6 @@ document.querySelectorAll(".scroll-reveal").forEach(function(el) {
   observer.observe(el);
 });
 
-// Contact form
-document.getElementById("contactForm").addEventListener("submit", function(e) {
-  e.preventDefault();
-  var btn = document.getElementById("submitBtn");
-  var errEl = document.getElementById("formError");
-  errEl.style.display = "none";
-
-  if (!document.getElementById("smsConsent").checked) {
-    errEl.textContent = "Please agree to the SMS consent, Terms & Conditions, and Privacy Policy to continue.";
-    errEl.style.display = "block";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Sending...";
-
-  var data = {
-    name: document.getElementById("contactName").value.trim(),
-    email: document.getElementById("contactEmail").value.trim(),
-    phone: document.getElementById("contactPhone").value.trim(),
-    event: document.getElementById("contactEvent").value.trim()
-  };
-
-  fetch("/api/contact", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  }).then(function(res) {
-    if (!res.ok) throw new Error("Failed to send");
-    document.getElementById("contactForm").style.display = "none";
-    document.getElementById("formSuccess").style.display = "block";
-  }).catch(function(err) {
-    btn.disabled = false;
-    btn.textContent = "Send Request";
-    errEl.textContent = "Something went wrong. Please try again or email jake@getmrkt.com directly.";
-    errEl.style.display = "block";
-  });
-});
 
 // ===== DEMO SHOWCASE =====
 (function() {
@@ -630,9 +522,9 @@ document.getElementById("contactForm").addEventListener("submit", function(e) {
         if (!costEl) return;
         costEl.innerHTML = '<span class="demo-cost-amount">~$' + dollars + '</span>'
           + '<span class="demo-cost-detail">'
-          + '<span class="demo-cost-label">Per Event</span>'
-          + '<span class="demo-cost-unlimited">Unlimited invites</span>'
-          + '<span class="demo-cost-sub">+ Optional SMS</span>'
+          + '<span class="demo-cost-label">Average per event</span>'
+          + '<span class="demo-cost-unlimited">Unlimited invites included</span>'
+          + '<span class="demo-cost-sub">You only pay for AI generation. Most events cost under $2. + Optional SMS.</span>'
           + '</span>';
         costEl.style.display = "";
       })
