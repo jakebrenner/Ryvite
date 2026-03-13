@@ -63,12 +63,12 @@
       "destination": "/v2/cohost/index.html"
     },
     {
-      "source": "/templates",
-      "destination": "/v2/templates/index.html"
+      "source": "/inspiration",
+      "destination": "/v2/inspiration/index.html"
     },
     {
-      "source": "/templates/:type",
-      "destination": "/v2/templates/index.html"
+      "source": "/inspiration/:type",
+      "destination": "/v2/inspiration/index.html"
     }
   ]
 }
