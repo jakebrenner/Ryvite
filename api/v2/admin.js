@@ -168,7 +168,7 @@ export default async function handler(req, res) {
         supabaseAdmin.from('events').select('id, title, event_type, event_date, status, slug, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
         supabaseAdmin.from('subscriptions').select('*, plans:plan_id (name, display_name, price_cents, max_events, max_generations)').eq('user_id', userId).order('created_at', { ascending: false }),
         supabaseAdmin.from('billing_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-        supabaseAdmin.from('generation_log').select('id, event_id, model, input_tokens, output_tokens, prompt, status, latency_ms, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
+        supabaseAdmin.from('generation_log').select('id, event_id, model, input_tokens, output_tokens, prompt, status, latency_ms, created_at').eq('user_id', userId).eq('status', 'success').order('created_at', { ascending: false }),
         supabaseAdmin.from('sms_messages').select('id, event_id, recipient_phone, recipient_name, message_type, status, cost_cents, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
         supabaseAdmin.from('chat_messages').select('id, session_id, role, content, model, input_tokens, output_tokens, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(200)
       ]);
@@ -494,16 +494,51 @@ export default async function handler(req, res) {
 
     // ---- PLATFORM STATS ----
     if (action === 'stats') {
-      const [usersRes, eventsRes, guestsRes, logsRes, markupRes] = await Promise.all([
+      // Optional date range filter for generation_log
+      // Date params are full ISO timestamps with timezone (e.g. '2026-03-13T07:00:00.000Z' for midnight Pacific)
+      const statsFrom = req.query.from;
+      const statsTo = req.query.to;
+
+      let logsQuery = supabaseAdmin
+        .from('generation_log')
+        .select('id, event_id, model, input_tokens, output_tokens, latency_ms, created_at, prompt', { count: 'exact' })
+        .eq('status', 'success');
+      if (statsFrom) logsQuery = logsQuery.gte('created_at', statsFrom);
+      if (statsTo) logsQuery = logsQuery.lte('created_at', statsTo);
+
+      // Build date-filtered queries for profiles, events, guests
+      let filteredProfilesQuery = supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true });
+      let filteredEventsQuery = supabaseAdmin.from('events').select('id, status', { count: 'exact' });
+      let filteredGuestsQuery = supabaseAdmin.from('guests').select('id', { count: 'exact', head: true });
+      if (statsFrom) {
+        filteredProfilesQuery = filteredProfilesQuery.gte('created_at', statsFrom);
+        filteredEventsQuery = filteredEventsQuery.gte('created_at', statsFrom);
+        filteredGuestsQuery = filteredGuestsQuery.gte('created_at', statsFrom);
+      }
+      if (statsTo) {
+        filteredProfilesQuery = filteredProfilesQuery.lte('created_at', statsTo);
+        filteredEventsQuery = filteredEventsQuery.lte('created_at', statsTo);
+        filteredGuestsQuery = filteredGuestsQuery.lte('created_at', statsTo);
+      }
+
+      const [allUsersRes, allEventsRes, allGuestsRes, filteredUsersRes, filteredEventsRes, filteredGuestsRes, logsRes, markupRes] = await Promise.all([
+        // All-time totals (never filtered)
         supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }),
         supabaseAdmin.from('events').select('id, status', { count: 'exact' }),
         supabaseAdmin.from('guests').select('id', { count: 'exact', head: true }),
-        supabaseAdmin.from('generation_log').select('id, event_id, model, input_tokens, output_tokens, created_at, prompt', { count: 'exact' }),
+        // Date-filtered counts
+        filteredProfilesQuery,
+        filteredEventsQuery,
+        filteredGuestsQuery,
+        // Already date-filtered
+        logsQuery,
         supabaseAdmin.from('app_config').select('value').eq('key', 'cost_markup_pct').single()
       ]);
 
-      const events = eventsRes.data || [];
-      const published = events.filter(e => e.status === 'published').length;
+      const allEvents = allEventsRes.data || [];
+      const allPublished = allEvents.filter(e => e.status === 'published').length;
+      const filteredEvents = filteredEventsRes.data || [];
+      const filteredPublished = filteredEvents.filter(e => e.status === 'published').length;
       const markupPct = parseFloat(markupRes.data?.value) || 100; // default 100% markup
 
       // AI model pricing per 1M tokens — must match generate-theme.js, chat.js, billing.js, ratings.js
@@ -525,18 +560,38 @@ export default async function handler(req, res) {
       let themeCount = 0;
       let testCount = 0;
 
-      // Cost by time period (last 7 days, last 30 days, all time)
+      // Cost by time period (last 7 days, last 30 days, prior 7 days for comparison)
       const now = Date.now();
       const day7 = now - 7 * 86400000;
+      const day14 = now - 14 * 86400000;
       const day30 = now - 30 * 86400000;
+      const day60 = now - 60 * 86400000;
       let cost7d = 0, cost30d = 0;
+      let costPrev7d = 0, costPrev30d = 0; // comparison periods
+
+      // Latency tracking
+      let totalLatencyMs = 0, latencyCount = 0;
+      let latency7dMs = 0, latency7dCount = 0;
+      let latencyPrev7dMs = 0, latencyPrev7dCount = 0;
+      let latency30dMs = 0, latency30dCount = 0;
+      let latencyPrev30dMs = 0, latencyPrev30dCount = 0;
+      // Latency by type (theme only — chat and tests are much faster, don't mix)
+      let themeLatencyMs = 0, themeLatencyCount = 0;
+      let themeLatency7dMs = 0, themeLatency7dCount = 0;
+      let themeLatencyPrev7dMs = 0, themeLatencyPrev7dCount = 0;
 
       (logsRes.data || []).forEach(l => {
         const model = l.model || 'unknown';
-        if (!tokensByModel[model]) tokensByModel[model] = { generations: 0, inputTokens: 0, outputTokens: 0, cost: 0, chatCount: 0, themeCount: 0, testCount: 0 };
+        if (!tokensByModel[model]) tokensByModel[model] = { generations: 0, inputTokens: 0, outputTokens: 0, cost: 0, chatCount: 0, themeCount: 0, testCount: 0, latencyMs: 0, latencyCount: 0 };
         tokensByModel[model].generations++;
         tokensByModel[model].inputTokens += l.input_tokens || 0;
         tokensByModel[model].outputTokens += l.output_tokens || 0;
+
+        // Track latency per model
+        if (l.latency_ms && l.latency_ms > 0) {
+          tokensByModel[model].latencyMs += l.latency_ms;
+          tokensByModel[model].latencyCount++;
+        }
 
         // Compute cost
         const pricing = MODEL_PRICING[model] || { input: 3.00, output: 15.00 }; // default to Sonnet pricing
@@ -552,19 +607,83 @@ export default async function handler(req, res) {
         else { themeApiCost += cost; themeCount++; tokensByModel[model].themeCount++; }
 
         const ts = new Date(l.created_at).getTime();
-        if (ts >= day7) cost7d += cost;
-        if (ts >= day30) cost30d += cost;
+        const hasLatency = l.latency_ms && l.latency_ms > 0;
+
+        // Overall latency
+        if (hasLatency) {
+          totalLatencyMs += l.latency_ms;
+          latencyCount++;
+        }
+
+        // Current 7d window
+        if (ts >= day7) {
+          cost7d += cost;
+          if (hasLatency) { latency7dMs += l.latency_ms; latency7dCount++; }
+          if (!isChat && !isTest && hasLatency) { themeLatency7dMs += l.latency_ms; themeLatency7dCount++; }
+        }
+        // Previous 7d window (7-14 days ago) for comparison
+        else if (ts >= day14) {
+          costPrev7d += cost;
+          if (hasLatency) { latencyPrev7dMs += l.latency_ms; latencyPrev7dCount++; }
+          if (!isChat && !isTest && hasLatency) { themeLatencyPrev7dMs += l.latency_ms; themeLatencyPrev7dCount++; }
+        }
+
+        // Current 30d window
+        if (ts >= day30) {
+          cost30d += cost;
+          if (hasLatency) { latency30dMs += l.latency_ms; latency30dCount++; }
+        }
+        // Previous 30d window (30-60 days ago)
+        else if (ts >= day60) {
+          costPrev30d += cost;
+          if (hasLatency) { latencyPrev30dMs += l.latency_ms; latencyPrev30dCount++; }
+        }
+
+        // Theme latency all-time
+        if (!isChat && !isTest && hasLatency) {
+          themeLatencyMs += l.latency_ms;
+          themeLatencyCount++;
+        }
       });
 
       const markupMultiplier = 1 + markupPct / 100;
 
+      // Compute averages safely
+      const avg = (total, count) => count > 0 ? Math.round(total / count) : null;
+      const pctChange = (current, previous) => {
+        if (previous === 0 || previous === null) return null;
+        return Math.round((current - previous) / previous * 100);
+      };
+
+      const avgLatency7d = avg(latency7dMs, latency7dCount);
+      const avgLatencyPrev7d = avg(latencyPrev7dMs, latencyPrev7dCount);
+      const avgThemeLatency7d = avg(themeLatency7dMs, themeLatency7dCount);
+      const avgThemeLatencyPrev7d = avg(themeLatencyPrev7dMs, themeLatencyPrev7dCount);
+
       return res.status(200).json({
         success: true,
+        dateFilter: { from: statsFrom || null, to: statsTo || null },
         stats: {
-          totalUsers: usersRes.count || 0,
-          totalEvents: eventsRes.count || 0,
-          publishedEvents: published,
-          totalRsvps: guestsRes.count || 0,
+          // All-time totals (never filtered)
+          allTime: {
+            totalUsers: allUsersRes.count || 0,
+            totalEvents: allEventsRes.count || 0,
+            publishedEvents: allPublished,
+            totalRsvps: allGuestsRes.count || 0
+          },
+          // Date-filtered activity counts
+          filtered: {
+            newUsers: filteredUsersRes.count || 0,
+            newEvents: filteredEventsRes.count || 0,
+            newPublishedEvents: filteredPublished,
+            newRsvps: filteredGuestsRes.count || 0,
+            generations: logsRes.count || 0
+          },
+          // Backward compat (deprecated — use allTime/filtered instead)
+          totalUsers: allUsersRes.count || 0,
+          totalEvents: allEventsRes.count || 0,
+          publishedEvents: allPublished,
+          totalRsvps: allGuestsRes.count || 0,
           totalGenerations: logsRes.count || 0,
           tokensByModel,
           costs: {
@@ -581,6 +700,22 @@ export default async function handler(req, res) {
             revenueTotal: totalApiCost * markupMultiplier,
             revenue7d: cost7d * markupMultiplier,
             revenue30d: cost30d * markupMultiplier
+          },
+          latency: {
+            avgMs: avg(totalLatencyMs, latencyCount),
+            avg7dMs: avgLatency7d,
+            avg30dMs: avg(latency30dMs, latency30dCount),
+            themeAvgMs: avg(themeLatencyMs, themeLatencyCount),
+            themeAvg7dMs: avgThemeLatency7d,
+            count: latencyCount
+          },
+          trends: {
+            cost7dChange: pctChange(cost7d, costPrev7d),
+            cost30dChange: pctChange(cost30d, costPrev30d),
+            latency7dChange: pctChange(avgLatency7d, avgLatencyPrev7d),
+            themeLatency7dChange: pctChange(avgThemeLatency7d, avgThemeLatencyPrev7d),
+            gen7dCount: (logsRes.data || []).filter(l => new Date(l.created_at).getTime() >= day7).length,
+            genPrev7dCount: (logsRes.data || []).filter(l => { const ts = new Date(l.created_at).getTime(); return ts >= day14 && ts < day7; }).length,
           }
         }
       });
@@ -1022,21 +1157,39 @@ export default async function handler(req, res) {
 
     // ---- SMS STATS (admin overview) ----
     if (action === 'smsStats') {
-      const { count: totalSent } = await supabaseAdmin
-        .from('sms_messages')
-        .select('id', { count: 'exact', head: true });
+      const smsFrom = req.query.from;
+      const smsTo = req.query.to;
 
-      const { data: costData } = await supabaseAdmin
-        .from('sms_messages')
-        .select('cost_cents');
+      // All-time totals
+      const [allCountRes, allCostRes] = await Promise.all([
+        supabaseAdmin.from('sms_messages').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('sms_messages').select('cost_cents')
+      ]);
+      const totalSent = allCountRes.count || 0;
+      const totalCostCents = (allCostRes.data || []).reduce((sum, m) => sum + (m.cost_cents || 0), 0);
 
-      const totalCostCents = (costData || []).reduce((sum, m) => sum + (m.cost_cents || 0), 0);
+      // Date-filtered totals
+      let filteredSent = totalSent;
+      let filteredCostCents = totalCostCents;
+      if (smsFrom || smsTo) {
+        let fq = supabaseAdmin.from('sms_messages').select('id, cost_cents');
+        if (smsFrom) fq = fq.gte('created_at', smsFrom);
+        if (smsTo) fq = fq.lte('created_at', smsTo);
+        const { data: filteredData } = await fq;
+        filteredSent = (filteredData || []).length;
+        filteredCostCents = (filteredData || []).reduce((sum, m) => sum + (m.cost_cents || 0), 0);
+      }
 
       return res.status(200).json({
         success: true,
-        totalSent: totalSent || 0,
+        totalSent,
         totalCostCents,
-        totalRevenueCents: totalCostCents // revenue = cost to user (we charge $0.05, ClickSend costs us less)
+        totalRevenueCents: totalCostCents,
+        filtered: {
+          sent: filteredSent,
+          costCents: filteredCostCents,
+          revenueCents: filteredCostCents
+        }
       });
     }
 

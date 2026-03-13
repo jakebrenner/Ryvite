@@ -128,7 +128,7 @@ Always respond with JSON:
 
 ## CONVERSATION RULES
 - Infer eventType from context (e.g., "my son's 5th birthday" → birthday)
-- Convert relative dates ("next Saturday at 3pm") using today: ${new Date().toISOString().split('T')[0]}
+- Convert relative dates ("next Saturday at 3pm") using today: ${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })}
 - If user provides most info at once, don't ask redundant questions — go straight to proposing RSVP fields (but still wait for confirmation before setting confirmed: true)
 - Capture vibe/style descriptions in "prompt" field — be detailed and specific
 - When suggesting RSVP fields, be conversational and specific to the event — describe the fields naturally, don't just list them robotically`;
@@ -180,58 +180,55 @@ export default async function handler(req, res) {
     const chatInputTokens = response.usage?.input_tokens || 0;
     const chatOutputTokens = response.usage?.output_tokens || 0;
     const chatCost = calcGenerationCost(chatModel, chatInputTokens, chatOutputTokens);
-    try {
-      await supabase.from('generation_log').insert({
-        user_id: user.id,
-        event_id: eventId || null,
-        prompt: messages[messages.length - 1]?.content || '',
-        model: chatModel,
-        input_tokens: chatInputTokens,
-        output_tokens: chatOutputTokens,
-        latency_ms: latency,
-        status: 'success'
-      });
-    } catch {}
+    const { error: genLogError } = await supabase.from('generation_log').insert({
+      user_id: user.id,
+      event_id: eventId || null,
+      prompt: messages[messages.length - 1]?.content || '',
+      model: chatModel,
+      input_tokens: chatInputTokens,
+      output_tokens: chatOutputTokens,
+      latency_ms: latency,
+      status: 'success'
+    });
+    if (genLogError) console.error('Chat generation_log insert failed:', genLogError.message);
 
     // Increment persistent event cost if we have an eventId
     if (eventId) {
-      supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: chatCost.totalCostCents })
-        .then(({ error }) => {
-          if (error) {
-            supabase.from('events').select('total_cost_cents').eq('id', eventId).single()
-              .then(({ data }) => {
-                if (data) supabase.from('events')
-                  .update({ total_cost_cents: (data.total_cost_cents || 0) + chatCost.totalCostCents })
-                  .eq('id', eventId).then(() => {});
-              });
-          }
-        });
+      const { error: costError } = await supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: chatCost.totalCostCents });
+      if (costError) {
+        // Fallback: read-then-write if RPC fails
+        const { data } = await supabase.from('events').select('total_cost_cents').eq('id', eventId).single();
+        if (data) {
+          await supabase.from('events')
+            .update({ total_cost_cents: (data.total_cost_cents || 0) + chatCost.totalCostCents })
+            .eq('id', eventId);
+        }
+      }
     }
 
     // Check if usage-based AI billing threshold is reached
-    checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
+    await checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
 
     // Persist user message + assistant response to chat_messages
     const lastUserMsg = messages[messages.length - 1];
-    try {
-      await supabase.from('chat_messages').insert([
-        {
-          user_id: user.id,
-          session_id: chatSessionId,
-          role: 'user',
-          content: lastUserMsg?.content || ''
-        },
-        {
-          user_id: user.id,
-          session_id: chatSessionId,
-          role: 'assistant',
-          content: text,
-          model: chatModel,
-          input_tokens: response.usage?.input_tokens || 0,
-          output_tokens: response.usage?.output_tokens || 0
-        }
-      ]);
-    } catch {}
+    const { error: chatMsgError } = await supabase.from('chat_messages').insert([
+      {
+        user_id: user.id,
+        session_id: chatSessionId,
+        role: 'user',
+        content: lastUserMsg?.content || ''
+      },
+      {
+        user_id: user.id,
+        session_id: chatSessionId,
+        role: 'assistant',
+        content: text,
+        model: chatModel,
+        input_tokens: response.usage?.input_tokens || 0,
+        output_tokens: response.usage?.output_tokens || 0
+      }
+    ]);
+    if (chatMsgError) console.error('Chat messages insert failed:', chatMsgError.message);
 
     let parsed;
     try {
