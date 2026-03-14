@@ -56,6 +56,9 @@ create index if not exists idx_event_themes_style_ids
 --     50 data points → 91% production influence
 -- ============================================================
 
+-- DROP first because column layout changed (added event_type, reordered columns).
+-- CREATE OR REPLACE can't rename/reorder columns on an existing view.
+drop view if exists public.production_style_effectiveness;
 create or replace view public.production_style_effectiveness as
 select
   sl.id as style_id,
@@ -144,6 +147,7 @@ comment on view public.production_style_effectiveness is 'Confidence-gated compo
 -- and whether certain styles work better for specific event types.
 -- ============================================================
 
+drop view if exists public.style_rating_impact;
 create or replace view public.style_rating_impact as
 select
   coalesce(sl.admin_rating::text, 'unrated') as rating_tier,
