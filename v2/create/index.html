@@ -6372,7 +6372,7 @@
         <li>Full RSVP tracking &amp; guest management</li>
       </ul>
       <div style="display: flex; gap: 12px; justify-content: center;">
-        <button onclick="document.getElementById('createPaymentGate').style.display='none'" style="padding: 10px 24px; border: 1px solid #ddd; border-radius: 50px; background: white; cursor: pointer; font-size: 14px; font-family: Inter, sans-serif;">Maybe Later</button>
+        <button onclick="document.getElementById('createPaymentGate').style.display='none'; goToStep(1);" style="padding: 10px 24px; border: 1px solid #ddd; border-radius: 50px; background: white; cursor: pointer; font-size: 14px; font-family: Inter, sans-serif;">Maybe Later</button>
         <button id="createPayBtn" onclick="handleCreatePayment()" style="padding: 10px 24px; border: none; border-radius: 50px; background: #E94560; color: white; cursor: pointer; font-size: 14px; font-weight: 600; font-family: Inter, sans-serif;">Upgrade &#8212; $4.99</button>
       </div>
       <p style="color: #D1D5DB; font-size: 12px; margin: 16px 0 0;">Powered by Stripe</p>

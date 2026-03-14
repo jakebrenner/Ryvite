@@ -1020,37 +1020,36 @@ export default async function handler(req, res) {
   try {
     const eventIdForCheck = req.body?.eventId;
     if (eventIdForCheck) {
-      // Get event payment status
+      // Get event payment status + free generation flag
       const { data: eventForLimit } = await supabase
         .from('events')
-        .select('payment_status, user_id')
+        .select('payment_status, user_id, free_generation_used')
         .eq('id', eventIdForCheck)
         .single();
 
       if (eventForLimit && eventForLimit.user_id === user.id) {
-        // Count generations for this specific event
-        const { count: eventGenCount } = await supabase
-          .from('generation_log')
-          .select('id', { count: 'exact', head: true })
-          .eq('event_id', eventIdForCheck)
-          .eq('status', 'success');
-
-        const genCount = eventGenCount || 0;
-
-        if (eventForLimit.payment_status === 'free' && genCount >= 1) {
+        // Free events: use boolean flag (not generation_log count, which includes pre-migration history)
+        if (eventForLimit.payment_status === 'free' && eventForLimit.free_generation_used) {
           return res.status(403).json({
             error: 'Your free event includes 1 AI design. Upgrade to $4.99 for unlimited designs.',
             limitReached: true,
             requiresPayment: true,
-            generationCount: genCount,
+            generationCount: 1,
             generationLimit: 1
           });
         }
 
         // Paid events: soft cap at 10 (include flag but don't block)
-        if (eventForLimit.payment_status === 'paid' && genCount >= 10) {
-          // Don't block — just flag it. Client shows friendly message.
-          res.softCapReached = true;
+        if (eventForLimit.payment_status === 'paid') {
+          const { count: eventGenCount } = await supabase
+            .from('generation_log')
+            .select('id', { count: 'exact', head: true })
+            .eq('event_id', eventIdForCheck)
+            .eq('status', 'success');
+
+          if ((eventGenCount || 0) >= 10) {
+            res.softCapReached = true;
+          }
         }
       }
     }
@@ -2191,6 +2190,11 @@ This is the most common failure mode. Double-check it.`;
       supabase.from('events')
         .update({ first_generation_at: new Date().toISOString() })
         .eq('id', eventId).is('first_generation_at', null)
+        .then(() => {}).catch(() => {});
+      // Mark free generation as used (separate update — first_generation_at may already be set for migrated events)
+      supabase.from('events')
+        .update({ free_generation_used: true })
+        .eq('id', eventId).eq('payment_status', 'free').is('free_generation_used', false)
         .then(() => {}).catch(() => {});
       // Atomically increment persistent event cost
       try {
