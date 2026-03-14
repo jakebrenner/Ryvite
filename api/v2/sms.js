@@ -701,11 +701,11 @@ export default async function handler(req, res) {
 <tr><td align="center">
 <table role="presentation" width="480" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;width:100%;">
 
-  <!-- Branded header -->
+  <!-- Branded header with logo -->
   <tr><td align="center" style="padding-bottom:0;">
-    <div style="background:linear-gradient(135deg, #1A1A2E 0%, #0f3460 100%);border-radius:12px 12px 0 0;padding:28px 40px;text-align:center;">
-      <h1 style="margin:0;font-family:'Playfair Display',Georgia,serif;font-size:24px;color:#FFFFFF;letter-spacing:-0.5px;">Ryvite</h1>
-      <p style="margin:4px 0 0;font-size:12px;color:#FFB74D;font-style:italic;font-family:'Inter',Arial,sans-serif;">Prompt to Party</p>
+    <div style="background:linear-gradient(135deg, #1A1A2E 0%, #0f3460 100%);border-radius:12px 12px 0 0;padding:24px 40px;text-align:center;">
+      <img src="${baseUrl}/api/logo.png?variant=dark" alt="Ryvite" width="160" height="44" style="display:block;margin:0 auto 4px;width:160px;height:44px;border:0;" />
+      <p style="margin:0;font-size:12px;color:#FFB74D;font-style:italic;font-family:'Inter',Arial,sans-serif;">Prompt to Party</p>
     </div>
   </td></tr>
 
