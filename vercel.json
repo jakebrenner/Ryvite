@@ -25,10 +25,6 @@
     {
       "path": "/api/v2/sms-cron",
       "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/v2/billing?action=monthly-sweep",
-      "schedule": "0 6 1 * *"
     }
   ],
   "functions": {
