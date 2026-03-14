@@ -4289,11 +4289,21 @@
       if (config.thankyouHtml) {
         var tyHtml = sanitizeThemeText(config.thankyouHtml);
 
-        // New simplified format: AI provides empty .thankyou-hero — platform fills it
+        // Platform ALWAYS injects hero text — whether AI left it empty or put decorative content inside
         var heroContent = '<h1 class="thankyou-title">Thank You!</h1>'
           + '<p class="thankyou-subtitle">Thanks for RSVPing, <span class="thankyou-guest">' + escapeHtml(guestName) + '</span>! We can\'t wait to see you at <span class="thankyou-event">' + escapeHtml(title) + '</span>.</p>';
-        // Check if .thankyou-hero is empty (new themes) — inject hero content
-        tyHtml = tyHtml.replace(/<div class="thankyou-hero">\s*<\/div>/, '<div class="thankyou-hero">' + heroContent + '</div>');
+
+        // Check if hero already has our title text (legacy themes that pre-generated it)
+        var hasHeroText = /class="thankyou-title"/.test(tyHtml);
+        if (!hasHeroText) {
+          // Hero might be empty OR have decorative content (SVG, emoji).
+          // Preserve any decorative content but prepend our text.
+          tyHtml = tyHtml.replace(/<div class="thankyou-hero">([\s\S]*?)<\/div>/, function(match, inner) {
+            var decoration = inner.trim();
+            // If AI put just an emoji or tiny decoration, keep it above the text
+            return '<div class="thankyou-hero">' + (decoration ? decoration : '') + heroContent + '</div>';
+          });
+        }
 
         // Legacy: replace guest/event placeholders if AI generated them
         tyHtml = tyHtml.replace(/<span class="thankyou-guest">[^<]*<\/span>/g, '<span class="thankyou-guest">' + escapeHtml(guestName) + '</span>');

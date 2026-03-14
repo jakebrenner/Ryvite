@@ -365,19 +365,33 @@ If photos are provided via URL, use them in \`<img>\` tags with the exact URL pr
 - Style with border-radius, box-shadow, border, or creative framing per the event type
 - If photos are bad quality, the treatment should save them (overlay, vignette, color grade via CSS filter)
 
-## THANK YOU PAGE (theme_thankyou_html) — SIMPLIFIED
-The platform injects the hero text, calendar buttons, and footer. You provide:
+## THANK YOU PAGE (theme_thankyou_html) — CRITICAL
+The platform injects the "Thank You!" heading, subtitle text, calendar buttons, and footer at runtime.
+Your job: provide the **visual wrapper and decorative illustration** that makes it feel like a celebration, not a blank page.
+
 \`\`\`html
 <div class="thankyou-page">
-  <!-- Optional: ONE small decorative SVG or animation element, under 1KB -->
+  <!-- REQUIRED: A theme-centric decorative SVG illustration (under 2KB) -->
+  <!-- Examples: confetti burst, balloons, party hat, checkmark with sparkles, -->
+  <!-- champagne glasses, birthday cake, gift box, rainbow, stars cluster, etc. -->
+  <!-- Match the event type and theme — make it feel like a CELEBRATION -->
+  <div class="thankyou-decoration">
+    <svg ...><!-- theme-matching illustration --></svg>
+  </div>
+  <!-- LEAVE EMPTY — platform fills with "Thank You!" title + confirmation subtitle -->
   <div class="thankyou-hero"></div>
 </div>
 \`\`\`
+
 Rules:
 - \`.thankyou-page\` MUST have a branded background matching the invite (gradient, pattern, texture, or solid color)
-- \`.thankyou-hero\` must be EMPTY — the platform fills it with title + subtitle text
-- Optional: add ONE small decorative SVG element (stars, confetti, simple illustration) inside \`.thankyou-page\` but OUTSIDE \`.thankyou-hero\`. Keep it under 1KB.
-- NO text content, NO emojis, NO calendar buttons, NO footer, NO extra sections
+- \`.thankyou-hero\` MUST be completely empty — no text, no emojis, no SVGs inside it. The platform fills it with title + subtitle.
+- **REQUIRED**: Include a decorative SVG illustration OUTSIDE \`.thankyou-hero\` but INSIDE \`.thankyou-page\`. This is NOT optional — a bare page with just text and buttons looks broken. The illustration should:
+  - Match the event theme (unicorn for kids party, champagne for wedding, etc.)
+  - Be an inline SVG, under 2KB
+  - Have CSS animation (fade-in, bounce, float, scale-up)
+  - Be placed ABOVE \`.thankyou-hero\` so it appears at the top
+- NO text content anywhere, NO emojis, NO calendar buttons, NO footer
 - Include these CSS rules in theme_css (customize colors/fonts to match invite):
 \`\`\`css
 .thankyou-page {
@@ -386,6 +400,7 @@ Rules:
   align-items: center; justify-content: center; text-align: center;
   /* MUST match the invite's background treatment */
 }
+.thankyou-decoration { margin-bottom: 24px; /* add entrance animation */ }
 .thankyou-hero { margin-bottom: 32px; }
 .thankyou-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; /* use invite heading font + color */ }
 .thankyou-subtitle { font-size: 16px; line-height: 1.5; opacity: 0.8; /* use invite body font */ }
@@ -1338,7 +1353,7 @@ Return ONLY a valid JSON object with these keys:
 - No JavaScript, no external images (except Google Fonts and user-uploaded photos)
 - Make minimal changes — only what the user asked for, keep everything else exactly the same
 - Preserve and enhance CSS animations — every invite should feel alive with entrance animations, ambient motion, and hover effects
-- Thank you page: ONLY provide .thankyou-page container with .thankyou-hero (.thankyou-title + .thankyou-subtitle with .thankyou-guest span). NO calendar buttons, NO footer — the platform injects those automatically. NO emojis. Match invite's background/fonts. Style .thankyou-page, .thankyou-hero, .thankyou-title, .thankyou-subtitle in CSS.
+- Thank you page: Provide .thankyou-page container with a REQUIRED decorative SVG illustration (in .thankyou-decoration div) + empty .thankyou-hero div. The platform injects "Thank You!" title, subtitle, calendar buttons, and footer. NO text, NO emojis, NO calendar buttons, NO footer in your output. MUST include a theme-matching SVG illustration with CSS animation. Match invite's background/fonts. Style .thankyou-page, .thankyou-decoration, .thankyou-hero, .thankyou-title, .thankyou-subtitle in CSS.
 - TEXT CONTRAST: EVERY text element must be clearly readable against its background. Never light-on-light or dark-on-dark. Buttons must have contrasting text. This is non-negotiable. CONCRETE RULE: on any dark/colored background section, text MUST be #FFFFFF or #FAFAFA. On light backgrounds, text MUST be #1A1A1A or darker. Do NOT use theme accent colors (coral, salmon, rose, etc.) as text on dark backgrounds.
 - For photo additions: use the EXACT URL(s) provided in <img> tags. Style with creative framing per the event type.`;
 
