@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frequently Asked Questions — Ryvite</title>
+<meta name="description" content="Get answers about Ryvite's AI invitation platform. Learn about pricing, customization, RSVP tracking, and how AI-generated invitations work.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Ryvite">
+<meta name="theme-color" content="#E94560">
+<link rel="canonical" href="https://www.ryvite.com/faq/">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Frequently Asked Questions — Ryvite">
+<meta property="og:description" content="Get answers about Ryvite's AI invitation platform. Learn about pricing, customization, RSVP tracking, and how AI-generated invitations work.">
+<meta property="og:image" content="https://www.ryvite.com/api/v2/og-image?title=Frequently%20Asked%20Questions&subtitle=Everything%20You%20Need%20to%20Know%20About%20Ryvite&type=default">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://www.ryvite.com/faq/">
+<meta property="og:site_name" content="Ryvite">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Frequently Asked Questions — Ryvite">
+<meta name="twitter:description" content="Get answers about Ryvite's AI invitation platform. Learn about pricing, customization, RSVP tracking, and how AI-generated invitations work.">
+<meta name="twitter:image" content="https://www.ryvite.com/api/v2/og-image?title=Frequently%20Asked%20Questions&subtitle=Everything%20You%20Need%20to%20Know%20About%20Ryvite&type=default">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --party-coral: #E94560;
+  --blush-pop: #FF6B6B;
+  --midnight: #1A1A2E;
+  --confetti-gold: #FFB74D;
+  --mint-fizz: #4ECDC4;
+  --party-purple: #A78BFA;
+  --cream: #FFFAF5;
+  --warm-canvas: #FFF5E6;
+  --slate: #6B7280;
+  --slate-light: #D1D5DB;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-smooth: all 0.6s ease-out;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-body); color: var(--midnight); background: white; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; }
+a { color: var(--party-coral); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== NAV ===== */
+.nav { position: fixed; top:0; left:0; right:0; z-index:100; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; background: rgba(26,26,46,0.95); backdrop-filter: blur(10px); box-shadow: 0 2px 20px rgba(0,0,0,0.2); }
+.nav-logo { display:flex; align-items:center; text-decoration:none; color:white; }
+.nav-logo-icon { height:56px; width:auto; }
+.nav-links { display:flex; gap:8px; align-items:center; }
+.nav-link { color:rgba(255,255,255,0.75); text-decoration:none; font-size:0.85rem; font-weight:500; padding:0.5rem 0.8rem; transition:color 0.2s; }
+.nav-link:hover { color:white; text-decoration:none; }
+.nav-cta { padding:0.6rem 1.4rem; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; border:none; border-radius:50px; font-family:var(--font-body); font-size:0.85rem; font-weight:600; cursor:pointer; text-decoration:none; transition: var(--transition); white-space:nowrap; }
+.nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(233,69,96,0.4); text-decoration:none; }
+.nav-cta-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.4); }
+
+/* ===== HERO ===== */
+.hero { background: linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color: white; padding: 10rem 2rem 6rem; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content:''; position:absolute; top:-50%; right:-10%; width:600px; height:600px; background:radial-gradient(circle, rgba(255,183,77,0.12) 0%, transparent 70%); border-radius:50%; }
+.hero::after { content:''; position:absolute; bottom:-30%; left:-5%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.1) 0%, transparent 70%); border-radius:50%; }
+.hero-content { position:relative; z-index:2; max-width:800px; margin:0 auto; }
+.hero h1 { font-size:3.5rem; margin-bottom:1.25rem; letter-spacing:-1px; }
+.hero .subtext { font-size:1.1rem; color:rgba(255,255,255,0.75); margin-bottom:2rem; max-width:600px; margin-left:auto; margin-right:auto; line-height:1.7; }
+.hero-cta { display:inline-block; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:600; text-decoration:none; font-size:1.05rem; transition:var(--transition); box-shadow:0 10px 30px rgba(233,69,96,0.3); border:none; cursor:pointer; font-family:var(--font-body); }
+.hero-cta:hover { transform:translateY(-3px); box-shadow:0 15px 45px rgba(233,69,96,0.5); text-decoration:none; }
+
+/* ===== SECTIONS ===== */
+.section { padding:5rem 2rem; }
+.container { max-width:1100px; margin:0 auto; }
+.section-label { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--party-coral); margin-bottom:0.75rem; }
+.section-title { font-size:2.5rem; margin-bottom:1rem; }
+.section-subtitle { font-size:1.05rem; color:var(--slate); max-width:600px; line-height:1.7; }
+.section-subtitle.center { margin:0 auto; text-align:center; }
+
+/* ===== FAQ ===== */
+.faq-section { background:var(--cream); }
+.faq-section.alt { background:white; }
+.faq-category { margin-bottom:3rem; }
+.faq-category h2 { font-size:1.85rem; margin-bottom:1.5rem; color:var(--midnight); text-align:center; }
+.faq-list { max-width:780px; margin:0 auto; }
+.faq-list details { background:white; border-radius:12px; margin-bottom:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.04); border:1px solid rgba(0,0,0,0.04); overflow:hidden; }
+.faq-section.alt .faq-list details { background:var(--cream); }
+.faq-list summary { padding:1.25rem 1.5rem; font-family:var(--font-display); font-size:1.1rem; font-weight:600; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; transition:color 0.2s; }
+.faq-list summary::-webkit-details-marker { display:none; }
+.faq-list summary::after { content:'+'; font-size:1.4rem; color:var(--party-coral); font-weight:300; transition:transform 0.3s; }
+.faq-list details[open] summary::after { transform:rotate(45deg); }
+.faq-list details[open] summary { color:var(--party-coral); }
+.faq-answer { padding:0 1.5rem 1.25rem; font-size:0.95rem; color:#374151; line-height:1.7; }
+.faq-answer a { color:var(--party-coral); text-decoration:underline; }
+.faq-answer a:hover { color:var(--blush-pop); }
+
+/* ===== CTA BANNER ===== */
+.cta-section { background:linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color:white; padding:5rem 2rem; text-align:center; position:relative; overflow:hidden; }
+.cta-section::before { content:''; position:absolute; top:-40%; right:-10%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.08) 0%, transparent 70%); border-radius:50%; }
+.cta-section h2 { font-size:2.5rem; margin-bottom:1rem; position:relative; z-index:1; }
+.cta-section p { font-size:1.05rem; color:rgba(255,255,255,0.7); margin-bottom:2rem; position:relative; z-index:1; max-width:550px; margin-left:auto; margin-right:auto; }
+
+/* ===== FOOTER ===== */
+.site-footer { background:var(--midnight); color:white; padding:4rem 2rem 2rem; border-top:1px solid rgba(255,255,255,0.06); }
+.footer-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:2.5rem; max-width:1100px; margin:0 auto 3rem; }
+.footer-col h5 { font-family:var(--font-display); font-size:0.95rem; font-weight:600; margin-bottom:1rem; color:white; }
+.footer-col a { display:block; color:rgba(255,255,255,0.55); text-decoration:none; font-size:0.85rem; margin-bottom:0.6rem; transition:color 0.2s; }
+.footer-col a:hover { color:var(--confetti-gold); text-decoration:none; }
+.footer-bottom { text-align:center; padding-top:2rem; border-top:1px solid rgba(255,255,255,0.06); max-width:1100px; margin:0 auto; }
+.footer-bottom p { font-size:0.78rem; color:rgba(255,255,255,0.35); margin-bottom:0.25rem; }
+
+/* ===== SCROLL REVEAL ===== */
+.scroll-reveal { opacity:0; transform:translateY(30px); transition:var(--transition-smooth); }
+.scroll-reveal.visible { opacity:1; transform:translateY(0); }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeInUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+.fade-in-up { animation: fadeInUp 0.8s ease-out both; }
+.fade-delay-1 { animation-delay: 0.15s; }
+.fade-delay-2 { animation-delay: 0.3s; }
+.fade-delay-3 { animation-delay: 0.45s; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .hero { padding:8rem 1.5rem 4rem; }
+  .hero h1 { font-size:2.25rem; }
+  .section { padding:3.5rem 1.5rem; }
+  .section-title { font-size:2rem; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap:1.5rem; }
+  .nav { padding:0.75rem 1rem; }
+  .nav-logo-icon { height:44px; }
+  .nav-cta { padding:0.5rem 1rem; font-size:0.8rem; }
+  .nav-link { display:none; }
+  .faq-category h2 { font-size:1.5rem; }
+}
+</style>
+
+<!-- Organization JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Ryvite",
+  "url": "https://www.ryvite.com",
+  "logo": "https://www.ryvite.com/api/og.png",
+  "description": "AI-powered custom digital invitations. Describe your event, get a beautiful, unique invitation in seconds.",
+  "foundingDate": "2026"
+}
+</script>
+
+<!-- BreadcrumbList JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://www.ryvite.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "FAQ",
+      "item": "https://www.ryvite.com/faq/"
+    }
+  ]
+}
+</script>
+
+<!-- FAQPage JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How does Ryvite work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ryvite uses AI to create custom digital invitations. You describe your event in plain language, our AI generates a unique invitation design in under 30 seconds, you share a link with your guests, and you track RSVPs from your dashboard in real time."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need design skills to use Ryvite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No design skills are needed. Just describe your event in plain language — mention the vibe, colors, or mood you want, and the AI handles all the design work. You can also upload an inspiration photo to guide the style."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What event types does Ryvite support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ryvite supports every event type including birthdays, baby showers, weddings, graduations, holiday parties, corporate events, dinner parties, anniversaries, and more. If you can describe it, the AI can design an invitation for it."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How fast is AI invitation generation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Your initial invitation is generated in under 30 seconds. If you want to make changes afterward, refinements through the design chat take just 5 to 15 seconds each. Most users have a finished invitation in under two minutes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I see examples before creating my own?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Visit the inspiration gallery to browse AI-generated invitation designs across different event types and styles. Every example was created using the same AI that will generate your invitation."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does Ryvite cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ryvite is free to start with pay-as-you-go pricing. There are no subscriptions, no per-guest fees, and no hidden charges. You only pay for what you use, regardless of how many guests you invite."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are there per-invite or per-guest fees?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Ryvite uses pay-as-you-go pricing with unlimited guests. Send your invitation to 10 people or 500 — there are no per-card, per-invite, or per-guest fees."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does Ryvite's pricing compare to Paperless Post?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Paperless Post charges $1 to $8 per card, which means inviting 100 guests can cost $100 to $800. Ryvite is free to start with pay-as-you-go pricing and unlimited guests, making it dramatically more affordable for events of any size."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I try Ryvite before paying?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. You can create and preview your AI-generated invitation before committing to a purchase. See exactly what your invitation will look like, make refinements, and only pay when you're ready to publish and share."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does 'AI-generated' mean for invitations?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Unlike template-based platforms where you pick from pre-made designs, every Ryvite invitation is uniquely created by AI based on your description. The typography, colors, layout, and decorative illustrations are all generated fresh for your specific event — no two invitations are alike."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I customize my invitation after it's generated?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. After the initial generation, you can use the design chat to request changes in plain language. Say things like 'make the background darker,' 'change the font to something more playful,' or 'swap the date to Saturday.' Changes are applied in seconds."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I upload inspiration photos to guide the design?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. You can upload photos during the creation process to guide the AI's design choices. The AI analyzes your image for color palette, mood, and style, then incorporates those elements into your invitation design."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are Ryvite designs really unique?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Every invitation is generated fresh from your description — there is no template library. Even if two people describe similar events, the AI produces different designs each time. Your invitation is one of a kind."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I track RSVPs with Ryvite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Ryvite includes built-in RSVP tracking with your invitation. Guests respond directly on the invite page, and you can monitor responses in real time from your admin dashboard. You can also add custom RSVP fields like meal preferences, plus-ones, or special requests."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What do guests see when they receive my invitation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Guests see a beautiful, full-screen invitation that is fully mobile-optimized. There are no ads, no Ryvite branding cluttering the design, and no account required to RSVP. The experience is clean, fast, and focused entirely on your event."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can multiple people manage an event?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Ryvite supports a co-host feature that lets multiple people manage the same event. Co-hosts can view RSVPs, track guest responses, and help manage event details from their own dashboards."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is my data private on Ryvite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Ryvite does not sell your data, does not display ads on your invitations, and does not share your information with third parties. Your event details and guest information are kept private and secure."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Ryvite mobile-friendly?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Ryvite is built with a mobile-first approach. Both the invitation creation process and the guest-facing invitation pages are fully optimized for phones, tablets, and desktops. Your guests will have a seamless experience on any device."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="/" class="nav-logo"><svg class="nav-logo-icon" viewBox="0 0 210 80" xmlns="http://www.w3.org/2000/svg" style="height:56px;width:auto;"><circle cx="32" cy="40" r="22" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M18 30 L32 42 L46 30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 50 L46 50" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><text x="64" y="50" font-family="Playfair Display, serif" font-size="34" font-weight="600" fill="currentColor">Ryvite</text></svg></a>
+  <div class="nav-links">
+    <a href="/inspiration/" class="nav-link">Inspiration</a>
+    <a href="/pricing/" class="nav-link">Pricing</a>
+    <a href="/blog/" class="nav-link">Blog</a>
+    <a href="/v2/create/" class="nav-cta">Get Started</a>
+    <a href="/v2/login/" class="nav-cta nav-cta-ghost">Log In</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <h1 class="fade-in-up">Frequently Asked Questions</h1>
+    <p class="subtext fade-in-up fade-delay-1">Everything you need to know about creating AI-generated invitations, tracking RSVPs, pricing, and more.</p>
+  </div>
+</section>
+
+<!-- Getting Started -->
+<section class="section faq-section">
+  <div class="container">
+    <div class="faq-category">
+      <h2 class="scroll-reveal">Getting Started</h2>
+      <div class="faq-list">
+        <details class="scroll-reveal">
+          <summary>How does Ryvite work?</summary>
+          <div class="faq-answer">Ryvite uses AI to create custom digital invitations in under 30 seconds. You describe your event in plain language, our AI generates a unique invitation design, you share a link with your guests, and you track RSVPs from your dashboard in real time. The entire process from description to shareable invite takes less than a minute.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Do I need design skills to use Ryvite?</summary>
+          <div class="faq-answer">No design skills are needed. Just describe your event in plain language — mention the vibe, colors, or mood you want, and the AI handles all the design work. You can say something like "elegant garden party with soft pastels" or "bold neon 80s birthday bash" and the AI translates that into a fully designed invitation.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>What event types does Ryvite support?</summary>
+          <div class="faq-answer">Ryvite supports every event type including <a href="/birthday-invitations/">birthdays</a>, <a href="/baby-shower-invitations/">baby showers</a>, <a href="/wedding-invitations/">weddings</a>, <a href="/graduation-invitations/">graduations</a>, <a href="/holiday-party-invitations/">holiday parties</a>, <a href="/corporate-event-invitations/">corporate events</a>, <a href="/dinner-party-invitations/">dinner parties</a>, <a href="/anniversary-invitations/">anniversaries</a>, and more. If you can describe it, the AI can design an invitation for it.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>How fast is AI invitation generation?</summary>
+          <div class="faq-answer">Your initial invitation is generated in under 30 seconds. If you want to make changes afterward, refinements through the design chat take just 5 to 15 seconds each. Most users have a finished, shareable invitation in under two minutes from start to finish.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Can I see examples before creating my own?</summary>
+          <div class="faq-answer">Yes. Visit the <a href="/inspiration/">inspiration gallery</a> to browse AI-generated invitation designs across different event types and styles. Every example was created using the same AI that will generate your invitation, so what you see is representative of what you'll get.</div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing & Payment -->
+<section class="section faq-section alt">
+  <div class="container">
+    <div class="faq-category">
+      <h2 class="scroll-reveal">Pricing & Payment</h2>
+      <div class="faq-list">
+        <details class="scroll-reveal">
+          <summary>How much does Ryvite cost?</summary>
+          <div class="faq-answer">Ryvite is free to start with pay-as-you-go pricing. There are no subscriptions, no per-guest fees, and no hidden charges. You only pay for what you use, regardless of how many guests you invite. Visit the <a href="/pricing/">pricing page</a> for current details.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Are there per-invite or per-guest fees?</summary>
+          <div class="faq-answer">No. Ryvite uses pay-as-you-go pricing with unlimited guests. Send your invitation to 10 people or 500 — there are no per-card, per-invite, or per-guest fees, which makes Ryvite especially cost-effective for larger events.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>How does Ryvite's pricing compare to Paperless Post?</summary>
+          <div class="faq-answer">Paperless Post charges $1 to $8 per card, which means inviting 100 guests can cost $100 to $800. Ryvite is free to start with pay-as-you-go pricing and unlimited guests, making it dramatically more affordable. For a 100-guest event, you could save hundreds of dollars compared to per-card pricing models.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Can I try Ryvite before paying?</summary>
+          <div class="faq-answer">Yes. You can create and preview your AI-generated invitation before committing to a purchase. See exactly what your invitation will look like, make refinements through the design chat, and only pay when you're ready to publish and share with your guests.</div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Design & Customization -->
+<section class="section faq-section">
+  <div class="container">
+    <div class="faq-category">
+      <h2 class="scroll-reveal">Design & Customization</h2>
+      <div class="faq-list">
+        <details class="scroll-reveal">
+          <summary>What does "AI-generated" mean for invitations?</summary>
+          <div class="faq-answer">Unlike template-based platforms where you pick from pre-made designs, every Ryvite invitation is uniquely created by AI based on your description. The typography, colors, layout, and decorative illustrations are all generated fresh for your specific event. You're not choosing from a catalog — you're getting a one-of-a-kind design.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Can I customize my invitation after it's generated?</summary>
+          <div class="faq-answer">Yes. After the initial generation, you can use the design chat to request changes in plain language. Say things like "make the background darker," "change the font to something more playful," or "swap the date to Saturday." Changes are applied in seconds, and you can iterate as many times as you need.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Can I upload inspiration photos to guide the design?</summary>
+          <div class="faq-answer">Yes. You can upload photos during the creation process to guide the AI's design choices. The AI analyzes your image for color palette, mood, and style, then incorporates those elements into your invitation. This works great with venue photos, Pinterest inspiration, or even a color swatch.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Are Ryvite designs really unique?</summary>
+          <div class="faq-answer">Yes. Every invitation is generated fresh from your description — there is no template library. Even if two people describe similar events, the AI produces different designs each time. Your invitation is genuinely one of a kind, not a slightly modified version of something thousands of others have used.</div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RSVP & Guest Management -->
+<section class="section faq-section alt">
+  <div class="container">
+    <div class="faq-category">
+      <h2 class="scroll-reveal">RSVP & Guest Management</h2>
+      <div class="faq-list">
+        <details class="scroll-reveal">
+          <summary>Can I track RSVPs with Ryvite?</summary>
+          <div class="faq-answer">Yes. Ryvite includes built-in RSVP tracking with every invitation. Guests respond directly on the invite page, and you can monitor responses in real time from your admin dashboard. You can also add custom RSVP fields like meal preferences, plus-ones, dietary restrictions, or any other information you need to collect.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>What do guests see when they receive my invitation?</summary>
+          <div class="faq-answer">Guests see a beautiful, full-screen invitation that is fully mobile-optimized. There are no ads, no platform branding cluttering the design, and no account required to RSVP. The experience is clean, fast, and focused entirely on your event — exactly as an invitation should be.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Can multiple people manage an event?</summary>
+          <div class="faq-answer">Yes. Ryvite supports a co-host feature that lets multiple people manage the same event. Co-hosts can view RSVPs, track guest responses, and help manage event details from their own dashboards. This is especially useful for weddings, corporate events, or any celebration with shared planning responsibilities.</div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy & Technical -->
+<section class="section faq-section">
+  <div class="container">
+    <div class="faq-category">
+      <h2 class="scroll-reveal">Privacy & Technical</h2>
+      <div class="faq-list">
+        <details class="scroll-reveal">
+          <summary>Is my data private on Ryvite?</summary>
+          <div class="faq-answer">Yes. Ryvite does not sell your data, does not display ads on your invitations, and does not share your information with third parties. Your event details and guest information are kept private and secure. We believe your invitation should celebrate your event, not monetize your data.</div>
+        </details>
+        <details class="scroll-reveal">
+          <summary>Is Ryvite mobile-friendly?</summary>
+          <div class="faq-answer">Yes. Ryvite is built with a mobile-first approach. Both the invitation creation process and the guest-facing invitation pages are fully optimized for phones, tablets, and desktops. Your guests will have a seamless experience on any device, with no pinching, zooming, or awkward layouts.</div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="fade-in-up">Still Have Questions?</h2>
+  <p class="fade-in-up fade-delay-1">The fastest way to see how Ryvite works is to try it yourself. Create your first AI-generated invitation in seconds.</p>
+  <a href="/v2/create/" class="hero-cta fade-in-up fade-delay-2">Create Your First Invite</a>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Product</h5>
+      <a href="/#how">How It Works</a>
+      <a href="/inspiration/">Inspiration</a>
+      <a href="/pricing/">Pricing</a>
+      <a href="/v2/create/">Create an Invite</a>
+    </div>
+    <div class="footer-col">
+      <h5>Event Types</h5>
+      <a href="/birthday-invitations/">Birthday</a>
+      <a href="/wedding-invitations/">Wedding</a>
+      <a href="/baby-shower-invitations/">Baby Shower</a>
+      <a href="/graduation-invitations/">Graduation</a>
+      <a href="/holiday-party-invitations/">Holiday Party</a>
+      <a href="/corporate-event-invitations/">Corporate</a>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <a href="/blog/">Blog</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/#story">Our Story</a>
+    </div>
+    <div class="footer-col">
+      <h5>Legal</h5>
+      <a href="/terms/">Terms of Service</a>
+      <a href="/privacy/">Privacy Policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 CNPY LLC. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const revealEls = document.querySelectorAll('.scroll-reveal');
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.15 });
+revealEls.forEach(el => revealObs.observe(el));
+</script>
+</body>
+</html>

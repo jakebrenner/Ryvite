@@ -5,21 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Invitation Inspiration | Ryvite</title>
 <meta name="description" content="Browse beautiful AI-generated invitation designs. Find one you love for your wedding, birthday, baby shower, or any event — then make it yours in minutes.">
-<link rel="canonical" id="canonicalLink" href="https://ryvite.com/inspiration">
+<meta name="robots" content="index, follow">
+<link rel="canonical" id="canonicalLink" href="https://www.ryvite.com/inspiration/">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:title" id="ogTitle" content="Invitation Inspiration | Ryvite">
 <meta property="og:description" id="ogDesc" content="Browse beautiful AI-generated invitation designs. Find one you love for your wedding, birthday, baby shower, or any event.">
-<meta property="og:image" content="https://ryvite.com/api/og.png">
-<meta property="og:url" id="ogUrl" content="https://ryvite.com/inspiration">
+<meta property="og:image" content="https://www.ryvite.com/api/v2/og-image?title=Invitation%20Inspiration&subtitle=AI-Generated%20Designs&type=blog">
+<meta property="og:url" id="ogUrl" content="https://www.ryvite.com/inspiration/">
 <meta property="og:site_name" content="Ryvite">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" id="twTitle" content="Invitation Inspiration | Ryvite">
 <meta name="twitter:description" id="twDesc" content="Browse beautiful AI-generated invitation designs. Find one you love for your wedding, birthday, baby shower, or any event.">
-<meta name="twitter:image" content="https://ryvite.com/api/og.png">
+<meta name="twitter:image" content="https://www.ryvite.com/api/v2/og-image?title=Invitation%20Inspiration&subtitle=AI-Generated%20Designs&type=blog">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,8 +33,8 @@
   "@type": "CollectionPage",
   "name": "Invitation Inspiration",
   "description": "Browse beautiful AI-generated invitation designs for weddings, birthdays, baby showers, and more.",
-  "url": "https://ryvite.com/inspiration",
-  "isPartOf": { "@type": "WebSite", "name": "Ryvite", "url": "https://ryvite.com" }
+  "url": "https://www.ryvite.com/inspiration/",
+  "isPartOf": { "@type": "WebSite", "name": "Ryvite", "url": "https://www.ryvite.com" }
 }
 </script>
 
@@ -316,7 +317,7 @@ function updateSEO(typeInfo) {
   document.getElementById('heroTitle').textContent = typeInfo.title;
   document.getElementById('heroSubtext').textContent = typeInfo.desc;
 
-  var url = 'https://ryvite.com/inspiration/' + TYPE_TO_SLUG[typeInfo.key];
+  var url = 'https://www.ryvite.com/inspiration//' + TYPE_TO_SLUG[typeInfo.key];
   document.getElementById('canonicalLink').href = url;
   document.getElementById('ogTitle').content = typeInfo.title + ' | Ryvite';
   document.getElementById('ogDesc').content = typeInfo.desc;
@@ -508,7 +509,7 @@ function filterByType(typeKey) {
     document.querySelector('meta[name="description"]').setAttribute('content', 'Browse beautiful AI-generated invitation designs. Find one you love for your wedding, birthday, baby shower, or any event.');
     document.getElementById('heroTitle').textContent = 'Invitation Inspiration';
     document.getElementById('heroSubtext').textContent = 'Browse AI-generated invitation designs. Find one you love and make it yours in minutes.';
-    document.getElementById('canonicalLink').href = 'https://ryvite.com/inspiration';
+    document.getElementById('canonicalLink').href = 'https://www.ryvite.com/inspiration/';
     document.getElementById('seoHeading').textContent = 'Browse by Event Type';
     document.getElementById('seoText').textContent = 'Discover the perfect invitation design for any occasion. Each design is crafted by AI and curated by our team. Pick your favorite, customize the details, and send beautiful invites in minutes.';
   }

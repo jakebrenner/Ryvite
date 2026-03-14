@@ -3,13 +3,21 @@
     {
       "source": "/v2/(.*).html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
       ]
     },
     {
       "source": "/v2/(.*)/",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    },
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ],
@@ -49,6 +57,10 @@
     }
   },
   "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/v2/sitemap"
+    },
     {
       "source": "/api/v2/stripe-webhook",
       "destination": "/api/v2/billing?action=webhook"
@@ -90,7 +102,15 @@
       "destination": "/v2/inspiration/index.html"
     },
     {
+      "source": "/inspiration/",
+      "destination": "/v2/inspiration/index.html"
+    },
+    {
       "source": "/inspiration/:type",
+      "destination": "/v2/inspiration/index.html"
+    },
+    {
+      "source": "/inspiration/:type/",
       "destination": "/v2/inspiration/index.html"
     }
   ]

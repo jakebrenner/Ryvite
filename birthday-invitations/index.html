@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Birthday Invitations — Custom Designs in Seconds | Ryvite</title>
+<meta name="description" content="Create stunning custom birthday invitations with AI. Describe your party vibe and get a unique design in seconds. No templates. RSVP tracking included.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Ryvite">
+<meta name="theme-color" content="#E94560">
+<link rel="canonical" href="https://www.ryvite.com/birthday-invitations/">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI Birthday Invitations — Custom Designs in Seconds | Ryvite">
+<meta property="og:description" content="Create stunning custom birthday invitations with AI. Describe your party vibe and get a unique design in seconds. No templates. RSVP tracking included.">
+<meta property="og:image" content="https://www.ryvite.com/api/v2/og-image?title=AI%20Birthday%20Invitations&subtitle=Custom%20Designs%20in%20Seconds&type=birthday">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://www.ryvite.com/birthday-invitations/">
+<meta property="og:site_name" content="Ryvite">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI Birthday Invitations — Custom Designs in Seconds | Ryvite">
+<meta name="twitter:description" content="Create stunning custom birthday invitations with AI. Describe your party vibe and get a unique design in seconds. No templates. RSVP tracking included.">
+<meta name="twitter:image" content="https://www.ryvite.com/api/v2/og-image?title=AI%20Birthday%20Invitations&subtitle=Custom%20Designs%20in%20Seconds&type=birthday">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --party-coral: #E94560;
+  --blush-pop: #FF6B6B;
+  --midnight: #1A1A2E;
+  --confetti-gold: #FFB74D;
+  --mint-fizz: #4ECDC4;
+  --party-purple: #A78BFA;
+  --cream: #FFFAF5;
+  --warm-canvas: #FFF5E6;
+  --slate: #6B7280;
+  --slate-light: #D1D5DB;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-smooth: all 0.6s ease-out;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-body); color: var(--midnight); background: white; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; }
+a { color: var(--party-coral); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== NAV ===== */
+.nav { position: fixed; top:0; left:0; right:0; z-index:100; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; background: rgba(26,26,46,0.95); backdrop-filter: blur(10px); box-shadow: 0 2px 20px rgba(0,0,0,0.2); }
+.nav-logo { display:flex; align-items:center; text-decoration:none; color:white; }
+.nav-logo-icon { height:56px; width:auto; }
+.nav-links { display:flex; gap:8px; align-items:center; }
+.nav-link { color:rgba(255,255,255,0.75); text-decoration:none; font-size:0.85rem; font-weight:500; padding:0.5rem 0.8rem; transition:color 0.2s; }
+.nav-link:hover { color:white; text-decoration:none; }
+.nav-cta { padding:0.6rem 1.4rem; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; border:none; border-radius:50px; font-family:var(--font-body); font-size:0.85rem; font-weight:600; cursor:pointer; text-decoration:none; transition: var(--transition); white-space:nowrap; }
+.nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(233,69,96,0.4); text-decoration:none; }
+.nav-cta-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.4); }
+
+/* ===== HERO ===== */
+.hero { background: linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color: white; padding: 10rem 2rem 6rem; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content:''; position:absolute; top:-50%; right:-10%; width:600px; height:600px; background:radial-gradient(circle, rgba(255,183,77,0.12) 0%, transparent 70%); border-radius:50%; }
+.hero::after { content:''; position:absolute; bottom:-30%; left:-5%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.1) 0%, transparent 70%); border-radius:50%; }
+.hero-content { position:relative; z-index:2; max-width:800px; margin:0 auto; }
+.hero h1 { font-size:3.5rem; margin-bottom:1.25rem; letter-spacing:-1px; }
+.hero .subtext { font-size:1.1rem; color:rgba(255,255,255,0.75); margin-bottom:2rem; max-width:600px; margin-left:auto; margin-right:auto; line-height:1.7; }
+.hero-cta { display:inline-block; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:600; text-decoration:none; font-size:1.05rem; transition:var(--transition); box-shadow:0 10px 30px rgba(233,69,96,0.3); border:none; cursor:pointer; font-family:var(--font-body); }
+.hero-cta:hover { transform:translateY(-3px); box-shadow:0 15px 45px rgba(233,69,96,0.5); text-decoration:none; }
+
+/* ===== SECTIONS ===== */
+.section { padding:5rem 2rem; }
+.container { max-width:1100px; margin:0 auto; }
+.section-label { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--party-coral); margin-bottom:0.75rem; }
+.section-title { font-size:2.5rem; margin-bottom:1rem; }
+.section-subtitle { font-size:1.05rem; color:var(--slate); max-width:600px; line-height:1.7; }
+.section-subtitle.center { margin:0 auto; text-align:center; }
+
+/* ===== HOW IT WORKS ===== */
+.how-section { background:var(--cream); }
+.steps-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:2rem; margin-top:3rem; }
+.step-card { text-align:center; padding:2rem 1.5rem; }
+.step-number { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, var(--party-coral), var(--blush-pop)); color:white; font-family:var(--font-display); font-size:1.25rem; font-weight:700; margin-bottom:1.25rem; }
+.step-card h4 { font-size:1.2rem; margin-bottom:0.75rem; }
+.step-card p { font-size:0.9rem; color:var(--slate); line-height:1.6; }
+
+/* ===== CONTENT ===== */
+.content-section { background:white; }
+.content-body { max-width:780px; margin:0 auto; }
+.content-body h2 { font-size:1.85rem; margin:2.5rem 0 1rem; color:var(--midnight); }
+.content-body h3 { font-size:1.35rem; margin:2rem 0 0.75rem; color:var(--midnight); }
+.content-body p { font-size:1rem; color:#374151; line-height:1.8; margin-bottom:1.25rem; }
+.content-body ul { margin:0 0 1.5rem 1.5rem; }
+.content-body li { font-size:0.95rem; color:#374151; line-height:1.8; margin-bottom:0.5rem; }
+
+/* ===== EXAMPLES ===== */
+.examples-section { background:var(--warm-canvas); }
+.examples-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:2rem; margin-top:3rem; }
+.example-card { background:white; border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); transition:var(--transition); }
+.example-card:hover { transform:translateY(-6px); box-shadow:0 20px 50px rgba(0,0,0,0.1); }
+.example-placeholder { width:100%; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:var(--slate); text-align:center; padding:1.5rem; line-height:1.5; }
+.example-placeholder.grad-1 { background:linear-gradient(135deg, #FF6B6B 0%, #FFB74D 100%); color:rgba(255,255,255,0.85); }
+.example-placeholder.grad-2 { background:linear-gradient(135deg, #A78BFA 0%, #E94560 100%); color:rgba(255,255,255,0.85); }
+.example-placeholder.grad-3 { background:linear-gradient(135deg, #1A1A2E 0%, #0f3460 50%, #4ECDC4 100%); color:rgba(255,255,255,0.7); }
+.example-info { padding:1.25rem 1.5rem; }
+.example-info h4 { font-size:1rem; margin-bottom:0.3rem; }
+.example-info p { font-size:0.8rem; color:var(--slate); margin:0; }
+
+/* ===== FAQ ===== */
+.faq-section { background:var(--cream); }
+.faq-list { max-width:780px; margin:2.5rem auto 0; }
+.faq-list details { background:white; border-radius:12px; margin-bottom:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.04); border:1px solid rgba(0,0,0,0.04); overflow:hidden; }
+.faq-list summary { padding:1.25rem 1.5rem; font-family:var(--font-display); font-size:1.1rem; font-weight:600; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; transition:color 0.2s; }
+.faq-list summary::-webkit-details-marker { display:none; }
+.faq-list summary::after { content:'+'; font-size:1.4rem; color:var(--party-coral); font-weight:300; transition:transform 0.3s; }
+.faq-list details[open] summary::after { transform:rotate(45deg); }
+.faq-list details[open] summary { color:var(--party-coral); }
+.faq-answer { padding:0 1.5rem 1.25rem; font-size:0.95rem; color:#374151; line-height:1.7; }
+
+/* ===== RELATED ===== */
+.related-section { background:white; }
+.related-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:1.5rem; margin-top:2.5rem; }
+.related-card { display:block; background:var(--warm-canvas); border-radius:12px; padding:2rem 1.5rem; text-align:center; text-decoration:none; color:var(--midnight); transition:var(--transition); border:1px solid rgba(0,0,0,0.04); }
+.related-card:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,0.08); text-decoration:none; }
+.related-card h4 { font-size:1.1rem; margin-bottom:0.5rem; }
+.related-card p { font-size:0.85rem; color:var(--slate); margin:0; }
+
+/* ===== CTA BANNER ===== */
+.cta-section { background:linear-gradient(135deg, var(--midnight) 0%, #0f3460 100%); color:white; padding:5rem 2rem; text-align:center; position:relative; overflow:hidden; }
+.cta-section::before { content:''; position:absolute; top:-40%; right:-10%; width:500px; height:500px; background:radial-gradient(circle, rgba(233,69,96,0.08) 0%, transparent 70%); border-radius:50%; }
+.cta-section h2 { font-size:2.5rem; margin-bottom:1rem; position:relative; z-index:1; }
+.cta-section p { font-size:1.05rem; color:rgba(255,255,255,0.7); margin-bottom:2rem; position:relative; z-index:1; max-width:550px; margin-left:auto; margin-right:auto; }
+
+/* ===== FOOTER ===== */
+.site-footer { background:var(--midnight); color:white; padding:4rem 2rem 2rem; border-top:1px solid rgba(255,255,255,0.06); }
+.footer-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:2.5rem; max-width:1100px; margin:0 auto 3rem; }
+.footer-col h5 { font-family:var(--font-display); font-size:0.95rem; font-weight:600; margin-bottom:1rem; color:white; }
+.footer-col a { display:block; color:rgba(255,255,255,0.55); text-decoration:none; font-size:0.85rem; margin-bottom:0.6rem; transition:color 0.2s; }
+.footer-col a:hover { color:var(--confetti-gold); text-decoration:none; }
+.footer-bottom { text-align:center; padding-top:2rem; border-top:1px solid rgba(255,255,255,0.06); max-width:1100px; margin:0 auto; }
+.footer-bottom p { font-size:0.78rem; color:rgba(255,255,255,0.35); margin-bottom:0.25rem; }
+
+/* ===== SCROLL REVEAL ===== */
+.scroll-reveal { opacity:0; transform:translateY(30px); transition:var(--transition-smooth); }
+.scroll-reveal.visible { opacity:1; transform:translateY(0); }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeInUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+.fade-in-up { animation: fadeInUp 0.8s ease-out both; }
+.fade-delay-1 { animation-delay: 0.15s; }
+.fade-delay-2 { animation-delay: 0.3s; }
+.fade-delay-3 { animation-delay: 0.45s; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .steps-grid, .examples-grid, .related-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .hero { padding:8rem 1.5rem 4rem; }
+  .hero h1 { font-size:2.25rem; }
+  .section { padding:3.5rem 1.5rem; }
+  .section-title { font-size:2rem; }
+  .steps-grid, .related-grid { grid-template-columns: 1fr; }
+  .examples-grid { grid-template-columns: 1fr 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap:1.5rem; }
+  .nav { padding:0.75rem 1rem; }
+  .nav-logo-icon { height:44px; }
+  .nav-cta { padding:0.5rem 1rem; font-size:0.8rem; }
+  .nav-link { display:none; }
+  .content-body h2 { font-size:1.5rem; }
+}
+</style>
+
+<!-- Organization JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Ryvite",
+  "url": "https://www.ryvite.com",
+  "logo": "https://www.ryvite.com/api/og.png",
+  "description": "AI-powered custom digital invitations. Describe your event, get a beautiful, unique invitation in seconds.",
+  "foundingDate": "2026"
+}
+</script>
+
+<!-- BreadcrumbList JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://www.ryvite.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Birthday Invitations",
+      "item": "https://www.ryvite.com/birthday-invitations/"
+    }
+  ]
+}
+</script>
+
+<!-- FAQPage JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I create AI birthday invitations with Ryvite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Just describe the birthday party you're planning — the age, the theme, the vibe, the colors. Ryvite's AI generates a completely custom invitation design in seconds based on your description. You can upload a photo for inspiration, refine the design with follow-up requests, then publish and share a unique link with your guests. No design skills or templates required."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much do birthday invitations cost on Ryvite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ryvite is free to start with pay-as-you-go pricing. Unlike services that charge per card sent ($1-$8 each), you can send your birthday invitation to 10 or 300 guests with no per-card fees. There are no subscriptions, no hidden fees, and no ads on your invitation."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What customization options are available for birthday invitations?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Everything is customizable through natural language. Describe your color scheme, theme (dinosaurs, princess, retro disco, minimalist), typography style, and mood. After the AI generates your design, you can request changes — swap colors, adjust text, add or remove RSVP fields, change the layout — all through a chat-based design refinement system. You can also upload a photo to guide the design direction."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I add a photo to my birthday invitation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. During the creation process, you can upload a photo of the birthday person, a party inspiration image, or any visual reference. The AI uses your photo to guide the design — matching colors, mood, and style to create a cohesive invitation. This works especially well for milestone birthdays and kids' parties where you want the design to feel personal."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do guests RSVP to a birthday invitation on Ryvite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each guest receives a unique link to your invitation. They can view the design and respond directly on the page — no app download or account required. You can customize the RSVP form with fields like meal preferences, plus-ones, dietary restrictions, or a birthday message. All responses are collected in real time on your admin dashboard, so you always have an up-to-date headcount."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="/" class="nav-logo"><svg class="nav-logo-icon" viewBox="0 0 210 80" xmlns="http://www.w3.org/2000/svg" style="height:56px;width:auto;"><circle cx="32" cy="40" r="22" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M18 30 L32 42 L46 30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 50 L46 50" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><text x="64" y="50" font-family="Playfair Display, serif" font-size="34" font-weight="600" fill="currentColor">Ryvite</text></svg></a>
+  <div class="nav-links">
+    <a href="/inspiration/" class="nav-link">Inspiration</a>
+    <a href="/pricing/" class="nav-link">Pricing</a>
+    <a href="/blog/" class="nav-link">Blog</a>
+    <a href="/v2/create/" class="nav-cta">Get Started</a>
+    <a href="/v2/login/" class="nav-cta nav-cta-ghost">Log In</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <h1 class="fade-in-up">AI-Powered Birthday Invitations</h1>
+    <p class="subtext fade-in-up fade-delay-1">From first birthdays to milestone celebrations — describe your party vibe and get a completely custom birthday invitation in seconds. No templates, no design skills needed.</p>
+    <a href="/v2/create/" class="hero-cta fade-in-up fade-delay-2">Create Your Birthday Invite</a>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section class="section how-section">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">How It Works</p>
+      <h2 class="section-title scroll-reveal">Birthday Invites in Three Simple Steps</h2>
+      <p class="section-subtitle center scroll-reveal">From party idea to invitation in under a minute.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card scroll-reveal">
+        <div class="step-number">1</div>
+        <h4>Describe Your Party</h4>
+        <p>Tell us about the birthday person, the theme, the colors, the mood. Upload a photo or inspiration image if you have one.</p>
+      </div>
+      <div class="step-card scroll-reveal">
+        <div class="step-number">2</div>
+        <h4>AI Designs Your Invite</h4>
+        <p>In seconds, our AI generates a fully custom birthday invitation — unique to your celebration, not pulled from a template library.</p>
+      </div>
+      <div class="step-card scroll-reveal">
+        <div class="step-number">3</div>
+        <h4>Share and Track RSVPs</h4>
+        <p>Publish your invite, share unique links with guests, and track every RSVP from your dashboard in real time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Content Section -->
+<section class="section content-section">
+  <div class="container">
+    <div class="content-body">
+      <p class="section-label">Birthday Invitations</p>
+      <h2>Why AI Birthday Invitations Are Replacing Templates</h2>
+      <p>Birthday parties are as unique as the people they celebrate. A first birthday calls for something completely different than a 50th. A dinosaur-themed kids' party needs a different design language than a sophisticated cocktail evening for adults. Yet traditional invitation platforms offer the same approach for all of them: pick a template, swap in your text, choose a color, done. The result? Invitations that look like everyone else's.</p>
+
+      <p>Ryvite takes a different approach. Instead of browsing a template library, you describe the party you're planning in plain language. Tell the AI about the birthday person, the theme, the colors, the energy you want the invitation to convey. The AI generates a completely original HTML invitation — with custom typography, color palette, layout, illustrations, and animations — all designed specifically for your celebration. No two Ryvite invitations look alike because none of them start from the same template.</p>
+
+      <h2>Birthday Invitations for Every Age and Milestone</h2>
+
+      <h3>First Birthday Invitations</h3>
+      <p>A baby's first birthday is as much a celebration for the parents as it is for the child. First birthday invitations tend to be soft, whimsical, and photo-forward. With Ryvite, you can describe exactly what you want — "pastel rainbow theme with watercolor animals" or "modern minimalist with a gold balloon motif" — and the AI creates a design that matches your vision. Upload a photo of the birthday baby and the AI will pull color cues and design inspiration from the image, creating an invitation that feels deeply personal.</p>
+
+      <h3>Kids' Birthday Invitations</h3>
+      <p>Kids' birthday parties are where themed invitations really shine. Whether your child is obsessed with dinosaurs, unicorns, superheroes, space, or mermaids, the AI can generate a design that captures their excitement. Describe the theme in as much detail as you want — "a jungle adventure party with tropical leaves, parrots, and hand-drawn animal illustrations" — and the result will be a fully custom invitation that no other child on the block has. Parents consistently tell us that the invitation gets their kids excited about the party before it even happens.</p>
+
+      <h3>Milestone Birthday Invitations — 30th, 40th, 50th, and Beyond</h3>
+      <p>Milestone birthdays deserve milestone invitations. Turning 30, 40, 50, or beyond is a significant moment, and the invitation sets the tone for the entire celebration. Ryvite's AI understands context — when you describe an elegant 50th birthday dinner or a glamorous 40th rooftop party, the generated designs reflect the sophistication and importance of the occasion. Request art deco typography for a Great Gatsby-themed bash, or clean modern lines for a minimalist celebration. The AI adapts to your vision rather than constraining you to pre-made layouts.</p>
+
+      <h3>Surprise Party Invitations</h3>
+      <p>Planning a surprise party adds an extra layer of excitement to the invitation process. The invitation needs to clearly communicate the surprise element — arrival times, secrecy reminders, parking instructions so the guest of honor doesn't see a line of cars. Ryvite lets you add custom RSVP fields specifically for surprise logistics, and the AI can incorporate "Shhh... it's a surprise!" messaging into the design itself. Every detail reinforces the plan without you needing to send a separate message explaining the logistics.</p>
+
+      <h2>Themed Birthday Party Invitations</h2>
+      <p>Theme parties are where Ryvite truly separates from template-based services. Templates give you a limited set of themes — maybe 20 or 30 variations. Ryvite generates designs from scratch based on whatever theme you describe, which means the possibilities are essentially unlimited. Some themes our users have created invitations for:</p>
+      <ul>
+        <li>Retro disco and '80s neon for throwback parties</li>
+        <li>Garden party with botanical illustrations and sage green tones</li>
+        <li>Beach and tropical luau with sunset gradients</li>
+        <li>Elegant black-tie with metallic accents and serif typography</li>
+        <li>Camping and outdoor adventure with hand-drawn nature elements</li>
+        <li>Sports-themed parties matching specific team colors</li>
+      </ul>
+      <p>The AI generates SVG illustrations — crisp at any screen size, with no pixelation — along with matching typography and color palettes that tie the entire design together.</p>
+
+      <h2>Photo-Guided Design for Personal Invitations</h2>
+      <p>One of Ryvite's most powerful features for birthday invitations is photo-guided design. Upload a photo during the creation process — a portrait, a candid shot, a previous party photo, or even a Pinterest inspiration image — and the AI uses it as a design reference. It pulls color palettes, mood cues, and stylistic direction from the image to create an invitation that feels cohesive with your vision. This is particularly effective for milestone birthdays where you want to feature the birthday person, or for kids' parties where a character or theme image sets the design direction.</p>
+
+      <h2>Unique Guest Links and RSVP Tracking</h2>
+      <p>Every guest receives their own unique link to your birthday invitation. This means you can track exactly who has viewed their invitation and who has responded. Your Ryvite dashboard shows real-time RSVP status — who's attending, who's declined, who hasn't responded yet. You can customize the RSVP form with fields that matter for your specific party:</p>
+      <ul>
+        <li>Meal preferences or dietary restrictions</li>
+        <li>Number of plus-ones or children attending</li>
+        <li>Birthday messages or well-wishes for the guest of honor</li>
+        <li>Allergy information (critical for kids' parties)</li>
+        <li>Song requests for the party playlist</li>
+      </ul>
+      <p>No more group texts, no more chasing people for headcounts, no more spreadsheets. Everything lives in one dashboard.</p>
+
+      <h2>Pay-As-You-Go Pricing That Makes Sense for Birthday Parties</h2>
+      <p>Birthday party guest lists vary wildly — from intimate dinners with 8 friends to blowout kids' parties with 40 classmates to milestone celebrations with 150 family members and friends. Services that charge per card sent punish you for having a large guest list, with costs reaching $200 or more for bigger parties. Ryvite is free to start with pay-as-you-go pricing and unlimited guests. For birthday parties, where the guest list can grow quickly once you start adding family, neighbors, and classmates, the savings add up fast.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Example Invitations -->
+<section class="section examples-section">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">Example Designs</p>
+      <h2 class="section-title scroll-reveal">Birthday Invitation Inspiration</h2>
+      <p class="section-subtitle center scroll-reveal">Every design is AI-generated from a simple text description. No two are alike.</p>
+    </div>
+    <div class="examples-grid">
+      <div class="example-card scroll-reveal">
+        <div class="example-placeholder grad-1" role="img" aria-label="Bright, playful kids' birthday invitation with balloon illustrations, confetti accents, and bold fun typography">
+          Bright, playful kids' birthday invitation with balloon illustrations, confetti, and bold fun typography
+        </div>
+        <div class="example-info">
+          <h4>Kids' Party — Fun and Colorful</h4>
+          <p>Warm colors with balloons and confetti accents</p>
+        </div>
+      </div>
+      <div class="example-card scroll-reveal">
+        <div class="example-placeholder grad-2" role="img" aria-label="Elegant milestone birthday invitation with sophisticated purple and coral gradient, refined serif typography">
+          Elegant milestone birthday invitation with sophisticated gradient, refined typography, and modern layout
+        </div>
+        <div class="example-info">
+          <h4>Milestone Birthday — Elegant and Modern</h4>
+          <p>Rich tones with sophisticated, refined design</p>
+        </div>
+      </div>
+      <div class="example-card scroll-reveal">
+        <div class="example-placeholder grad-3" role="img" aria-label="Minimalist adult birthday party invitation with dark teal gradient, clean lines, and contemporary styling">
+          Minimalist adult birthday party invitation with cool tones, clean layout, and contemporary styling
+        </div>
+        <div class="example-info">
+          <h4>Adult Party — Cool and Contemporary</h4>
+          <p>Dark tones with minimalist, modern aesthetic</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section faq-section" id="faq">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">FAQ</p>
+      <h2 class="section-title scroll-reveal">Birthday Invitation Questions</h2>
+    </div>
+    <div class="faq-list">
+      <details class="scroll-reveal">
+        <summary>How do I create AI birthday invitations with Ryvite?</summary>
+        <div class="faq-answer">Just describe the birthday party you're planning — the age, the theme, the vibe, the colors. Ryvite's AI generates a completely custom invitation design in seconds based on your description. You can upload a photo for inspiration, refine the design with follow-up requests, then publish and share a unique link with your guests. No design skills or templates required.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>How much do birthday invitations cost on Ryvite?</summary>
+        <div class="faq-answer">Ryvite is free to start with pay-as-you-go pricing. Unlike services that charge per card sent ($1-$8 each), you can send your birthday invitation to 10 or 300 guests with no per-card fees. There are no subscriptions, no hidden fees, and no ads on your invitation.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>What customization options are available for birthday invitations?</summary>
+        <div class="faq-answer">Everything is customizable through natural language. Describe your color scheme, theme (dinosaurs, princess, retro disco, minimalist), typography style, and mood. After the AI generates your design, you can request changes — swap colors, adjust text, add or remove RSVP fields, change the layout — all through a chat-based design refinement system. You can also upload a photo to guide the design direction.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>Can I add a photo to my birthday invitation?</summary>
+        <div class="faq-answer">Yes. During the creation process, you can upload a photo of the birthday person, a party inspiration image, or any visual reference. The AI uses your photo to guide the design — matching colors, mood, and style to create a cohesive invitation. This works especially well for milestone birthdays and kids' parties where you want the design to feel personal.</div>
+      </details>
+      <details class="scroll-reveal">
+        <summary>How do guests RSVP to a birthday invitation on Ryvite?</summary>
+        <div class="faq-answer">Each guest receives a unique link to your invitation. They can view the design and respond directly on the page — no app download or account required. You can customize the RSVP form with fields like meal preferences, plus-ones, dietary restrictions, or a birthday message. All responses are collected in real time on your admin dashboard, so you always have an up-to-date headcount.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- Related Event Types -->
+<section class="section related-section">
+  <div class="container">
+    <div style="text-align:center;">
+      <p class="section-label scroll-reveal">Explore More</p>
+      <h2 class="section-title scroll-reveal">Other Event Types</h2>
+    </div>
+    <div class="related-grid">
+      <a href="/baby-shower-invitations/" class="related-card scroll-reveal">
+        <h4>Baby Shower Invitations</h4>
+        <p>Custom AI-designed baby shower invitations with whimsical, heartfelt themes.</p>
+      </a>
+      <a href="/wedding-invitations/" class="related-card scroll-reveal">
+        <h4>Wedding Invitations</h4>
+        <p>Elegant, one-of-a-kind wedding invitations generated from your vision.</p>
+      </a>
+      <a href="/graduation-invitations/" class="related-card scroll-reveal">
+        <h4>Graduation Invitations</h4>
+        <p>Celebrate academic milestones with custom AI-generated graduation invitations.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="fade-in-up">Ready to Plan the Perfect Birthday Party?</h2>
+  <p class="fade-in-up fade-delay-1">Create a custom AI-generated birthday invitation in seconds. No templates, no design skills required.</p>
+  <a href="/v2/create/" class="hero-cta fade-in-up fade-delay-2">Create Your Birthday Invite</a>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h5>Product</h5>
+      <a href="/#how">How It Works</a>
+      <a href="/inspiration/">Inspiration</a>
+      <a href="/pricing/">Pricing</a>
+      <a href="/v2/create/">Create an Invite</a>
+    </div>
+    <div class="footer-col">
+      <h5>Event Types</h5>
+      <a href="/birthday-invitations/">Birthday</a>
+      <a href="/wedding-invitations/">Wedding</a>
+      <a href="/baby-shower-invitations/">Baby Shower</a>
+      <a href="/graduation-invitations/">Graduation</a>
+      <a href="/holiday-party-invitations/">Holiday Party</a>
+      <a href="/corporate-event-invitations/">Corporate</a>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <a href="/blog/">Blog</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/#story">Our Story</a>
+    </div>
+    <div class="footer-col">
+      <h5>Legal</h5>
+      <a href="/terms/">Terms of Service</a>
+      <a href="/privacy/">Privacy Policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 CNPY LLC. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const revealEls = document.querySelectorAll('.scroll-reveal');
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.15 });
+revealEls.forEach(el => revealObs.observe(el));
+</script>
+</body>
+</html>

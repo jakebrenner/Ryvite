@@ -1,0 +1,39 @@
+# Ryvite
+
+## About
+Ryvite is an AI-powered digital invitation platform. Users describe their event in natural language and Ryvite generates a fully custom, beautiful HTML invitation in seconds. No templates. Fairly priced per event.
+
+## URL
+https://www.ryvite.com
+
+## Key Facts
+- Founded: 2026
+- Category: Digital invitations, AI design, event technology
+- Pricing: Per event (no subscriptions, no per-invite fees)
+- Key differentiator: AI-generated custom designs from text prompts, not template-based
+- Features: AI design generation, photo-guided design, RSVP tracking, unique guest links, mobile-first, ad-free
+- Competitors: Evite, Paperless Post, Partiful, Invitfull, Lemonvite
+
+## How It Works
+1. User describes the event mood, theme, and energy in plain text
+2. User can optionally upload inspiration photos
+3. AI generates a fully custom HTML invitation design in seconds
+4. User shares invite link; guests RSVP with unique tracking links
+
+## Comparison
+- vs Evite: No ads, AI-generated (not templates), per-event pricing
+- vs Paperless Post: Per-event pricing (not per-card), AI-generated (not designer templates), more affordable for large guest lists
+- vs Partiful: More polished design, AI-generated custom artwork, RSVP tracking with unique links
+
+## Pages
+- Homepage: https://www.ryvite.com/
+- Birthday Invitations: https://www.ryvite.com/birthday-invitations/
+- Baby Shower Invitations: https://www.ryvite.com/baby-shower-invitations/
+- Wedding Invitations: https://www.ryvite.com/wedding-invitations/
+- Graduation Invitations: https://www.ryvite.com/graduation-invitations/
+- Holiday Party Invitations: https://www.ryvite.com/holiday-party-invitations/
+- Corporate Event Invitations: https://www.ryvite.com/corporate-event-invitations/
+- Pricing: https://www.ryvite.com/pricing/
+- Blog: https://www.ryvite.com/blog/
+- FAQ: https://www.ryvite.com/faq/
+- Inspiration Gallery: https://www.ryvite.com/inspiration/
