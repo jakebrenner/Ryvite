@@ -966,7 +966,7 @@
           }).then(function(result) {
             if (result.success && result.event) {
               var ev = result.event;
-              currentEvent = { id: ev.id, slug: ev.slug, paymentStatus: ev.paymentStatus || 'unpaid' };
+              currentEvent = { id: ev.id, slug: ev.slug, paymentStatus: ev.paymentStatus || 'unpaid', freeGenerationUsed: !!ev.freeGenerationUsed, freeRedoUsed: !!ev.freeRedoUsed };
               extractedData = {
                 title: ev.title || '', eventType: ev.eventType || 'other',
                 startDate: ev.eventDate || '', endDate: ev.endDate || '',
@@ -1029,7 +1029,7 @@
           var result = await res.json();
           if (result.success && result.event) {
             var ev = result.event;
-            currentEvent = { id: ev.id, slug: ev.slug, paymentStatus: ev.paymentStatus || 'unpaid' };
+            currentEvent = { id: ev.id, slug: ev.slug, paymentStatus: ev.paymentStatus || 'unpaid', freeGenerationUsed: !!ev.freeGenerationUsed, freeRedoUsed: !!ev.freeRedoUsed };
             extractedData = {
               title: ev.title || '',
               eventType: ev.eventType || 'other',
@@ -1634,7 +1634,7 @@
         });
         var result = await res.json();
         if (result.success) {
-          currentEvent = { id: result.eventId, slug: result.slug, paymentStatus: result.paymentStatus || 'unpaid' };
+          currentEvent = { id: result.eventId, slug: result.slug, paymentStatus: result.paymentStatus || 'unpaid', freeGenerationUsed: false, freeRedoUsed: false };
           window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
         }
       } catch (err) {
@@ -1693,7 +1693,7 @@
         });
         var result = await res.json();
         if (result.success) {
-          currentEvent = { id: result.eventId, slug: result.slug, paymentStatus: result.paymentStatus || 'unpaid' };
+          currentEvent = { id: result.eventId, slug: result.slug, paymentStatus: result.paymentStatus || 'unpaid', freeGenerationUsed: false, freeRedoUsed: false };
           await saveCustomFields();
           window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
           autoSaveDraft();
@@ -2672,6 +2672,10 @@
           window._lastGenDebug = 'Status: ' + res2.status + ' | Bytes: ' + fullText.length + ' | Elapsed: ' + elapsed + 's | Result: ' + !!genResult + ' | Build: 2026-03-12a';
 
           if (genResult && genResult.success) {
+            // Mark free generation as used client-side so design chat gate works immediately
+            if (currentEvent && currentEvent.paymentStatus === 'free') {
+              currentEvent.freeGenerationUsed = true;
+            }
             var ver = {
               id: genResult.theme.id,
               version: genResult.theme.version,
@@ -4624,6 +4628,25 @@
         return sendDesignChatRsvpFields(text, input);
       }
 
+      // ── Free tier gate: block design chat if generation limit reached ──
+      if (currentEvent && currentEvent.paymentStatus === 'free' && currentEvent.freeGenerationUsed) {
+        // Allow Tier 1 client-side operations (RSVP field changes) — they don't cost anything
+        var rsvpFieldPattern = /\b(remove|delete|drop|hide|add|include|make .+ (required|optional))\b.{0,30}\b(field|name|email|phone|dietary|allergies|plus.?one|song|meal|kids|guests?|notes?|message|comment)\b/i;
+        var textSwapPattern = /\b(change|replace|swap|switch)\b.{0,10}["'\u201C\u201D].+["'\u201C\u201D]\s*(to|with|for)\s*["'\u201C\u201D]/i;
+        if (!rsvpFieldPattern.test(text) && !textSwapPattern.test(text)) {
+          designChatHistory.push({ role: 'user', content: text });
+          if (!currentEvent.freeRedoUsed) {
+            designChatHistory.push({ role: 'assistant', content: "I can't make design tweaks on the free plan, but if the design is completely off from what you asked for, I can generate a brand new one.\n\nJust tell me what's wrong with the current design and I'll start fresh.\n\nOr upgrade for $4.99 to unlock unlimited design changes." });
+          } else {
+            designChatHistory.push({ role: 'upgrade', content: "You've used your free design and redo. Upgrade to unlock unlimited design changes, SMS delivery, and everything you need to send a beautiful invite." });
+          }
+          renderDesignChat();
+          input.value = '';
+          input.style.height = 'auto';
+          return;
+        }
+      }
+
       // Detect if user mentions wanting a photo but didn't attach one
       if (text && !hasPhotos) {
         var photoKeywords = /\b(photo|picture|image|pic|selfie|headshot|portrait|snapshot|upload.*(photo|image|pic)|include.*(photo|image|pic)|(add|use|put|include|attach|insert).*(photo|picture|image|pic))\b/i;
@@ -5138,6 +5161,10 @@
           }
 
           if (tweakResult && tweakResult.success) {
+            // Mark free redo as used client-side if this was a redesign redo
+            if (currentEvent && currentEvent.paymentStatus === 'free' && isRedesignRedo) {
+              currentEvent.freeRedoUsed = true;
+            }
             var tweakId = tweakResult.theme.id === 'pending' ? ('pending-' + Date.now()) : tweakResult.theme.id;
             var newVer = { id: tweakId, version: tweakResult.theme.version, html: tweakResult.theme.html, css: tweakResult.theme.css, config: tweakResult.theme.config };
             themeVersions.push(newVer);

@@ -1161,6 +1161,8 @@ function formatEvent(row, theme, customFields) {
       sortOrder: f.sort_order
     })),
     paymentStatus: row.payment_status || 'unpaid',
+    freeGenerationUsed: !!row.free_generation_used,
+    freeRedoUsed: !!row.free_redo_used,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
