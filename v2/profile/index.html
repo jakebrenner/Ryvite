@@ -571,6 +571,9 @@
     }
 
     async function showCardForm() {
+      // Prevent duplicate forms
+      if (document.getElementById('pmSetupForm')) return;
+
       // Create setup intent on the server
       var res = await authFetch('/api/v2/billing?action=create-setup-intent', {
         method: 'POST',
@@ -588,7 +591,6 @@
       cardElement = stripeElements.create('payment');
 
       var container = document.getElementById('pmContent');
-      var existing = container.innerHTML;
       container.innerHTML += '<div class="pm-setup-form" id="pmSetupForm">'
         + '<div id="card-element"></div>'
         + '<div id="card-errors" style="color:#dc3545;font-size:12px;margin-top:8px;"></div>'
@@ -598,7 +600,6 @@
         + '</div></div>';
 
       cardElement.mount('#card-element');
-      window._pmClientSecret = clientSecret;
     }
 
     async function saveNewCard() {
@@ -606,6 +607,13 @@
       btn.disabled = true;
       btn.textContent = 'Saving...';
       document.getElementById('card-errors').textContent = '';
+
+      if (!stripeElements) {
+        document.getElementById('card-errors').textContent = 'Card form not ready. Please close and try again.';
+        btn.disabled = false;
+        btn.textContent = 'Save Card';
+        return;
+      }
 
       try {
         var result = await stripeInstance.confirmSetup({
@@ -642,6 +650,8 @@
     function cancelCardUpdate() {
       var form = document.getElementById('pmSetupForm');
       if (form) form.remove();
+      stripeElements = null;
+      cardElement = null;
     }
 
     async function removeCard() {
