@@ -628,8 +628,9 @@ function buildStyleContext(selected, promptSpecificity) {
 // When user has strong creative direction, load only 1 reference (for technique) instead of 2
 // Returns { context, selectedIds } — context is the prompt string, selectedIds for logging
 //
-// Selection uses a confidence-gated composite score from production_style_effectiveness view:
-//   - Below 5 data points: pure admin_rating (prevents small-sample distortion)
+// Selection uses a confidence-gated composite score from production_style_effectiveness view,
+// filtered by event type (wedding ratings don't influence birthday selection):
+//   - Below 5 data points for this event type: pure admin_rating (prevents small-sample distortion)
 //   - Above 5: gradually blends in production quality (35%) + user satisfaction (25%),
 //     anchored by admin rating (40%), with Bayesian damping (blend_factor = n/(n+5))
 // Falls back to admin_rating-only weighting if the view isn't available.
@@ -639,12 +640,14 @@ async function loadStyleReferences(eventType, promptSpecificity = 0) {
     // Fetch more candidates than needed for weighted selection
     const fetchLimit = Math.max(limit * 3, 6);
 
-    // Try to load composite effectiveness scores (requires migrate_style_feedback_loop.sql)
+    // Try to load composite effectiveness scores for this event type
+    // (requires migrate_style_feedback_loop.sql — view is per event type)
     let compositeScores = null;
     try {
       const { data: effectivenessData } = await supabase
         .from('production_style_effectiveness')
-        .select('style_id, composite_score');
+        .select('style_id, composite_score')
+        .eq('event_type', eventType);
       if (effectivenessData?.length > 0) {
         compositeScores = new Map(effectivenessData.map(row => [row.style_id, row.composite_score]));
       }
@@ -687,10 +690,10 @@ async function loadStyleReferences(eventType, promptSpecificity = 0) {
 // Weighted random selection using confidence-gated composite scores.
 //
 // Weight calculation:
-//   1. If compositeScores map is available (from production_style_effectiveness view),
-//      use the composite score — which is confidence-gated in the SQL view:
-//      below 5 data points it equals admin_rating, above it gradually blends in
-//      production/user signals via Bayesian damping
+//   1. If compositeScores map is available (from production_style_effectiveness view,
+//      filtered by event type), use the composite score — which is confidence-gated
+//      per event type in the SQL view: below 5 data points it equals admin_rating,
+//      above it gradually blends in production/user signals via Bayesian damping
 //   2. Otherwise fall back to admin_rating (1-5) or 2 for unrated
 //
 // Applies exponential scaling (weight^1.8) so quality differences are amplified:

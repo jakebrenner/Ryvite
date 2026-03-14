@@ -128,8 +128,8 @@ Adds `style_library_ids` to `event_themes` for direct traceability, and composit
 
 | View | Purpose |
 |------|---------|
-| `production_style_effectiveness` | Composite score (1-5) per style blending admin rating (40%), production theme quality (35%), and user satisfaction (25%) — used by generation endpoint for weighted selection |
-| `style_rating_impact` | Validates whether admin style ratings are predictive of output quality — groups by rating tier and shows avg output quality per tier |
+| `production_style_effectiveness` | Confidence-gated composite score (1-5) **per style per event type** — below 5 data points uses pure admin_rating, above blends in production quality (35%) and user satisfaction (25%) via Bayesian damping |
+| `style_rating_impact` | Validates whether admin style ratings are predictive of output quality — groups by rating tier **and event type**, shows avg output quality per combination |
 
 ### Key Relationships
 - `event_themes.event_id` → `events.id` (one event has many theme versions, one active)
@@ -225,7 +225,8 @@ No auth required — supports host, guest, and anonymous raters.
 
 ### Style Library Weighted Selection (Composite Feedback Loop)
 - Selection uses a **confidence-gated composite score** (via `production_style_effectiveness` view):
-  - **Below 5 data points**: pure `admin_rating` (prevents small-sample distortion at low volume)
+  - **Event-type-aware**: scores are computed per `(style, event_type)` pair — a 5-star wedding rating doesn't boost the style's score for birthdays
+  - **Below 5 data points** (per event type): pure `admin_rating` (prevents small-sample distortion at low volume)
   - **Above 5 data points**: gradually blends in production signals via Bayesian damping (`blend = n/(n+5)`)
     - **40% admin style rating** — curator's assessment of the template (`style_library.admin_rating`)
     - **35% production theme quality** — avg admin rating of themes generated using this style (`event_themes.admin_rating`)
@@ -236,7 +237,7 @@ No auth required — supports host, guest, and anonymous raters.
 - `event_themes.style_library_ids` stores which styles influenced each generation (enables production correlation)
 - `style_library.times_used` tracks how often each style is selected (for identifying over/under-used styles)
 - `event_themes.prompt_version_id` tracks which prompt version produced each theme (set at generation time)
-- `style_rating_impact` view validates whether admin ratings are predictive of actual output quality
+- `style_rating_impact` view validates whether admin ratings are predictive of actual output quality (per event type)
 
 ### Key Metrics
 - **Generations-to-Publish (GTP)**: Number of theme generations before a user publishes their event. Lower = better UX. Tracked on `events.generations_to_publish`, computed when status first changes to "published".
