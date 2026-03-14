@@ -497,6 +497,7 @@
 
     // ── Payment Method Management ──
     var stripeInstance = null;
+    var stripeElements = null;
     var cardElement = null;
     var currentPaymentMethodId = null;
 
@@ -583,8 +584,8 @@
       }
 
       var clientSecret = data.clientSecret;
-      var elements = stripeInstance.elements({ clientSecret: clientSecret });
-      cardElement = elements.create('payment');
+      stripeElements = stripeInstance.elements({ clientSecret: clientSecret });
+      cardElement = stripeElements.create('payment');
 
       var container = document.getElementById('pmContent');
       var existing = container.innerHTML;
@@ -608,8 +609,7 @@
 
       try {
         var result = await stripeInstance.confirmSetup({
-          elements: cardElement._elements || stripeInstance.elements({ clientSecret: window._pmClientSecret }),
-          clientSecret: window._pmClientSecret,
+          elements: stripeElements,
           confirmParams: {
             return_url: window.location.href
           },
