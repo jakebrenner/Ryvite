@@ -4490,6 +4490,9 @@
     var pendingRedesignText = null; // Holds original message while awaiting clarification
     var awaitingRedesignClarification = false;
     var skipRedesignDetection = false; // Flag to skip detection when sending clarified message
+    var awaitingIntentClarification = false; // Holds state while awaiting intent clarification
+    var pendingIntentText = null; // Original message being clarified
+    var skipIntentClassification = false; // Skip classification when sending clarified message
 
     function switchTab(tab) {
       document.querySelectorAll('.panel-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -4844,7 +4847,7 @@
         if (msg.options && msg.options.length > 0) {
           html += '<div class="design-chat-options" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';
           msg.options.forEach(function(opt) {
-            html += '<button class="design-chat-option-btn" onclick="handleRedesignOption(this.dataset.val)" data-val="' + escapeHtml(opt.value) + '" style="background:#f0f0f0;border:1px solid #ddd;border-radius:16px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all 0.15s;white-space:nowrap;"'
+            html += '<button class="design-chat-option-btn" onclick="handleChatOption(this.dataset.val)" data-val="' + escapeHtml(opt.value) + '" style="background:#f0f0f0;border:1px solid #ddd;border-radius:16px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all 0.15s;white-space:nowrap;"'
               + ' onmouseover="this.style.background=\'#e0e0e0\';this.style.borderColor=\'#bbb\'"'
               + ' onmouseout="this.style.background=\'#f0f0f0\';this.style.borderColor=\'#ddd\'">'
               + escapeHtml(opt.label) + '</button>';
@@ -5112,13 +5115,13 @@
         } else {
           var errMsg = result.detail || result.message || result.error || 'Something went wrong';
           console.error('Chat API error (collecting):', JSON.stringify(result));
-          designChatHistory.push({ role: 'assistant', content: 'Sorry, something went wrong: ' + errMsg + '. Please try again.' });
+          designChatHistory.push({ role: 'assistant', content: "I had a little trouble understanding that — could you try telling me about your event again? For example:\n- \"I'm planning a birthday party for my daughter\"\n- \"We're having a wedding reception in June\"" });
           renderDesignChat();
         }
       } catch (err) {
         console.error('Chat connection error (collecting):', err);
         designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
-        designChatHistory.push({ role: 'assistant', content: 'Connection error. Please try again.' });
+        designChatHistory.push({ role: 'assistant', content: "Looks like our connection dropped — no worries! Just send your message again and we'll pick up right where we left off." });
         renderDesignChat();
       }
 
@@ -5298,6 +5301,29 @@
         return;
       }
 
+      // If we're awaiting intent clarification, treat this message as the clarification
+      if (awaitingIntentClarification && text) {
+        awaitingIntentClarification = false;
+        // Remove the option buttons from the last assistant message
+        var lastAssistant = null;
+        for (var ci = designChatHistory.length - 1; ci >= 0; ci--) {
+          if (designChatHistory[ci].role === 'assistant' && designChatHistory[ci].options) {
+            lastAssistant = designChatHistory[ci];
+            break;
+          }
+        }
+        if (lastAssistant) delete lastAssistant.options;
+        // Combine the original request with the user's clarification
+        var combined = pendingIntentText + '\n\nClarification from user: ' + text;
+        pendingIntentText = null;
+        skipIntentClassification = true;
+        skipRedesignDetection = true;
+        input.value = combined;
+        input.style.height = 'auto';
+        sendDesignChat();
+        return;
+      }
+
       // Detect if user is asking to change event details (date, time, location, etc.)
       // These are data changes, not design changes — redirect to the Details tab
       if (text && !hasPhotos) {
@@ -5437,13 +5463,20 @@
         }
         // If interpretation failed but we had sync changes, still report those
         if (rsvpFieldResult.action === 'mixed' && syncNote) {
-          designChatHistory.push({ role: 'assistant', content: syncNote + 'I couldn\'t figure out the field to add though — could you try rephrasing that part?\n\nWant to make any more changes?' });
+          designChatHistory.push({ role: 'assistant', content: syncNote + "I wasn't sure about the field to add though. Could you tell me more specifically what you'd like? For example:\n- \"Add a text field for dietary restrictions\"\n- \"Add a dropdown for meal choice with options: chicken, fish, veggie\"" });
           clearDesignChatPhoto();
           sendBtn.disabled = false;
           renderDesignChat();
           return;
         }
-        // Full fallthrough to AI tweak
+        // Pure add_async that failed interpretation — ask for clarification instead of expensive fallthrough
+        if (rsvpFieldResult.action === 'add_async') {
+          designChatHistory.push({ role: 'assistant', content: "I think you want to add a field to your RSVP form, but I want to make sure I get it right. Could you describe the field in a bit more detail? For example:\n- \"Add a text field for dietary restrictions\"\n- \"Add a number field for how many guests\"\n- \"Add a dropdown for t-shirt size with options: S, M, L, XL\"" });
+          clearDesignChatPhoto();
+          sendBtn.disabled = false;
+          renderDesignChat();
+          return;
+        }
       }
 
       // ── TIER 1.75: Instant text swap for "change X to Y" requests ──
@@ -5487,6 +5520,105 @@
           console.log('[tweak] Text swap: "' + textSwap.oldText + '" not found in HTML, falling through to AI');
         }
       }
+
+      // ── INTENT CLASSIFICATION GATE: Quick Haiku check before expensive AI calls ──
+      // Skip if we already got clarification, or if there are photos (photos imply clear intent)
+      if (text && !skipIntentClassification && !hasPhotos) {
+        try {
+          console.log('[tweak] Classifying intent before AI call...');
+          var enabledFields = rsvpFields.filter(function(f) { return f.enabled; });
+          var classifyRes = await authFetch('/api/v2/generate-theme?action=classifyIntent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userMessage: text,
+              currentFields: enabledFields.map(function(f) { return { label: f.label, field_type: f.field_type }; }),
+              eventType: currentEvent ? currentEvent.event_type : null,
+              previewMode: currentPreviewMode
+            })
+          });
+          if (classifyRes.ok) {
+            var classification = await classifyRes.json();
+            console.log('[tweak] Classification:', classification.intent, 'confidence:', classification.confidence);
+            if (classification.metadata) updateCostFromGeneration(classification);
+
+            // If the classifier detected this is a field addition with high confidence,
+            // route it directly to Tier 1.5 (interpretField) instead of expensive Tier 2/3
+            if (classification.intent === 'add_field' && classification.confidence >= 0.8 && classification.field_details) {
+              console.log('[tweak] Classifier routed to field add:', classification.field_details);
+              var fd = classification.field_details;
+              var fieldKey = fd.field_key || (fd.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+              var exists = enabledFields.some(function(ef) {
+                return (ef.field_key || '').toLowerCase() === fieldKey.toLowerCase() ||
+                       (ef.label || '').toLowerCase() === (fd.label || '').toLowerCase();
+              });
+              if (!exists) {
+                applyRsvpFieldChanges([{ action: 'add', field_key: fieldKey, label: fd.label, field_type: fd.field_type || 'text', is_required: fd.is_required || false, placeholder: fd.placeholder || null }]);
+                renderPreview(themeVersions[activeVersionIndex]);
+                designChatHistory.push({ role: 'assistant', content: 'Done! Added a "' + fd.label + '" field to your RSVP form.\n\nWant to make any more changes?' });
+              } else {
+                designChatHistory.push({ role: 'assistant', content: 'That field already exists in your RSVP form!\n\nWant to make any other changes?' });
+              }
+              clearDesignChatPhoto();
+              sendBtn.disabled = false;
+              renderDesignChat();
+              return;
+            }
+
+            // If the classifier detected this is a question, answer conversationally
+            if (classification.intent === 'question' && classification.confidence >= 0.6) {
+              designChatHistory.push({ role: 'assistant', content: (classification.summary || "That's a great question!") + "\n\nI'm your design assistant — I can help you change colors, fonts, layout, add photos, or tweak any visual element of your invite. Just tell me what you'd like to change!" });
+              clearDesignChatPhoto();
+              sendBtn.disabled = false;
+              renderDesignChat();
+              return;
+            }
+
+            // Low confidence — ask for clarification instead of running expensive AI
+            if (classification.confidence < 0.8 && classification.clarification) {
+              console.log('[tweak] Low confidence (' + classification.confidence + '), asking for clarification');
+              pendingIntentText = text;
+              awaitingIntentClarification = true;
+
+              var intentOptions = [];
+              if (classification.suggested_options && classification.suggested_options.length > 0) {
+                intentOptions = classification.suggested_options.map(function(opt) {
+                  return { label: opt, value: opt };
+                });
+              } else {
+                // Default options based on detected intent
+                if (classification.intent === 'add_field' || classification.intent === 'modify_field') {
+                  intentOptions = [
+                    { label: 'Add an RSVP field', value: 'I want to add a new RSVP form field for: ' + (classification.summary || text) },
+                    { label: 'Change the design', value: 'I want to change the visual design: ' + text }
+                  ];
+                } else {
+                  intentOptions = [
+                    { label: 'Change the design', value: 'I want to change the visual design: ' + text },
+                    { label: 'Change the text', value: 'I want to change specific text/wording: ' + text },
+                    { label: 'Add an RSVP field', value: 'I want to add a new RSVP form field' }
+                  ];
+                }
+              }
+
+              designChatHistory.push({
+                role: 'assistant',
+                content: classification.clarification,
+                options: intentOptions
+              });
+              clearDesignChatPhoto();
+              sendBtn.disabled = false;
+              renderDesignChat();
+              return;
+            }
+            // High confidence — fall through to Tier 2/3 with the original text
+          }
+        } catch (err) {
+          console.error('[tweak] Intent classification error (non-blocking):', err);
+          // Classification failed — fall through to Tier 2/3 anyway (never block the user)
+        }
+      }
+      skipIntentClassification = false; // Reset flag
 
       // ── TIER 2 & 3: AI-powered tweaks (text-only via Haiku or design via Sonnet) ──
       // Add thinking message with cycling puns
@@ -5580,11 +5712,12 @@
           clearInterval(tweakPunInterval);
           designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
           if (sseRes.status === 504) {
-            designChatHistory.push({ role: 'assistant', content: 'That update took too long and timed out. Try a simpler change, or just try again!' });
+            designChatHistory.push({ role: 'assistant', content: "That took a bit too long — my apologies! Could you try breaking it into a smaller change? For example:\n- \"Make the background darker\"\n- \"Change the heading font\"\n\nSmaller tweaks work much faster!" });
           } else {
             var errText = '';
             try { var errJson = await sseRes.json(); errText = errJson.error || errJson.message || ''; } catch(e) {}
-            designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change' + (errText ? ': ' + errText : '') + '. Could you try rephrasing?' });
+            console.error('[tweak] Non-200 response:', sseRes.status, errText);
+            designChatHistory.push({ role: 'assistant', content: "I ran into a hiccup trying to make that change. Could you rephrase what you'd like? For example:\n- \"Make the colors warmer\"\n- \"Use a more elegant font\"\n- \"Add more spacing between sections\"" });
           }
         } else {
           // Read full response as text (avoids ReadableStream which Safari kills on mobile)
@@ -5656,38 +5789,38 @@
             // Show rating widget for every generation (tweaks included)
             showThemeRating(newVer.id);
           } else if (tweakError) {
-            designChatHistory.push({ role: 'assistant', content: 'Sorry, I had trouble with that change: ' + (tweakError.message || tweakError.error || 'Unknown error') + '. Could you try rephrasing?' });
+            console.error('[tweak] Server error:', tweakError.message || tweakError.error);
+            designChatHistory.push({ role: 'assistant', content: "I wasn't able to make that change — let me try to help another way. Could you describe what you'd like differently? For example:\n- \"Make the background a deep navy blue\"\n- \"Use a playful, rounded font\"\n- \"Make the layout more spacious\"" });
           } else {
-            // Debug: show what we actually received so we can diagnose
+            // No result parsed from response — log debug info, show friendly recovery
             var debugInfo = 'Status: ' + sseRes.status + ' | Bytes: ' + tweakFullText.length + ' | Lines: ' + tweakLines.length;
             var hasEventLines = tweakLines.filter(function(l) { return l.startsWith('event:'); }).length;
             var hasDataLines = tweakLines.filter(function(l) { return l.startsWith('data:'); }).length;
             debugInfo += ' | Events: ' + hasEventLines + ' | Data: ' + hasDataLines;
-            // Check if we got a JSON error response instead of SSE
-            if (tweakFullText.startsWith('{')) {
-              try {
-                var jsonResp = JSON.parse(tweakFullText);
-                var jsonErr = jsonResp.error || jsonResp.message || JSON.stringify(jsonResp).substring(0, 200);
-                designChatHistory.push({ role: 'assistant', content: 'Error: ' + jsonErr });
-              } catch(e) {
-                designChatHistory.push({ role: 'assistant', content: 'Something went wrong (no result in response).\n\nDebug: ' + debugInfo + '\nFirst 200 chars: ' + tweakFullText.substring(0, 200) });
-              }
-            } else {
-              designChatHistory.push({ role: 'assistant', content: 'Something went wrong (no result in response).\n\nDebug: ' + debugInfo + '\nFirst 200 chars: ' + tweakFullText.substring(0, 200) });
-            }
             console.error('[tweak] No result found. Debug:', debugInfo, 'Full text:', tweakFullText.substring(0, 1000));
+            designChatHistory.push({ role: 'assistant', content: "Hmm, something went wrong on my end — sorry about that! Let's try again. What change would you like to make? I work best with specific requests like:\n- \"Make the heading larger\"\n- \"Change the background to a gradient\"\n- \"Add a border around the RSVP section\"" });
           }
         }
       } catch (err) {
         console.error('[tweak] CATCH error:', err, err.stack);
         clearInterval(tweakPunInterval);
         designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'system'; });
-        designChatHistory.push({ role: 'assistant', content: 'Connection error: ' + (err.message || 'Unknown') + '. This usually means the request timed out or was interrupted. Try again!' });
+        console.error('[tweak] Connection error details:', err.message);
+        designChatHistory.push({ role: 'assistant', content: "Looks like our connection was interrupted — these things happen! Let's try again. Just send your request one more time and I'll get right on it." });
       }
 
       clearDesignChatPhoto();
       sendBtn.disabled = false;
       renderDesignChat();
+    }
+
+    function handleChatOption(value) {
+      // Route to the appropriate handler based on which clarification is active
+      if (awaitingIntentClarification) {
+        handleIntentOption(value);
+      } else {
+        handleRedesignOption(value);
+      }
     }
 
     function handleRedesignOption(value) {
@@ -5705,6 +5838,28 @@
       // Combine original request with clarification and send — skip redesign detection
       var combined = (pendingRedesignText || 'Give me a new design') + '\n\nClarification from user: ' + value;
       pendingRedesignText = null;
+      skipRedesignDetection = true;
+      var input = document.getElementById('designChatInput');
+      input.value = combined;
+      sendDesignChat();
+    }
+
+    function handleIntentOption(value) {
+      // Remove option buttons from the clarification message
+      for (var ci = designChatHistory.length - 1; ci >= 0; ci--) {
+        if (designChatHistory[ci].role === 'assistant' && designChatHistory[ci].options) {
+          delete designChatHistory[ci].options;
+          break;
+        }
+      }
+      awaitingIntentClarification = false;
+      // Show the user's selection as a message
+      designChatHistory.push({ role: 'user', content: value });
+      renderDesignChat();
+      // Combine original request with the user's choice and send — skip classification
+      var combined = (pendingIntentText || value) + '\n\nClarification from user: ' + value;
+      pendingIntentText = null;
+      skipIntentClassification = true;
       skipRedesignDetection = true;
       var input = document.getElementById('designChatInput');
       input.value = combined;

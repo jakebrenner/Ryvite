@@ -1101,6 +1101,64 @@ try {
     }
   }
 
+  // --- CLASSIFY INTENT: quick Haiku call to understand user's request before executing ---
+  // Returns intent, confidence score, and a clarifying question if confidence is low.
+  // This prevents expensive AI calls on ambiguous requests and ensures the chat never fails silently.
+  if (action === 'classifyIntent') {
+    const { userMessage, currentFields, eventType, previewMode: classifyPreviewMode } = req.body;
+    if (!userMessage) return res.status(400).json({ error: 'Missing userMessage' });
+
+    try {
+      const fieldList = (currentFields || []).map(f => `"${f.label}" (${f.field_type})`).join(', ');
+      const resp = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        system: 'You classify user requests in a design chat for event invitations. Return ONLY a JSON object, no markdown.',
+        messages: [{ role: 'user', content: `The user is customizing their ${eventType || 'event'} invite${classifyPreviewMode === 'email' ? ' email' : ''} and said:
+"${userMessage}"
+
+Current RSVP fields: ${fieldList || 'none'}
+
+Classify this request. Return JSON:
+{
+  "intent": "add_field|remove_field|modify_field|design_change|text_change|add_photo|question|unclear",
+  "confidence": 0.0 to 1.0,
+  "summary": "One sentence: what the user wants",
+  "clarification": "A friendly question to ask if you're not confident (null if confident)",
+  "suggested_options": ["option1", "option2", "option3"] or null
+}
+
+Rules:
+- "add_field": user wants to add an RSVP form field (e.g. "add number of adults", "I need a dietary field")
+- "design_change": visual changes (colors, fonts, layout, style, animations, spacing)
+- "text_change": change specific text/wording in the invite
+- "question": user is asking a question, not requesting a change
+- "unclear": you genuinely can't determine what they want
+- confidence 0.9+: crystal clear request. confidence 0.5-0.8: probably understand but should confirm. confidence <0.5: genuinely unclear
+- For add_field with confidence >= 0.8, include "field_details": {"label": "...", "field_type": "..."} so we can skip a second AI call
+- The clarification should be warm, conversational, and show you understood SOMETHING (never "what do you mean?")
+- suggested_options: 2-3 clickable options that help the user clarify (null if confident)` }]
+      });
+
+      const text = resp.content[0]?.text?.trim() || '';
+      const classifyCost = calcGenerationCost('claude-haiku-4-5-20251001', resp.usage?.input_tokens || 0, resp.usage?.output_tokens || 0);
+      let classification;
+      try {
+        const cleaned = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
+        classification = JSON.parse(cleaned);
+      } catch {
+        // If parsing fails, return a conservative "unclear" classification
+        classification = { intent: 'unclear', confidence: 0.3, summary: 'Could not classify', clarification: "I want to make sure I get this right — could you tell me a bit more about what you'd like to change?", suggested_options: null };
+      }
+      await checkAndChargeAiUsage(user.id).catch(() => {});
+      return res.json({ success: true, ...classification, metadata: { cost: classifyCost } });
+    } catch (err) {
+      console.error('classifyIntent error:', err);
+      // On error, return a safe fallback that asks for clarification rather than failing
+      return res.json({ success: true, intent: 'unclear', confidence: 0.3, summary: 'Classification unavailable', clarification: "I want to make sure I get this right — could you tell me a bit more about what you'd like to change?", suggested_options: null });
+    }
+  }
+
   // --- TWEAK MODE: stream response via SSE to avoid timeouts ---
   if (action === 'tweak') {
     if (!eventId || !currentHtml || !currentCss || !tweakInstructions) {
