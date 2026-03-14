@@ -204,6 +204,7 @@ export default async function handler(req, res) {
           tier: profile?.tier || 'free',
           referralSource: profile?.referral_source || null,
           createdAt: profile?.created_at || user.created_at,
+          isGlobalAdmin: profile?.is_global_admin || false,
           hasActivePlan: !!activeSub,
           subscription: activeSub ? {
             id: activeSub.id,

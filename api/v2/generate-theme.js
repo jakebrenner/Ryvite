@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { checkAndChargeAiUsage } from './billing.js';
+// AI generation is included in the $4.99 event price — no per-generation billing
 
 const client = new Anthropic();
 const supabase = createClient(
@@ -1016,19 +1016,46 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid session' });
   }
 
-  // Check generation limits
+  // Check per-event generation limits (free tier: 1, paid: soft cap 10)
   try {
-    const { checkUserLimits } = await import('./billing.js');
-    const limits = await checkUserLimits(user.id);
-    if (!limits.hasActivePlan) {
-      return res.status(403).json({ error: 'You need an active plan to generate themes.', needsPlan: true });
-    }
-    if (!limits.canGenerate) {
-      return res.status(403).json({ error: limits.reason || 'Generation limit reached for your plan.', limitReached: true });
+    const eventIdForCheck = req.body?.eventId;
+    if (eventIdForCheck) {
+      // Get event payment status
+      const { data: eventForLimit } = await supabase
+        .from('events')
+        .select('payment_status, user_id')
+        .eq('id', eventIdForCheck)
+        .single();
+
+      if (eventForLimit && eventForLimit.user_id === user.id) {
+        // Count generations for this specific event
+        const { count: eventGenCount } = await supabase
+          .from('generation_log')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', eventIdForCheck)
+          .eq('status', 'success');
+
+        const genCount = eventGenCount || 0;
+
+        if (eventForLimit.payment_status === 'free' && genCount >= 1) {
+          return res.status(403).json({
+            error: 'Your free event includes 1 AI design. Upgrade to $4.99 for unlimited designs.',
+            limitReached: true,
+            requiresPayment: true,
+            generationCount: genCount,
+            generationLimit: 1
+          });
+        }
+
+        // Paid events: soft cap at 10 (include flag but don't block)
+        if (eventForLimit.payment_status === 'paid' && genCount >= 10) {
+          // Don't block — just flag it. Client shows friendly message.
+          res.softCapReached = true;
+        }
+      }
     }
   } catch (e) {
-    // If billing check fails, allow generation (don't block on billing errors)
-    console.warn('Billing check failed, allowing generation:', e.message);
+    console.warn('Generation limit check failed, allowing generation:', e.message);
   }
 
   const action = req.query?.action || req.body?.action || 'generate';
@@ -1085,7 +1112,7 @@ try {
           }
         } catch (e) { /* non-critical */ }
       }
-      await checkAndChargeAiUsage(user.id).catch(() => {});
+      // AI generation included in $4.99 event price — no per-generation billing
 
       let field;
       try {
@@ -1150,7 +1177,7 @@ Rules:
         // If parsing fails, return a conservative "unclear" classification
         classification = { intent: 'unclear', confidence: 0.3, summary: 'Could not classify', clarification: "I want to make sure I get this right — could you tell me a bit more about what you'd like to change?", suggested_options: null };
       }
-      await checkAndChargeAiUsage(user.id).catch(() => {});
+      // AI generation included in $4.99 event price — no per-generation billing
       return res.json({ success: true, ...classification, metadata: { cost: classifyCost } });
     } catch (err) {
       console.error('classifyIntent error:', err);
@@ -1577,7 +1604,7 @@ Return ONLY a valid JSON object with these keys:
           await supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: chatOnlyCost.totalCostCents })
             .catch(() => {});
         }
-        await checkAndChargeAiUsage(user.id).catch(() => {});
+        // AI generation included in $4.99 event price — no per-generation billing
         return;
       }
 
@@ -1714,6 +1741,7 @@ Return ONLY a valid JSON object with these keys:
       // Send result to client with real DB ID
       sendSSE('done', {
         success: true,
+        softCapReached: !!res.softCapReached,
         theme: { id: savedTweakThemeId, version: savedTweakVersion, html: theme.theme_html, css: theme.theme_css, config: tweakConfig },
         chatResponse: theme.chat_response || null,
         rsvpFieldChanges: theme.rsvp_field_changes || null,
@@ -1767,7 +1795,7 @@ Return ONLY a valid JSON object with these keys:
         } catch (e) { /* non-critical */ }
 
         // Check if usage-based AI billing threshold is reached
-        await checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
+        // AI generation included in $4.99 event price — no per-generation billing
       } catch (saveErr) {
         console.error('Tweak DB save error (theme already sent to client):', saveErr);
       }
@@ -2060,6 +2088,7 @@ This is the most common failure mode. Double-check it.`;
     console.log('[cost] Sending to client:', { genCost, model: themeModel, inputTokens: genInputTokens, outputTokens: genOutputTokens });
     sendSSE('done', {
       success: true,
+      softCapReached: !!res.softCapReached,
       theme: {
         id: 'pending',
         version: 1,
@@ -2172,8 +2201,7 @@ This is the most common failure mode. Double-check it.`;
         }
       } catch (e) { /* non-critical */ }
 
-      // Check if usage-based AI billing threshold is reached
-      await checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
+      // AI generation included in $4.99 event price — no per-generation billing
     } catch (saveErr) {
       console.error('DB save error (theme already sent to client):', saveErr);
     }

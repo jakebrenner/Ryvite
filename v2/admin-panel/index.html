@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Admin — Ryvite</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { overflow-x: hidden; max-width: 100vw; }
+    :root {
+      --party-coral: #E94560; --blush-pop: #FF6B6B; --midnight: #1A1A2E;
+      --confetti-gold: #FFB74D; --mint-fizz: #4ECDC4; --party-purple: #A78BFA; --cream: #FFFAF5;
+    }
+    html, body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--midnight); }
+
+    /* Header */
+    .header { background: var(--midnight); border-bottom: 1px solid #333; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-left a { text-decoration: none; }
+    .header h1 { font-family: 'Playfair Display', serif; font-size: 22px; color: white; }
+    .header-badge { background: var(--party-coral); color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .header-actions a, .header-actions button { color: #aaa; text-decoration: none; font-size: 13px; transition: color 0.2s; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .header-actions a:hover, .header-actions button:hover { color: white; }
+
+    /* Container */
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+    /* Tab navigation */
+    .tab-nav { display: flex; gap: 0; border-bottom: 2px solid #eee; margin-bottom: 28px; }
+    .tab-btn { padding: 12px 24px; font-size: 14px; font-weight: 600; color: #888; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab-btn:hover { color: var(--midnight); }
+    .tab-btn.active { color: var(--party-coral); border-bottom-color: var(--party-coral); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Stats cards */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: white; border-radius: 8px; padding: 20px; border: 1px solid #eee; }
+    .stat-card .stat-value { font-size: 32px; font-weight: 700; color: var(--midnight); }
+    .stat-card .stat-label { font-size: 12px; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Tables */
+    .table-container { background: white; border-radius: 8px; border: 1px solid #eee; overflow: hidden; margin-bottom: 24px; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .table-header h3 { font-size: 16px; font-weight: 600; }
+    .table-header .count { font-size: 12px; color: #888; background: #f0f0f0; padding: 4px 10px; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 12px 20px; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; background: #fafafa; border-bottom: 1px solid #eee; }
+    td { padding: 14px 20px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #d4edda; color: #155724; }
+    .badge-yellow { background: #fff3cd; color: #856404; }
+    .badge-red { background: #f8d7da; color: #721c24; }
+    .badge-gray { background: #e2e3e5; color: #383d41; }
+    .badge-blue { background: #d1ecf1; color: #0c5460; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--party-coral); color: white; }
+    .btn-primary:hover { background: var(--blush-pop); }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-secondary { background: #f0f0f0; color: var(--midnight); }
+    .btn-secondary:hover { background: #e0e0e0; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-danger:hover { background: #c82333; }
+    .btn-danger:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-success:hover { background: #218838; }
+    .btn-success:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* Approval cards */
+    .approval-section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 12px; margin-top: 8px; }
+    .approval-card { background: white; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 12px; }
+    .approval-card.pending { border-left: 4px solid var(--confetti-gold); background: #fffdf5; }
+    .approval-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .approval-card-title { font-size: 15px; font-weight: 700; color: var(--midnight); }
+    .approval-card-email { font-size: 12px; color: #888; margin-top: 2px; }
+    .approval-card-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+    .approval-meta-item { font-size: 12px; color: #666; }
+    .approval-meta-item strong { font-weight: 600; color: var(--midnight); }
+    .approval-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Loading & empty states */
+    .loading { text-align: center; padding: 60px 20px; color: #888; font-size: 14px; }
+    .loading-spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid #eee; border-top-color: var(--party-coral); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; }
+
+    /* Access denied */
+    .access-denied { text-align: center; padding: 100px 20px; }
+    .access-denied h2 { font-family: 'Playfair Display', serif; font-size: 28px; margin-bottom: 12px; color: var(--midnight); }
+    .access-denied p { color: #888; font-size: 15px; margin-bottom: 24px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--midnight); color: white; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 99999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: toastIn 0.3s ease; }
+    .toast-error { background: #dc3545; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container { padding: 16px 12px; }
+      .tab-btn { padding: 10px 14px; font-size: 13px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .stat-card { padding: 14px; }
+      .stat-card .stat-value { font-size: 24px; }
+      table { font-size: 12px; }
+      th, td { padding: 10px 12px; }
+      .approval-card { padding: 14px; }
+      .approval-card-header { flex-direction: column; }
+      .approval-actions { flex-direction: column; }
+      .approval-actions .btn { width: 100%; text-align: center; }
+      .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
+    @media (max-width: 480px) {
+      .header h1 { font-size: 18px; }
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <a href="/v2/admin/"><h1>Ryvite</h1></a>
+      <span class="header-badge">Global Admin</span>
+    </div>
+    <div class="header-actions">
+      <a href="/v2/admin/">Event Admin</a>
+      <button onclick="logout()">Log out</button>
+    </div>
+  </div>
+
+  <div id="access-denied" class="access-denied" style="display:none;">
+    <h2>Access Denied</h2>
+    <p>You do not have global admin permissions.</p>
+    <a href="/v2/admin/" class="btn btn-primary">Back to Event Admin</a>
+  </div>
+
+  <div id="main-content" style="display:none;">
+    <div class="container">
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="sms">SMS Approvals</button>
+        <button class="tab-btn" data-tab="payments">Payments</button>
+        <button class="tab-btn" data-tab="users">Users</button>
+      </div>
+
+      <!-- SMS Approvals Tab -->
+      <div id="tab-sms" class="tab-content active">
+        <div id="sms-loading" class="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading SMS approvals...</div>
+        </div>
+        <div id="sms-content" style="display:none;">
+          <div id="sms-pending-section"></div>
+          <div id="sms-past-section"></div>
+        </div>
+      </div>
+
+      <!-- Payments Tab -->
+      <div id="tab-payments" class="tab-content">
+        <div id="payments-loading" class="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading payments...</div>
+        </div>
+        <div id="payments-content" style="display:none;">
+          <div id="payments-stats" class="stat-grid"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Payment History</h3>
+              <span class="count" id="payments-count"></span>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="payments-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="tab-users" class="tab-content">
+        <div id="users-loading" class="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading users...</div>
+        </div>
+        <div id="users-content" style="display:none;">
+          <div id="users-stats" class="stat-grid"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>All Users</h3>
+              <span class="count" id="users-count"></span>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Display Name</th>
+                    <th>Events</th>
+                    <th>Paid Events</th>
+                    <th>SMS Sent</th>
+                    <th>Joined</th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var API_BASE = '/api/v2/billing';
+    var token = localStorage.getItem('sb_access_token');
+
+    // ─── Auth check ───────────────────────────────────────────────
+    (function init() {
+      if (!token) {
+        window.location.href = '/v2/login/?redirect=/v2/admin-panel/';
+        return;
+      }
+      checkAdmin();
+    })();
+
+    async function checkAdmin() {
+      try {
+        var res = await apiFetch('adminUsers');
+        if (!res.ok) {
+          if (res.status === 403) {
+            document.getElementById('access-denied').style.display = '';
+            return;
+          }
+          throw new Error('Auth check failed');
+        }
+        document.getElementById('main-content').style.display = '';
+        // Cache users data since we already fetched it
+        var data = await res.json();
+        cachedUsers = data;
+        loadSMSApprovals();
+      } catch (e) {
+        document.getElementById('access-denied').style.display = '';
+      }
+    }
+
+    // ─── API helper ───────────────────────────────────────────────
+    function apiFetch(action, opts) {
+      var url = API_BASE + '?action=' + action;
+      var options = Object.assign({ headers: { 'Authorization': 'Bearer ' + token } }, opts || {});
+      return fetch(url, options);
+    }
+
+    function apiPost(action, body) {
+      return apiFetch(action, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+    }
+
+    // ─── Toast ────────────────────────────────────────────────────
+    function showToast(msg, isError) {
+      var toast = document.createElement('div');
+      toast.className = 'toast' + (isError ? ' toast-error' : '');
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 3000);
+    }
+
+    // ─── Tab switching ────────────────────────────────────────────
+    var tabBtns = document.querySelectorAll('.tab-btn');
+    var tabContents = document.querySelectorAll('.tab-content');
+    var loadedTabs = { sms: true };
+
+    tabBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var tab = btn.dataset.tab;
+        tabBtns.forEach(function(b) { b.classList.remove('active'); });
+        tabContents.forEach(function(c) { c.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('tab-' + tab).classList.add('active');
+
+        if (!loadedTabs[tab]) {
+          loadedTabs[tab] = true;
+          if (tab === 'payments') loadPayments();
+          if (tab === 'users') loadUsers();
+        }
+      });
+    });
+
+    // ─── SMS Approvals ────────────────────────────────────────────
+    async function loadSMSApprovals() {
+      var loadingEl = document.getElementById('sms-loading');
+      var contentEl = document.getElementById('sms-content');
+      try {
+        var res = await apiFetch('listSMSApprovals');
+        if (!res.ok) throw new Error('Failed to load SMS approvals');
+        var approvals = await res.json();
+
+        var pending = (approvals || []).filter(function(a) { return a.status === 'pending'; });
+        var past = (approvals || []).filter(function(a) { return a.status !== 'pending'; });
+
+        renderPendingApprovals(pending);
+        renderPastApprovals(past);
+
+        loadingEl.style.display = 'none';
+        contentEl.style.display = '';
+      } catch (e) {
+        loadingEl.innerHTML = '<div class="empty-state">Failed to load SMS approvals. ' + e.message + '</div>';
+      }
+    }
+
+    function renderPendingApprovals(pending) {
+      var container = document.getElementById('sms-pending-section');
+      if (!pending.length) {
+        container.innerHTML = '<div class="empty-state" style="padding:40px 20px;">No pending SMS approval requests.</div>';
+        return;
+      }
+      var html = '<div class="approval-section-title">Pending Requests (' + pending.length + ')</div>';
+      pending.forEach(function(a) {
+        html += buildApprovalCard(a, true);
+      });
+      container.innerHTML = html;
+    }
+
+    function renderPastApprovals(past) {
+      var container = document.getElementById('sms-past-section');
+      if (!past.length) {
+        container.innerHTML = '';
+        return;
+      }
+      var html = '<div class="approval-section-title" style="margin-top:28px;">Past Decisions (' + past.length + ')</div>';
+      past.forEach(function(a) {
+        html += buildApprovalCard(a, false);
+      });
+      container.innerHTML = html;
+    }
+
+    function buildApprovalCard(a, isPending) {
+      var statusBadge = '';
+      if (a.status === 'approved') statusBadge = '<span class="badge badge-green">Approved</span>';
+      else if (a.status === 'denied') statusBadge = '<span class="badge badge-red">Denied</span>';
+      else statusBadge = '<span class="badge badge-yellow">Pending</span>';
+
+      var html = '<div class="approval-card' + (isPending ? ' pending' : '') + '">';
+      html += '<div class="approval-card-header">';
+      html += '<div><div class="approval-card-title">' + esc(a.event_title || a.eventTitle || 'Untitled Event') + '</div>';
+      html += '<div class="approval-card-email">' + esc(a.user_email || a.userEmail || '') + '</div></div>';
+      html += statusBadge;
+      html += '</div>';
+      html += '<div class="approval-card-meta">';
+      html += '<div class="approval-meta-item">SMS Sent: <strong>' + (a.sms_sent || a.smsSent || 0) + '</strong> / ' + (a.sms_limit || a.smsLimit || 0) + '</div>';
+      html += '<div class="approval-meta-item">Guests: <strong>' + (a.guest_count || a.guestCount || 0) + '</strong></div>';
+      html += '<div class="approval-meta-item">Requested: <strong>' + formatDate(a.created_at || a.requestDate) + '</strong></div>';
+      if (a.new_limit || a.newLimit) {
+        var lim = a.new_limit || a.newLimit;
+        html += '<div class="approval-meta-item">New Limit: <strong>' + (lim >= 999999 ? 'Unlimited' : lim.toLocaleString()) + '</strong></div>';
+      }
+      html += '</div>';
+
+      if (isPending) {
+        var id = a.id || a.approvalId;
+        var eventId = a.event_id || a.eventId;
+        var userEmail = a.user_email || a.userEmail || '';
+        var userName = a.user_name || a.userName || '';
+        var eventTitle = a.event_title || a.eventTitle || '';
+        html += '<div class="approval-actions">';
+        html += '<button class="btn btn-success btn-sm" onclick="handleApproval(\'' + id + '\',\'' + eventId + '\',2000,\'' + esc(userEmail) + '\',\'' + esc(userName) + '\',\'' + esc(eventTitle) + '\',this)">Approve 2,000</button>';
+        html += '<button class="btn btn-success btn-sm" onclick="handleApproval(\'' + id + '\',\'' + eventId + '\',5000,\'' + esc(userEmail) + '\',\'' + esc(userName) + '\',\'' + esc(eventTitle) + '\',this)">Approve 5,000</button>';
+        html += '<button class="btn btn-primary btn-sm" onclick="handleApproval(\'' + id + '\',\'' + eventId + '\',999999,\'' + esc(userEmail) + '\',\'' + esc(userName) + '\',\'' + esc(eventTitle) + '\',this)">Unlimited</button>';
+        html += '<button class="btn btn-danger btn-sm" onclick="handleDeny(\'' + id + '\',\'' + eventId + '\',this)">Deny</button>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    async function handleApproval(approvalId, eventId, newLimit, userEmail, userName, eventTitle, btnEl) {
+      var card = btnEl.closest('.approval-card');
+      var btns = card.querySelectorAll('.btn');
+      btns.forEach(function(b) { b.disabled = true; });
+
+      try {
+        var res = await apiPost('approveSMSIncrease', {
+          approvalId: approvalId,
+          eventId: eventId,
+          newLimit: newLimit,
+          action: 'approve'
+        });
+        if (!res.ok) throw new Error('Approval failed');
+
+        // Send notification
+        try {
+          await fetch('/api/v2/user-notification', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              userEmail: userEmail,
+              userName: userName,
+              eventTitle: eventTitle,
+              newLimit: newLimit
+            })
+          });
+        } catch (notifErr) {
+          console.warn('Notification send failed:', notifErr);
+        }
+
+        showToast('Approved! Limit set to ' + (newLimit >= 999999 ? 'Unlimited' : newLimit.toLocaleString()));
+        loadSMSApprovals();
+      } catch (e) {
+        showToast('Failed to approve: ' + e.message, true);
+        btns.forEach(function(b) { b.disabled = false; });
+      }
+    }
+
+    async function handleDeny(approvalId, eventId, btnEl) {
+      var card = btnEl.closest('.approval-card');
+      var btns = card.querySelectorAll('.btn');
+      btns.forEach(function(b) { b.disabled = true; });
+
+      try {
+        var res = await apiPost('approveSMSIncrease', {
+          approvalId: approvalId,
+          eventId: eventId,
+          action: 'deny'
+        });
+        if (!res.ok) throw new Error('Deny failed');
+
+        showToast('Request denied.');
+        loadSMSApprovals();
+      } catch (e) {
+        showToast('Failed to deny: ' + e.message, true);
+        btns.forEach(function(b) { b.disabled = false; });
+      }
+    }
+
+    // ─── Payments ─────────────────────────────────────────────────
+    async function loadPayments() {
+      var loadingEl = document.getElementById('payments-loading');
+      var contentEl = document.getElementById('payments-content');
+      try {
+        var res = await apiFetch('adminPayments');
+        if (!res.ok) throw new Error('Failed to load payments');
+        var data = await res.json();
+        var payments = data.payments || data || [];
+
+        // Calculate stats
+        var totalRevenue = 0;
+        var totalPaid = 0;
+        var now = new Date();
+        var thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        var thisWeekStart = new Date(now);
+        thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
+        thisWeekStart.setHours(0, 0, 0, 0);
+        var monthRevenue = 0;
+        var weekRevenue = 0;
+
+        payments.forEach(function(p) {
+          var amountCents = p.amount || p.amount_cents || 0;
+          var status = p.status || '';
+          if (status === 'succeeded' || status === 'paid' || status === 'complete') {
+            totalRevenue += amountCents;
+            totalPaid++;
+            var pDate = new Date(p.created_at || p.date);
+            if (pDate >= thisMonthStart) monthRevenue += amountCents;
+            if (pDate >= thisWeekStart) weekRevenue += amountCents;
+          }
+        });
+
+        document.getElementById('payments-stats').innerHTML =
+          buildStatCard('Total Revenue', '$' + (totalRevenue / 100).toFixed(2)) +
+          buildStatCard('Total Paid Events', totalPaid) +
+          buildStatCard('This Month', '$' + (monthRevenue / 100).toFixed(2)) +
+          buildStatCard('This Week', '$' + (weekRevenue / 100).toFixed(2));
+
+        document.getElementById('payments-count').textContent = payments.length + ' payments';
+
+        var tbody = document.getElementById('payments-tbody');
+        if (!payments.length) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:40px;">No payments found.</td></tr>';
+        } else {
+          tbody.innerHTML = payments.map(function(p) {
+            var amountCents = p.amount || p.amount_cents || 0;
+            var status = p.status || 'unknown';
+            var badgeClass = status === 'succeeded' || status === 'paid' || status === 'complete' ? 'badge-green' :
+                            status === 'pending' ? 'badge-yellow' :
+                            status === 'failed' ? 'badge-red' : 'badge-gray';
+            return '<tr>' +
+              '<td>' + formatDate(p.created_at || p.date) + '</td>' +
+              '<td style="font-size:12px;color:#666;">' + esc(p.user_id || p.userId || p.user_email || '') + '</td>' +
+              '<td style="font-weight:600;">$' + (amountCents / 100).toFixed(2) + '</td>' +
+              '<td>' + esc(p.description || p.product || '') + '</td>' +
+              '<td><span class="badge ' + badgeClass + '">' + esc(status) + '</span></td>' +
+              '</tr>';
+          }).join('');
+        }
+
+        loadingEl.style.display = 'none';
+        contentEl.style.display = '';
+      } catch (e) {
+        loadingEl.innerHTML = '<div class="empty-state">Failed to load payments. ' + e.message + '</div>';
+      }
+    }
+
+    // ─── Users ────────────────────────────────────────────────────
+    var cachedUsers = null;
+
+    async function loadUsers() {
+      var loadingEl = document.getElementById('users-loading');
+      var contentEl = document.getElementById('users-content');
+      try {
+        var users;
+        if (cachedUsers) {
+          users = cachedUsers;
+          cachedUsers = null;
+        } else {
+          var res = await apiFetch('adminUsers');
+          if (!res.ok) throw new Error('Failed to load users');
+          users = await res.json();
+        }
+
+        var userList = users.users || users || [];
+
+        // Sort by join date descending
+        userList.sort(function(a, b) {
+          var da = new Date(a.created_at || a.joinedAt || 0);
+          var db = new Date(b.created_at || b.joinedAt || 0);
+          return db - da;
+        });
+
+        // Calculate stats
+        var totalUsers = userList.length;
+        var totalEvents = 0;
+        var paidEvents = 0;
+        var totalSMS = 0;
+        userList.forEach(function(u) {
+          totalEvents += (u.event_count || u.events || 0);
+          paidEvents += (u.paid_event_count || u.paidEvents || 0);
+          totalSMS += (u.sms_sent || u.smsSent || 0);
+        });
+
+        document.getElementById('users-stats').innerHTML =
+          buildStatCard('Total Users', totalUsers) +
+          buildStatCard('Total Events', totalEvents) +
+          buildStatCard('Paid Events', paidEvents) +
+          buildStatCard('Total SMS', totalSMS.toLocaleString());
+
+        document.getElementById('users-count').textContent = totalUsers + ' users';
+
+        var tbody = document.getElementById('users-tbody');
+        if (!userList.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:40px;">No users found.</td></tr>';
+        } else {
+          tbody.innerHTML = userList.map(function(u) {
+            return '<tr>' +
+              '<td style="font-weight:600;color:var(--midnight);">' + esc(u.email || '') + '</td>' +
+              '<td>' + esc(u.display_name || u.displayName || u.name || '-') + '</td>' +
+              '<td>' + (u.event_count || u.events || 0) + '</td>' +
+              '<td>' + (u.paid_event_count || u.paidEvents || 0) + '</td>' +
+              '<td>' + (u.sms_sent || u.smsSent || 0) + '</td>' +
+              '<td style="color:#888;font-size:12px;">' + formatDate(u.created_at || u.joinedAt) + '</td>' +
+              '</tr>';
+          }).join('');
+        }
+
+        loadingEl.style.display = 'none';
+        contentEl.style.display = '';
+      } catch (e) {
+        loadingEl.innerHTML = '<div class="empty-state">Failed to load users. ' + e.message + '</div>';
+      }
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────
+    function buildStatCard(label, value) {
+      return '<div class="stat-card"><div class="stat-value">' + value + '</div><div class="stat-label">' + label + '</div></div>';
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      try {
+        var d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      var div = document.createElement('div');
+      div.textContent = String(str);
+      return div.innerHTML;
+    }
+
+    function logout() {
+      localStorage.removeItem('sb_access_token');
+      localStorage.removeItem('sb_refresh_token');
+      window.location.href = '/v2/login/';
+    }
+  </script>
+</body>
+</html>

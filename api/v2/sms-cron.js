@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { checkAndChargeSmsUsage } from './billing.js';
+// SMS included in $4.99 event price — no per-message billing
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -96,9 +96,7 @@ async function recordSmsMessages(userId, eventId, sentMessages, messageType, cli
     await supabaseAdmin.from('notification_log').insert(notifRecords);
   }
 
-  await checkAndChargeSmsUsage(userId).catch(err => {
-    console.error('SMS billing check failed:', err);
-  });
+  // SMS included in $4.99 event price — no per-message billing
 
   return smsRecords.length;
 }

@@ -54,6 +54,12 @@
     },
     "api/v2/blog.js": {
       "maxDuration": 60
+    },
+    "api/v2/admin-alert.js": {
+      "maxDuration": 30
+    },
+    "api/v2/user-notification.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

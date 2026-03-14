@@ -524,115 +524,7 @@
             <div id="genAttributionArea"></div>
           </div>
         </div>
-        <div id="generatingPaywall" style="display:none;">
-          <!-- Phase 1: Pricing card -->
-          <div id="paywallPricingPhase">
-            <div style="max-width:460px;margin:32px auto;padding:0 16px;">
-              <!-- Decorative top -->
-              <div style="text-align:center;margin-bottom:24px;">
-                <div style="font-size:40px;margin-bottom:8px;">✨</div>
-                <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:var(--midnight);margin-bottom:6px;">Almost there!</h2>
-                <p style="font-size:14px;color:#888;line-height:1.5;" id="paywallFunMsg">Your invite is about to look incredible. Let's make it official!</p>
-              </div>
-              <!-- Card -->
-              <div style="background:white;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(233,69,96,0.1),0 2px 8px rgba(0,0,0,0.04);">
-                <!-- Gradient header -->
-                <div style="background:linear-gradient(135deg,var(--party-coral),var(--blush-pop));padding:20px 24px;color:white;display:flex;justify-content:space-between;align-items:center;">
-                  <div>
-                    <div style="font-size:12px;font-weight:500;opacity:0.9;text-transform:uppercase;letter-spacing:0.5px;" id="paywallPlanType">One-time purchase</div>
-                    <div style="font-size:18px;font-weight:700;margin-top:2px;" id="paywallPlanName">Single Event</div>
-                  </div>
-                  <div style="text-align:right;">
-                    <div id="paywallPriceTag" style="font-size:32px;font-weight:700;line-height:1;">$6.99</div>
-                  </div>
-                </div>
-                <!-- Features -->
-                <div style="padding:20px 24px;">
-                  <div id="paywallFeatures" style="display:flex;flex-direction:column;gap:12px;"></div>
-                </div>
-                <!-- Divider -->
-                <div style="height:1px;background:linear-gradient(90deg,transparent,#f0dde2,transparent);margin:0 24px;"></div>
-                <!-- Coupon + CTA -->
-                <div style="padding:20px 24px 24px;">
-                  <div id="paywallCouponArea" style="margin-bottom:16px;">
-                    <a href="#" onclick="toggleCouponInput(event)" id="couponToggleLink" style="font-size:12px;color:#999;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:color 0.2s;">
-                      <span style="font-size:14px;">🏷</span> Have a coupon code?
-                    </a>
-                    <div id="couponInputRow" style="display:none;margin-top:10px;">
-                      <div style="display:flex;gap:6px;">
-                        <input type="text" id="paywallCouponInput" placeholder="Enter code" style="flex:1;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:Inter,sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--party-coral)'" onblur="this.style.borderColor='#e0e0e0'">
-                        <button onclick="applyPaywallCoupon()" style="padding:10px 16px;border:none;border-radius:8px;background:var(--midnight);color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Apply</button>
-                      </div>
-                      <div id="couponMessage" style="margin-top:6px;font-size:11px;"></div>
-                    </div>
-                  </div>
-                  <button class="btn btn-primary" id="paywallCheckoutBtn" onclick="startPaywallCheckout()" style="width:100%;padding:16px;font-size:15px;font-weight:600;border-radius:12px;box-shadow:0 4px 16px rgba(233,69,96,0.3);transition:all 0.2s;">Continue for $6.99</button>
-                  <div style="text-align:center;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                    <span style="font-size:11px;color:#bbb;">Secure checkout powered by Stripe</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- Phase 2: Embedded Stripe checkout -->
-          <div id="paywallCheckoutPhase" style="display:none;">
-            <div style="max-width:500px;margin:24px auto;padding:0 16px;">
-              <button onclick="backToPricing()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--midnight);font-size:13px;font-weight:500;cursor:pointer;padding:8px 0;margin-bottom:12px;font-family:Inter,sans-serif;transition:color 0.2s;" onmouseover="this.style.color='var(--party-coral)'" onmouseout="this.style.color='var(--midnight)'">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                Back
-              </button>
-              <div style="background:white;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(233,69,96,0.1),0 2px 8px rgba(0,0,0,0.04);">
-                <!-- Order summary header -->
-                <div style="background:linear-gradient(135deg,#faf0f3,#fff5f0);padding:18px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0dde2;">
-                  <div>
-                    <div style="font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Order summary</div>
-                    <div style="font-size:15px;font-weight:600;color:var(--midnight);margin-top:2px;" id="checkoutPlanName">Single Event</div>
-                  </div>
-                  <div id="checkoutPriceTag" style="font-size:22px;font-weight:700;color:var(--party-coral);">$6.99</div>
-                </div>
-                <!-- Stripe form mount -->
-                <div id="stripe-checkout-mount" style="min-height:300px;"></div>
-              </div>
-            </div>
-          </div>
-          <!-- Phase 3: Quick charge (returning customer with saved card) -->
-          <div id="paywallQuickChargePhase" style="display:none;">
-            <div style="max-width:460px;margin:32px auto;padding:0 16px;">
-              <div style="text-align:center;margin-bottom:24px;">
-                <div style="font-size:40px;margin-bottom:8px;">👋</div>
-                <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:var(--midnight);margin-bottom:6px;">Welcome back!</h2>
-                <p style="font-size:14px;color:#888;line-height:1.5;">We have your payment method on file. One tap and we'll start designing.</p>
-              </div>
-              <div style="background:white;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(233,69,96,0.1),0 2px 8px rgba(0,0,0,0.04);">
-                <div style="padding:24px;">
-                  <!-- Plan + price -->
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                    <div>
-                      <div style="font-size:12px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.5px;">New event</div>
-                      <div style="font-size:17px;font-weight:700;color:var(--midnight);margin-top:2px;" id="quickChargePlanName">Single Event</div>
-                    </div>
-                    <div id="quickChargePriceTag" style="font-size:28px;font-weight:700;color:var(--party-coral);">$6.99</div>
-                  </div>
-                  <!-- Saved card display -->
-                  <div style="background:#f8f8fa;border:1px solid #eee;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-                    <div style="width:40px;height:28px;background:linear-gradient(135deg,#1a1f71,#2557d6);border-radius:4px;display:flex;align-items:center;justify-content:center;">
-                      <svg width="20" height="14" viewBox="0 0 24 16" fill="white"><rect x="0" y="0" width="24" height="16" rx="2" fill="none"/><rect x="1" y="4" width="22" height="2" fill="white" opacity="0.5"/><rect x="3" y="9" width="6" height="2" rx="1" fill="white" opacity="0.7"/><rect x="3" y="12" width="4" height="1" rx="0.5" fill="white" opacity="0.5"/></svg>
-                    </div>
-                    <div style="flex:1;">
-                      <div style="font-size:14px;font-weight:600;color:var(--midnight);" id="quickChargeCardDisplay">Visa ending in 4242</div>
-                      <div style="font-size:11px;color:#999;margin-top:1px;" id="quickChargeCardExpiry">Expires 12/26</div>
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--mint-fizz)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  </div>
-                  <!-- CTA -->
-                  <button class="btn btn-primary" id="quickChargeBtn" onclick="executeQuickCharge()" style="width:100%;padding:16px;font-size:15px;font-weight:600;border-radius:12px;box-shadow:0 4px 16px rgba(233,69,96,0.3);">Pay $6.99 & Start Designing</button>
-                  <button onclick="useNewPaymentMethod()" style="display:block;width:100%;margin-top:12px;background:none;border:none;color:#999;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;padding:4px;">Use a different card</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div id="generatingPaywall" style="display:none;"></div>
       </div>
       <div id="generatedView" style="display: none;">
         <h2 style="text-align:center;">Create Your Invite</h2>
@@ -793,8 +685,8 @@
 
       <div class="button-group" style="max-width:640px;margin:24px auto 0;">
         <button class="btn btn-secondary" onclick="previousStep()">Back to Design</button>
-        <button class="btn" onclick="publishEvent(false)" style="background:#f0f0f0;color:var(--midnight);">Only Publish</button>
-        <button class="btn btn-primary" id="publishBtn" onclick="showSendOptions()">Publish & Send Invites</button>
+        <button class="btn" id="onlyPublishBtn" onclick="handlePublishClick(false)" style="background:#f0f0f0;color:var(--midnight);">Only Publish</button>
+        <button class="btn btn-primary" id="publishBtn" onclick="handlePublishClick(true)">Publish & Send Invites</button>
       </div>
 
       <!-- Send Options Modal -->
@@ -1006,7 +898,8 @@
 
           var saveResult = await saveEventToDB();
           if (saveResult && saveResult.limitReached) {
-            showAdditionalEventPurchase();
+            stopGeneratingPuns();
+            showCreatePaymentGate();
             return;
           }
           if (saveResult !== true) {
@@ -1017,6 +910,20 @@
           generateTheme();
         })();
         return; // Skip normal init
+      }
+
+      // Handle return from per-event Stripe payment
+      if (urlParams.get('payment') === 'success') {
+        var paidEventId = urlParams.get('eventId');
+        window.history.replaceState({}, '', '/v2/create/' + (paidEventId ? '?eventId=' + paidEventId : ''));
+        if (paidEventId) {
+          // Update local payment status and redirect to dashboard
+          if (currentEvent && currentEvent.id === paidEventId) {
+            currentEvent.paymentStatus = 'paid';
+          }
+          window.location.href = '/v2/dashboard/?published=' + paidEventId;
+          return;
+        }
       }
 
       // Resume existing draft if ?eventId= is in the URL
@@ -1053,7 +960,7 @@
           }).then(function(result) {
             if (result.success && result.event) {
               var ev = result.event;
-              currentEvent = { id: ev.id, slug: ev.slug };
+              currentEvent = { id: ev.id, slug: ev.slug, paymentStatus: ev.paymentStatus || 'unpaid' };
               extractedData = {
                 title: ev.title || '', eventType: ev.eventType || 'other',
                 startDate: ev.eventDate || '', endDate: ev.endDate || '',
@@ -1116,7 +1023,7 @@
           var result = await res.json();
           if (result.success && result.event) {
             var ev = result.event;
-            currentEvent = { id: ev.id, slug: ev.slug };
+            currentEvent = { id: ev.id, slug: ev.slug, paymentStatus: ev.paymentStatus || 'unpaid' };
             extractedData = {
               title: ev.title || '',
               eventType: ev.eventType || 'other',
@@ -1721,7 +1628,7 @@
         });
         var result = await res.json();
         if (result.success) {
-          currentEvent = { id: result.eventId, slug: result.slug };
+          currentEvent = { id: result.eventId, slug: result.slug, paymentStatus: result.paymentStatus || 'unpaid' };
           window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
         }
       } catch (err) {
@@ -1780,15 +1687,14 @@
         });
         var result = await res.json();
         if (result.success) {
-          currentEvent = { id: result.eventId, slug: result.slug };
+          currentEvent = { id: result.eventId, slug: result.slug, paymentStatus: result.paymentStatus || 'unpaid' };
           await saveCustomFields();
           window.history.replaceState({}, '', '/v2/create/?eventId=' + result.eventId);
           autoSaveDraft();
           return true;
         }
         // Return structured error so caller can handle limitReached specially
-        if (result.limitReached) return { limitReached: true, error: result.error };
-        if (result.needsPlan) return { needsPlan: true, error: result.error };
+        if (result.limitReached) return { limitReached: true, requiresPayment: result.requiresPayment, error: result.error };
         showMessage(result.error || 'Error creating event', 'error');
         return false;
       } catch (err) {
@@ -1797,152 +1703,6 @@
       }
     }
 
-    // Show inline purchase prompt when user hits event limit
-    async function showAdditionalEventPurchase() {
-      stopGeneratingPuns();
-      var plans = await fetchPlans();
-      var plan = plans && plans[0];
-      if (!plan) {
-        showGeneratingError('Unable to load pricing. Please try again.');
-        return;
-      }
-      var isUsagePlan = plan.billingType === 'usage' && plan.priceCents === 0;
-      var priceDisplay = '$' + (plan.priceCents / 100).toFixed(2);
-      window._paywallPlan = plan;
-
-      // Check for saved payment method
-      var savedCard = null;
-      try {
-        var pmRes = await authFetch('/api/v2/billing?action=payment-method');
-        var pmData = await pmRes.json();
-        if (pmData.success && pmData.hasPaymentMethod) savedCard = pmData.card;
-      } catch (e) {}
-
-      var loadingState = document.getElementById('generatingLoadingState');
-      var cardHtml = '';
-      if (savedCard) {
-        var brandName = (savedCard.brand || 'card').charAt(0).toUpperCase() + (savedCard.brand || 'card').slice(1);
-        cardHtml = '<div style="background:#f8f8f8;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:inline-flex;align-items:center;gap:10px;">'
-          + '<span style="font-size:20px;">💳</span>'
-          + '<div style="text-align:left;"><div style="font-size:13px;font-weight:600;color:var(--midnight);">' + escapeHtml(brandName) + ' ending in ' + escapeHtml(savedCard.last4) + '</div>'
-          + '<div style="font-size:11px;color:#999;">Expires ' + savedCard.expMonth + '/' + savedCard.expYear + '</div></div></div>';
-      }
-
-      // Button text depends on plan type
-      var btnText = isUsagePlan
-        ? 'Start Designing'
-        : 'Purchase for ' + priceDisplay;
-      var subtitle = isUsagePlan
-        ? 'You\'ve used all the events in your current plan. Start a new event — you only pay for what you use!'
-        : 'You\'ve used all the events in your current plan. Purchase another event to keep going!';
-
-      loadingState.innerHTML = '<div class="gen-container">'
-        + '<div style="font-size:48px;margin-bottom:12px;">🎉</div>'
-        + '<h3 class="gen-title" style="color:var(--midnight);">Create Another Event?</h3>'
-        + '<p style="margin-bottom:16px;font-size:14px;color:#888;">' + subtitle + '</p>'
-        + cardHtml
-        + '<div style="margin-bottom:8px;">'
-        + (savedCard
-          ? '<button id="additionalEventBtn" class="btn btn-primary" onclick="purchaseAdditionalEvent()" style="font-size:14px;padding:12px 28px;">' + btnText + '</button>'
-          : '<button id="additionalEventBtn" class="btn btn-primary" onclick="purchaseAdditionalEventCheckout()" style="font-size:14px;padding:12px 28px;">' + btnText + '</button>')
-        + '</div>'
-        + (savedCard && !isUsagePlan ? '<div style="margin-bottom:8px;"><a href="#" onclick="purchaseAdditionalEventCheckout();return false;" style="font-size:12px;color:#aaa;">Use a different card</a></div>' : '')
-        + '<div><button class="btn btn-secondary" onclick="goToStep(1)" style="font-size:13px;padding:10px 20px;">Back</button></div>'
-        + '</div>';
-    }
-
-    // Quick charge for additional event using saved card
-    async function purchaseAdditionalEvent() {
-      var btn = document.getElementById('additionalEventBtn');
-      btn.disabled = true;
-      btn.textContent = 'Processing...';
-      try {
-        var plan = window._paywallPlan;
-        var isUsagePlan = plan.billingType === 'usage' && plan.priceCents === 0;
-
-        function showGeneratingUI() {
-          var loadingState = document.getElementById('generatingLoadingState');
-          loadingState.innerHTML = '<div class="gen-container">'
-            + '<div class="gen-emoji-float" id="genEmoji">🎨</div>'
-            + '<h3 class="gen-title">Creating Your Invite</h3>'
-            + '<p class="gen-subtitle" id="generatingPun">Starting up...</p>'
-            + '<p class="gen-time-hint">Right now invites are taking ' + _avgGenTimeText + ' \u2014 good things take time!</p>'
-            + '<div class="gen-progress-track"><div class="gen-progress-bar" id="genProgressBar"></div></div>'
-            + '<div class="gen-stages" id="genStages">'
-            + '<div class="gen-stage active" data-stage="analyze"><div class="gen-stage-icon"><div class="gen-spinner"></div></div><div class="gen-stage-text">Analyzing your event details</div></div>'
-            + '<div class="gen-stage" data-stage="design"><div class="gen-stage-icon">🎨</div><div class="gen-stage-text">Designing layout & color palette</div></div>'
-            + '<div class="gen-stage" data-stage="polish"><div class="gen-stage-icon">✨</div><div class="gen-stage-text">Adding finishing touches</div></div>'
-            + '</div></div>';
-          startGeneratingPuns();
-        }
-
-        if (isUsagePlan) {
-          // Usage plan — no charge, just activate and proceed
-          var activateRes = await authFetch('/api/v2/billing?action=activate-usage-plan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ planId: plan.id })
-          });
-          var activateData = await activateRes.json();
-          if (!activateData.success) {
-            throw new Error(activateData.error || 'Failed to activate plan');
-          }
-          showGeneratingUI();
-          var saved = await saveEventToDB();
-          if (saved !== true) {
-            stopGeneratingPuns();
-            showGeneratingError('Plan activated but event creation failed. Please try again.');
-            return;
-          }
-          generateTheme();
-          return;
-        }
-
-        var res = await authFetch('/api/v2/billing?action=quick-charge', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planId: plan.id })
-        });
-        var data = await res.json();
-        if (data.success) {
-          // Payment succeeded — now create event and generate
-          showGeneratingUI();
-          var saved = await saveEventToDB();
-          if (saved !== true) {
-            stopGeneratingPuns();
-            showGeneratingError('Payment succeeded but event creation failed. Please try again.');
-            return;
-          }
-          generateTheme();
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Purchase for $' + (plan.priceCents / 100).toFixed(2);
-          showMessage(data.error || 'Payment failed. Please try a different card.', 'error');
-        }
-      } catch (e) {
-        var plan2 = window._paywallPlan;
-        var isUsage2 = plan2.billingType === 'usage' && plan2.priceCents === 0;
-        btn.disabled = false;
-        btn.textContent = isUsage2 ? 'Start Designing' : 'Purchase for $' + (plan2.priceCents / 100).toFixed(2);
-        showMessage(e.message || 'Payment error. Please try again.', 'error');
-      }
-    }
-
-    // Redirect to full checkout for additional event (new card)
-    function purchaseAdditionalEventCheckout() {
-      // Use the existing paywall checkout flow
-      showPaywall(function() {
-        // After successful payment, save event and generate
-        (async function() {
-          var saved = await saveEventToDB();
-          if (saved !== true) {
-            showGeneratingError('Event creation failed. Please try again.');
-            return;
-          }
-          generateTheme();
-        })();
-      });
-    }
 
     function confirmDetailsAndAskStyle() {
       // Remove the confirmation card's button
@@ -2061,43 +1821,7 @@
       if (el) el.value = el.value ? el.value + ' ' + text : text;
     }
 
-    // ---- Paywall / Plan Check ----
-
-    var cachedPlans = null;
-    var paywallCoupon = null;
-    var paywallDiscount = null;
-    var stripeInstance = null;
-    var embeddedCheckout = null;
-
-    async function checkHasActivePlan() {
-      try {
-        var res = await authFetch('/api/v2/billing?action=subscription');
-        var data = await res.json();
-        if (data.success && data.subscription && data.subscription.status === 'active') {
-          // Check if they can still generate
-          if (data.usage && data.usage.generationsUsed >= data.usage.maxGenerations) {
-            return { hasplan: true, canGenerate: false, reason: 'You\'ve used all ' + data.usage.maxGenerations + ' generations in your plan.' };
-          }
-          return { hasplan: true, canGenerate: true };
-        }
-        return { hasplan: false, canGenerate: false };
-      } catch (e) {
-        return { hasplan: false, canGenerate: false };
-      }
-    }
-
-    async function fetchPlans() {
-      if (cachedPlans) return cachedPlans;
-      try {
-        var res = await fetch('/api/v2/billing?action=plans');
-        var data = await res.json();
-        if (data.success && data.plans && data.plans.length > 0) {
-          cachedPlans = data.plans;
-          return cachedPlans;
-        }
-      } catch (e) {}
-      return [];
-    }
+    // ---- Payment helpers (per-event $4.99 model) ----
 
     function saveCreateState() {
       autoSaveDraft();
@@ -2184,414 +1908,6 @@
       localStorage.removeItem('ryvite_create_state');
     }
 
-    var paywallFunMessages = [
-      'Your invite is going to be amazing — just one quick step.',
-      'Our AI is ready to design something beautiful for you.',
-      'One step away from a stunning, custom invite.',
-      'Let\'s bring your vision to life.',
-      'Your guests are going to love this.'
-    ];
-
-    function showPaywall(onSuccess) {
-      fetchPlans().then(async function(plans) {
-        if (!plans || plans.length === 0) {
-          showMessage('Unable to load plans. Please try again.', 'error');
-          return;
-        }
-        var plan = plans[0]; // Primary plan
-        var priceDisplay = '$' + (plan.priceCents / 100).toFixed(2);
-
-        // Stash the plan and callback
-        window._paywallPlan = plan;
-        window._paywallOnSuccess = onSuccess;
-
-        // Check for saved payment method (returning customer)
-        var savedCard = null;
-        try {
-          var pmRes = await authFetch('/api/v2/billing?action=payment-method');
-          var pmData = await pmRes.json();
-          if (pmData.success && pmData.hasPaymentMethod) {
-            savedCard = pmData.card;
-          }
-        } catch (e) {}
-
-        // Reset all phases
-        if (embeddedCheckout) { embeddedCheckout.destroy(); embeddedCheckout = null; }
-        document.getElementById('stripe-checkout-mount').innerHTML = '';
-        document.getElementById('paywallPricingPhase').style.display = 'none';
-        document.getElementById('paywallCheckoutPhase').style.display = 'none';
-        document.getElementById('paywallQuickChargePhase').style.display = 'none';
-
-        if (savedCard) {
-          var isUsageReturning = plan.billingType === 'usage' && plan.priceCents === 0;
-          // Returning customer — show quick charge
-          var brandName = (savedCard.brand || 'card').charAt(0).toUpperCase() + (savedCard.brand || 'card').slice(1);
-          document.getElementById('quickChargePlanName').textContent = plan.displayName;
-          document.getElementById('quickChargePriceTag').innerHTML = isUsageReturning ? '$0' : priceDisplay;
-          document.getElementById('quickChargeCardDisplay').textContent = brandName + ' ending in ' + savedCard.last4;
-          document.getElementById('quickChargeCardExpiry').textContent = 'Expires ' + savedCard.expMonth + '/' + savedCard.expYear;
-          document.getElementById('quickChargeBtn').textContent = isUsageReturning ? 'Start Designing' : 'Pay ' + priceDisplay + ' & Start Designing';
-          document.getElementById('quickChargeBtn').disabled = false;
-          document.getElementById('paywallQuickChargePhase').style.display = 'block';
-        } else {
-          // New customer — show full pricing card
-          var funMsg = paywallFunMessages[Math.floor(Math.random() * paywallFunMessages.length)];
-          var isUsagePlan = plan.billingType === 'usage' && plan.priceCents === 0;
-
-          // Build features list
-          var features;
-          if (isUsagePlan) {
-            // Curated feature list for usage plans
-            features = [];
-            // Fetch estimated cost per invite and add as first feature
-            try {
-              var estRes = await fetch('/api/v2/billing?action=estimateCost&planSlug=' + encodeURIComponent(plan.name));
-              var estData = await estRes.json();
-              if (estData.success && estData.estimate) {
-                var estCents = estData.estimate.aiCostCents;
-                var estDisplay = '$' + (estCents / 100).toFixed(2);
-                features.push('Estimated ~' + estDisplay + ' per invite (AI design + 4 tweaks)');
-              }
-            } catch (e) {}
-            features.push('100% personal AI designed');
-            features.push('Unlimited events');
-            features.push('Unlimited RSVPs');
-            features.push('Guest tracking');
-            features.push('Share via link, SMS, or email');
-            features.push('No upfront cost — pay only for usage');
-            features.push('+$0.10 per SMS sent');
-          } else {
-            features = (plan.features || []).slice();
-            features.push('+$0.10 per SMS sent');
-          }
-
-          var featuresHtml = buildFeaturesHtml(features);
-
-          document.getElementById('paywallFunMsg').textContent = funMsg;
-          document.getElementById('paywallPlanType').textContent = isUsagePlan ? 'Pay as you go' : 'One-time purchase';
-          document.getElementById('paywallPlanName').textContent = plan.displayName;
-          document.getElementById('paywallPriceTag').style.display = isUsagePlan ? 'none' : '';
-          document.getElementById('paywallPriceTag').innerHTML = isUsagePlan ? '' : priceDisplay;
-          document.getElementById('paywallFeatures').innerHTML = featuresHtml;
-          document.getElementById('paywallCheckoutBtn').textContent = isUsagePlan ? 'Add Card & Start Designing' : 'Continue for ' + priceDisplay;
-
-          // Reset coupon state
-          document.getElementById('couponToggleLink').style.display = 'inline';
-          document.getElementById('couponInputRow').style.display = 'none';
-          document.getElementById('paywallCouponInput').disabled = false;
-          document.getElementById('paywallCouponInput').value = '';
-          document.getElementById('couponMessage').innerHTML = '';
-          document.getElementById('paywallCheckoutBtn').disabled = false;
-          paywallCoupon = null;
-          paywallDiscount = null;
-          document.getElementById('paywallPricingPhase').style.display = 'block';
-        }
-
-        // Show paywall, hide loading spinner
-        document.getElementById('generatingLoadingState').style.display = 'none';
-        document.getElementById('generatingPaywall').style.display = 'block';
-
-        // Navigate to step 2 (generating view)
-        goToStep(2);
-      });
-    }
-
-    function buildFeaturesHtml(features) {
-      return features.map(function(f) {
-        var isSms = f.indexOf('$0.10') !== -1;
-        var isEstimate = f.indexOf('Estimated ~$') !== -1;
-        var iconBg = isSms ? '#f0f0f0' : isEstimate ? 'rgba(255,183,77,0.15)' : 'rgba(78,205,196,0.12)';
-        var iconColor = isSms ? '#888' : isEstimate ? 'var(--confetti-gold)' : 'var(--mint-fizz)';
-        var icon = isSms ? '💬' : isEstimate
-          ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'
-          : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + iconColor + '" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
-        var fontWeight = isEstimate ? 'font-weight:600;' : '';
-        return '<div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--midnight);' + fontWeight + '">'
-          + '<div style="width:26px;height:26px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;">' + icon + '</div>'
-          + '<span>' + escapeHtml(f) + '</span></div>';
-      }).join('');
-    }
-
-    function toggleCouponInput(e) {
-      e.preventDefault();
-      var row = document.getElementById('couponInputRow');
-      var link = document.getElementById('couponToggleLink');
-      if (row.style.display === 'none') {
-        row.style.display = 'block';
-        link.style.display = 'none';
-        document.getElementById('paywallCouponInput').focus();
-      } else {
-        row.style.display = 'none';
-        link.style.display = 'inline';
-      }
-    }
-
-    async function applyPaywallCoupon() {
-      var code = document.getElementById('paywallCouponInput').value.trim();
-      var msgEl = document.getElementById('couponMessage');
-      if (!code) { msgEl.innerHTML = '<span style="color:var(--party-coral);">Enter a code first</span>'; return; }
-
-      msgEl.innerHTML = '<span style="color:#999;">Checking...</span>';
-
-      try {
-        var plan = window._paywallPlan;
-        var res = await authFetch('/api/v2/billing?action=validateCoupon&code=' + encodeURIComponent(code) + '&planName=' + encodeURIComponent(plan.name));
-        var data = await res.json();
-
-        if (data.success) {
-          paywallCoupon = data.coupon;
-          paywallDiscount = data.discount;
-
-          var origPrice = plan.priceCents / 100;
-          var finalPrice;
-          if (data.discount.type === 'percent') {
-            finalPrice = origPrice * (1 - data.discount.percent / 100);
-          } else {
-            finalPrice = Math.max(0, origPrice - data.discount.amountCents / 100);
-          }
-          finalPrice = Math.max(0, finalPrice);
-
-          var priceTag = document.getElementById('paywallPriceTag');
-          priceTag.innerHTML = '<span style="text-decoration:line-through;opacity:0.6;font-size:18px;">$' + origPrice.toFixed(2) + '</span> $' + finalPrice.toFixed(2);
-
-          var btn = document.getElementById('paywallCheckoutBtn');
-          if (finalPrice === 0) {
-            btn.textContent = 'Continue for Free!';
-          } else {
-            btn.textContent = 'Continue for $' + finalPrice.toFixed(2);
-          }
-
-          msgEl.innerHTML = '<span style="color:#2ecc71;">🎉 ' + escapeHtml(data.discount.label) + ' applied!</span>';
-          document.getElementById('paywallCouponInput').disabled = true;
-        } else {
-          paywallCoupon = null;
-          paywallDiscount = null;
-          msgEl.innerHTML = '<span style="color:var(--party-coral);">' + escapeHtml(data.error || 'Invalid coupon') + '</span>';
-        }
-      } catch (e) {
-        msgEl.innerHTML = '<span style="color:var(--party-coral);">Error validating coupon</span>';
-      }
-    }
-
-    async function initStripe() {
-      if (stripeInstance) return stripeInstance;
-      try {
-        var res = await fetch('/api/v2/billing?action=config');
-        var data = await res.json();
-        if (data.publishableKey) {
-          stripeInstance = Stripe(data.publishableKey);
-        }
-      } catch (e) {
-        console.error('Failed to init Stripe:', e);
-      }
-      return stripeInstance;
-    }
-
-    async function startPaywallCheckout() {
-      var btn = document.getElementById('paywallCheckoutBtn');
-      btn.disabled = true;
-      btn.textContent = 'Loading checkout...';
-
-      // Save state so we can resume after payment
-      saveCreateState();
-
-      try {
-        var plan = window._paywallPlan;
-        var body = {
-          planId: plan.id,
-          origin: window.location.origin,
-          returnUrl: '/v2/create/?purchased=true',
-          embedded: true
-        };
-        if (paywallCoupon) {
-          body.couponCode = paywallCoupon.code;
-        }
-
-        var stripe = await initStripe();
-        if (!stripe) {
-          // Fallback to redirect checkout if Stripe.js fails
-          body.embedded = false;
-          var res = await authFetch('/api/v2/billing?action=checkout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-          });
-          var data = await res.json();
-          if (data.success && data.url) {
-            window.location.href = data.url;
-          } else {
-            throw new Error(data.error || 'Checkout failed');
-          }
-          return;
-        }
-
-        var res = await authFetch('/api/v2/billing?action=checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        var data = await res.json();
-
-        if (!data.success || !data.clientSecret) {
-          throw new Error(data.error || 'Failed to create checkout session');
-        }
-
-        // Populate checkout phase summary
-        var priceDisplay = document.getElementById('paywallPriceTag').innerHTML;
-        document.getElementById('checkoutPlanName').textContent = plan.displayName;
-        document.getElementById('checkoutPriceTag').innerHTML = priceDisplay;
-
-        // Destroy previous embedded checkout if any
-        if (embeddedCheckout) {
-          embeddedCheckout.destroy();
-          embeddedCheckout = null;
-        }
-
-        // Mount embedded checkout
-        embeddedCheckout = await stripe.initEmbeddedCheckout({
-          clientSecret: data.clientSecret
-        });
-
-        // Switch to checkout phase
-        document.getElementById('paywallPricingPhase').style.display = 'none';
-        document.getElementById('paywallCheckoutPhase').style.display = 'block';
-        embeddedCheckout.mount('#stripe-checkout-mount');
-
-      } catch (e) {
-        btn.disabled = false;
-        btn.textContent = 'Continue for $' + (plan.priceCents / 100).toFixed(2);
-        showMessage(e.message || 'Error starting checkout. Please try again.', 'error');
-      }
-    }
-
-    function backToPricing() {
-      // Destroy embedded checkout and go back to pricing card
-      if (embeddedCheckout) {
-        embeddedCheckout.destroy();
-        embeddedCheckout = null;
-      }
-      document.getElementById('stripe-checkout-mount').innerHTML = '';
-      document.getElementById('paywallCheckoutPhase').style.display = 'none';
-      document.getElementById('paywallPricingPhase').style.display = 'block';
-      var btn = document.getElementById('paywallCheckoutBtn');
-      btn.disabled = false;
-      var plan = window._paywallPlan;
-      if (plan) {
-        btn.textContent = 'Continue for $' + (plan.priceCents / 100).toFixed(2);
-      }
-    }
-
-    async function executeQuickCharge() {
-      var btn = document.getElementById('quickChargeBtn');
-      btn.disabled = true;
-      btn.textContent = 'Processing...';
-
-      saveCreateState();
-
-      try {
-        var plan = window._paywallPlan;
-        var isUsageNoCost = plan.billingType === 'usage' && plan.priceCents === 0;
-
-        if (isUsageNoCost) {
-          // Usage plan with card on file — no charge needed, just activate subscription
-          var activateRes = await authFetch('/api/v2/billing?action=activate-usage-plan', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ planId: plan.id })
-          });
-          var activateData = await activateRes.json();
-          if (!activateData.success) {
-            throw new Error(activateData.error || 'Failed to activate plan');
-          }
-          var saved = await saveEventToDB();
-          if (saved !== true) {
-            showMessage('Plan activated but event creation failed. Please try again.', 'error');
-            btn.disabled = false;
-            btn.textContent = 'Start Designing';
-            return;
-          }
-          generateTheme();
-          return;
-        }
-
-        var body = { planId: plan.id };
-        if (paywallCoupon) body.couponCode = paywallCoupon.code;
-
-        var res = await authFetch('/api/v2/billing?action=quick-charge', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        var data = await res.json();
-
-        if (data.success) {
-          // Payment succeeded — save event and generate
-          var saved = await saveEventToDB();
-          if (saved !== true) {
-            showMessage('Payment succeeded but event creation failed. Please try again.', 'error');
-            btn.disabled = false;
-            btn.textContent = 'Pay $' + (plan.priceCents / 100).toFixed(2) + ' & Start Designing';
-            return;
-          }
-          generateTheme();
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Pay $' + (plan.priceCents / 100).toFixed(2) + ' & Start Designing';
-          showMessage(data.error || 'Payment failed. Please try a different card.', 'error');
-        }
-      } catch (e) {
-        btn.disabled = false;
-        var p = window._paywallPlan;
-        btn.textContent = (p.billingType === 'usage' && p.priceCents === 0) ? 'Start Designing' : 'Pay $' + (p.priceCents / 100).toFixed(2) + ' & Start Designing';
-        showMessage(e.message || 'Payment error. Please try again.', 'error');
-      }
-    }
-
-    function useNewPaymentMethod() {
-      // Switch from quick charge to full pricing/checkout flow
-      document.getElementById('paywallQuickChargePhase').style.display = 'none';
-      document.getElementById('paywallPricingPhase').style.display = 'block';
-
-      var plan = window._paywallPlan;
-      if (plan) {
-        var isUsagePlan = plan.billingType === 'usage' && plan.priceCents === 0;
-        var priceDisplay = '$' + (plan.priceCents / 100).toFixed(2);
-        var funMsg = paywallFunMessages[Math.floor(Math.random() * paywallFunMessages.length)];
-        // Use cached features HTML if available (includes estimate), otherwise rebuild
-        var featuresEl = document.getElementById('paywallFeatures');
-        if (!featuresEl.innerHTML) {
-          var features;
-          if (isUsagePlan) {
-            features = ['100% personal AI designed', 'Unlimited events', 'Unlimited RSVPs', 'Guest tracking', 'Share via link, SMS, or email', 'No upfront cost — pay only for usage', '+$0.10 per SMS sent'];
-          } else {
-            features = (plan.features || []).slice();
-            features.push('+$0.10 per SMS sent');
-          }
-          featuresEl.innerHTML = buildFeaturesHtml(features);
-        }
-        document.getElementById('paywallFunMsg').textContent = funMsg;
-        document.getElementById('paywallPlanType').textContent = isUsagePlan ? 'Pay as you go' : 'One-time purchase';
-        document.getElementById('paywallPlanName').textContent = plan.displayName;
-        document.getElementById('paywallPriceTag').style.display = isUsagePlan ? 'none' : '';
-        document.getElementById('paywallPriceTag').innerHTML = isUsagePlan ? '' : priceDisplay;
-        document.getElementById('paywallCheckoutBtn').textContent = isUsagePlan ? 'Add Card & Start Designing' : 'Continue for ' + priceDisplay;
-        document.getElementById('paywallCheckoutBtn').disabled = false;
-      }
-    }
-
-    async function proceedAfterPlanCheck(generateCallback) {
-      var status = await checkHasActivePlan();
-      if (status.hasplan && status.canGenerate) {
-        generateCallback();
-        return;
-      }
-      if (status.hasplan && !status.canGenerate) {
-        showMessage(status.reason || 'Generation limit reached.', 'error');
-        return;
-      }
-      // No plan — show paywall
-      showPaywall(generateCallback);
-    }
 
     async function submitCustomStyle() {
       var text = document.getElementById('customStyleText').value.trim();
@@ -2606,17 +1922,15 @@
       if (card) card.remove();
       addChatBubble(text, 'user');
 
-      await proceedAfterPlanCheck(async function() {
-        addChatBubble('Great choice! Let me generate your invite...', 'assistant');
-        var saveResult = await saveEventToDB();
-        if (saveResult && saveResult.limitReached) {
-          goToStep(2);
-          showAdditionalEventPurchase();
-          return;
-        }
-        if (saveResult !== true) return;
+      addChatBubble('Great choice! Let me generate your invite...', 'assistant');
+      var saveResult = await saveEventToDB();
+      if (saveResult && saveResult.limitReached) {
         goToStep(2);
-      });
+        showCreatePaymentGate();
+        return;
+      }
+      if (saveResult !== true) return;
+      goToStep(2);
     }
 
     // ---- Brainstorm flow ----
@@ -2976,17 +2290,15 @@
       if (card) card.remove();
       addChatBubble('Let\'s go!', 'user');
 
-      await proceedAfterPlanCheck(async function() {
-        addChatBubble('Creating your invite now...', 'assistant');
-        var saveResult = await saveEventToDB();
-        if (saveResult && saveResult.limitReached) {
-          goToStep(2);
-          showAdditionalEventPurchase();
-          return;
-        }
-        if (saveResult !== true) return;
+      addChatBubble('Creating your invite now...', 'assistant');
+      var saveResult = await saveEventToDB();
+      if (saveResult && saveResult.limitReached) {
         goToStep(2);
-      });
+        showCreatePaymentGate();
+        return;
+      }
+      if (saveResult !== true) return;
+      goToStep(2);
     }
 
     function setupDropZone(zoneId, photoType) {
@@ -3314,7 +2626,9 @@
           } catch(e) { console.error('[generate-theme] Could not read error body:', e); }
           window._lastGenDebug = 'HTTP ' + res2.status + ' | ' + errText.substring(0, 500);
           if (res2.status === 403 && errText) {
-            showAdditionalEventPurchase();
+            // Free event hit generation limit — show payment gate
+            stopGeneratingPuns();
+            showCreatePaymentGate();
           } else {
             showGeneratingError(errText || 'Failed to generate theme (HTTP ' + res2.status + ')');
           }
@@ -3386,6 +2700,10 @@
             updateMobileLayout();
             // Cache theme in sessionStorage for fast reload
             try { sessionStorage.setItem('ryvite_theme_' + currentEvent.id, JSON.stringify(themeVersions)); } catch(e) {}
+            // Soft cap warning for paid events with 10+ generations
+            if (genResult.softCapReached) {
+              showMessage('You\'ve generated 10 designs for this event! If you need more, contact us and we\'ll sort it out.', 'success');
+            }
           } else {
             stopGeneratingPuns();
             console.error('[generate-theme] Generation failed. genError:', genError, 'genResult:', genResult ? JSON.stringify(genResult).substring(0, 500) : null);
@@ -6241,8 +5559,84 @@
     var activeTagFilter = null;
 
     function showSummary() {
+      // Update publish button text based on payment status
+      updatePublishButtons();
       // Now loads the contacts/invite page
       loadContactsForInvite();
+    }
+
+    function updatePublishButtons() {
+      var onlyBtn = document.getElementById('onlyPublishBtn');
+      var mainBtn = document.getElementById('publishBtn');
+      var ps = currentEvent ? currentEvent.paymentStatus : 'unpaid';
+      if (ps === 'free') {
+        onlyBtn.textContent = 'Publish for Free';
+        onlyBtn.style.background = 'var(--mint-fizz)';
+        onlyBtn.style.color = 'white';
+        mainBtn.textContent = 'Publish & Send Invites';
+      } else if (ps === 'unpaid') {
+        onlyBtn.textContent = 'Publish for $4.99';
+        onlyBtn.style.background = 'var(--party-coral)';
+        onlyBtn.style.color = 'white';
+        mainBtn.textContent = 'Publish & Send — $4.99';
+        mainBtn.style.background = 'var(--party-coral)';
+      } else {
+        // paid
+        onlyBtn.textContent = 'Publish';
+        onlyBtn.style.background = '#f0f0f0';
+        onlyBtn.style.color = 'var(--midnight)';
+        mainBtn.textContent = 'Publish & Send Invites';
+      }
+    }
+
+    function handlePublishClick(withInvites) {
+      var ps = currentEvent ? currentEvent.paymentStatus : 'unpaid';
+      if (ps === 'unpaid') {
+        // Trigger Stripe checkout
+        initiateEventPayment();
+        return;
+      }
+      // free or paid — proceed directly
+      if (withInvites) {
+        showSendOptions();
+      } else {
+        publishEvent(false);
+      }
+    }
+
+    async function initiateEventPayment() {
+      if (!currentEvent) { showMessage('Event not created yet', 'error'); return; }
+      // Save event details first
+      await saveEventToDB();
+      await saveCustomFields();
+      // Redirect to Stripe checkout
+      var btn = document.getElementById('onlyPublishBtn');
+      var mainBtn = document.getElementById('publishBtn');
+      btn.disabled = true;
+      mainBtn.disabled = true;
+      btn.textContent = 'Redirecting...';
+      try {
+        var token = localStorage.getItem('sb_access_token');
+        var resp = await fetch('/api/v2/billing?action=checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ eventId: currentEvent.id })
+        });
+        var data = await resp.json();
+        if (data.checkoutUrl || data.url) {
+          window.location.href = data.checkoutUrl || data.url;
+        } else {
+          showMessage(data.error || 'Error creating checkout session', 'error');
+          btn.disabled = false;
+          mainBtn.disabled = false;
+          updatePublishButtons();
+        }
+      } catch (e) {
+        showMessage('Payment error: ' + e.message, 'error');
+        btn.disabled = false;
+        mainBtn.disabled = false;
+        updatePublishButtons();
+      }
     }
 
     async function loadContactsForInvite() {
@@ -6543,6 +5937,9 @@
         if (result.success) {
           clearDraft();
           window.location.href = '/v2/dashboard/?published=' + currentEvent.id;
+        } else if (result.requiresPayment) {
+          // Server rejected publish — payment required
+          initiateEventPayment();
         } else { showMessage(result.error || 'Failed to publish', 'error'); }
       } catch (err) { showMessage('Error publishing event', 'error'); }
       finally {
@@ -6682,7 +6079,12 @@
         });
         var pubResult = await pubRes.json();
         if (!pubResult.success) {
-          showMessage(pubResult.error || 'Failed to publish', 'error');
+          if (pubResult.requiresPayment) {
+            closeSendOptions();
+            initiateEventPayment();
+          } else {
+            showMessage(pubResult.error || 'Failed to publish', 'error');
+          }
           return;
         }
 
@@ -6917,6 +6319,64 @@
     });
 
     setupDesignChatKeyboardHandler();
+
+    // ── Per-event payment gate ──
+
+    function showCreatePaymentGate() {
+      document.getElementById('generatingLoadingState').style.display = 'none';
+      document.getElementById('generatingPaywall').style.display = 'none';
+      document.getElementById('createPaymentGate').style.display = 'flex';
+    }
+
+    async function handleCreatePayment() {
+      var btn = document.getElementById('createPayBtn');
+      btn.textContent = 'Redirecting...';
+      btn.disabled = true;
+      try {
+        var eventId = currentEvent ? currentEvent.id : null;
+        if (!eventId) {
+          showMessage('Event not found. Please go back and try again.', 'error');
+          btn.textContent = 'Upgrade \u2014 $4.99';
+          btn.disabled = false;
+          return;
+        }
+        var resp = await authFetch('/api/v2/billing?action=checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: eventId })
+        });
+        var data = await resp.json();
+        if (data.checkoutUrl || data.url) {
+          window.location.href = data.checkoutUrl || data.url;
+        } else {
+          showMessage(data.error || 'Error creating checkout session', 'error');
+          btn.textContent = 'Upgrade \u2014 $4.99';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        showMessage('Payment error: ' + e.message, 'error');
+        btn.textContent = 'Upgrade \u2014 $4.99';
+        btn.disabled = false;
+      }
+    }
   </script>
+
+  <!-- Payment Gate Modal -->
+  <div id="createPaymentGate" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:20px;max-width:440px;width:90%;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;">
+      <h3 style="margin:0 0 12px; font-family: 'Playfair Display', serif; font-size:22px; color:var(--midnight);">Unlock Full Features</h3>
+      <p style="color: #6B7280; margin: 0 0 20px; line-height: 1.6; font-size:14px;">Your first event includes 1 free AI design. Upgrade for <strong>$4.99</strong> to get unlimited designs, SMS delivery, and more.</p>
+      <ul style="text-align: left; margin: 0 0 24px; padding-left: 20px; color: #1A1A2E; line-height: 1.8; font-size:14px;">
+        <li>Unlimited AI-designed invitations</li>
+        <li>SMS + email delivery</li>
+        <li>Full RSVP tracking &amp; guest management</li>
+      </ul>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button onclick="document.getElementById('createPaymentGate').style.display='none'" style="padding: 10px 24px; border: 1px solid #ddd; border-radius: 50px; background: white; cursor: pointer; font-size: 14px; font-family: Inter, sans-serif;">Maybe Later</button>
+        <button id="createPayBtn" onclick="handleCreatePayment()" style="padding: 10px 24px; border: none; border-radius: 50px; background: #E94560; color: white; cursor: pointer; font-size: 14px; font-weight: 600; font-family: Inter, sans-serif;">Upgrade &#8212; $4.99</button>
+      </div>
+      <p style="color: #D1D5DB; font-size: 12px; margin: 16px 0 0;">Powered by Stripe</p>
+    </div>
+  </div>
 </body>
 </html>

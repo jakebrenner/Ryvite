@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { checkAndChargeAiUsage } from './billing.js';
+// AI generation included in $4.99 event price — no per-generation billing
 
 const client = new Anthropic();
 const supabase = createClient(
@@ -203,8 +203,7 @@ export default async function handler(req, res) {
       } catch (e) { /* non-critical */ }
     }
 
-    // Check if usage-based AI billing threshold is reached
-    await checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
+    // AI generation included in $4.99 event price — no per-generation billing
 
     // Persist user message + assistant response to chat_messages
     const lastUserMsg = messages[messages.length - 1];
