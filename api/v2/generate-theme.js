@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { checkAndChargeAiUsage } from './billing.js';
+// AI generation is included in the $4.99 event price — no per-generation billing
 
 const client = new Anthropic();
 const supabase = createClient(
@@ -488,7 +488,8 @@ const SYSTEM_PROMPT = STRUCTURAL_RULES + '\n\n' + DEFAULT_CREATIVE_DIRECTION;
 // ═══════════════════════════════════════════════════════════════════
 function parseThemeResponse(rawText) {
   let text = (typeof rawText === 'string' ? rawText : '').trim();
-  if (text.match(/^<!DOCTYPE/i) || text.match(/^<html/i)) return extractThemeFromHtmlDoc(text);
+  // ALL paths funnel through normalizeThemeKeys at the end to fix escaping
+  if (text.match(/^<!DOCTYPE/i) || text.match(/^<html/i)) return normalizeThemeKeys(extractThemeFromHtmlDoc(text));
   const jsonBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
   if (jsonBlockMatch) text = jsonBlockMatch[1].trim();
   if (!text.startsWith('{') || text.match(/^\{\s*--/)) {
@@ -504,16 +505,16 @@ function parseThemeResponse(rawText) {
       text = lastBrace !== -1 ? text.substring(startIdx, lastBrace + 1) : text.substring(startIdx);
     } else if (text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('<body')) {
       const htmlMatch = text.match(/<(!DOCTYPE[\s\S]*|html[\s\S]*)<\/html>/i);
-      if (htmlMatch) return extractThemeFromHtmlDoc(htmlMatch[0]);
+      if (htmlMatch) return normalizeThemeKeys(extractThemeFromHtmlDoc(htmlMatch[0]));
     } else if (text.match(/^\{\s*--/) || text.match(/^\s*:root\s*\{/)) {
       // Model returned raw CSS (possibly followed by HTML)
       const htmlStart = text.match(/<(div|section|main|header|article)\b/i);
       if (htmlStart) {
         const htmlIdx = text.indexOf(htmlStart[0]);
-        return { theme_html: text.substring(htmlIdx).trim(), theme_css: text.substring(0, htmlIdx).trim(), theme_config: {}, theme_thankyou_html: '' };
+        return normalizeThemeKeys({ theme_html: text.substring(htmlIdx).trim(), theme_css: text.substring(0, htmlIdx).trim(), theme_config: {}, theme_thankyou_html: '' });
       }
       if (text.includes('.') && text.includes('{')) {
-        return { theme_html: '', theme_css: text, theme_config: {}, theme_thankyou_html: '' };
+        return normalizeThemeKeys({ theme_html: '', theme_css: text, theme_config: {}, theme_thankyou_html: '' });
       }
     }
   }
@@ -528,13 +529,13 @@ function parseThemeResponse(rawText) {
     for (let i = 0; i < bracketDepth; i++) repaired += ']';
     for (let i = 0; i < braceDepth; i++) repaired += '}';
     try { theme = JSON.parse(repaired); } catch (e2) {
-      if (rawText.includes('<div') || rawText.includes('<section') || rawText.includes('<style')) return extractThemeFromHtmlDoc(rawText);
+      if (rawText.includes('<div') || rawText.includes('<section') || rawText.includes('<style')) return normalizeThemeKeys(extractThemeFromHtmlDoc(rawText));
       // Try splitting CSS + HTML if raw text contains HTML elements
       const htmlTag = rawText.match(/<(div|section|main|header|article)\b/i);
       if (htmlTag) {
         const idx = rawText.indexOf(htmlTag[0]);
         const html = rawText.substring(idx).trim();
-        if (html.length > 100) return { theme_html: html, theme_css: rawText.substring(0, idx).trim(), theme_config: {}, theme_thankyou_html: '' };
+        if (html.length > 100) return normalizeThemeKeys({ theme_html: html, theme_css: rawText.substring(0, idx).trim(), theme_config: {}, theme_thankyou_html: '' });
       }
       throw new Error('Failed to parse theme JSON: ' + parseErr.message + ' | First 300 chars: ' + text.substring(0, 300));
     }
@@ -573,10 +574,11 @@ function normalizeThemeKeys(theme) {
   if (!theme.theme_config && theme.themeConfig) theme.theme_config = theme.themeConfig;
   if (!theme.theme_thankyou_html && theme.thankyou_html) theme.theme_thankyou_html = theme.thankyou_html;
   if (!theme.theme_thankyou_html && theme.thankyouHtml) theme.theme_thankyou_html = theme.thankyouHtml;
-  // Fix double-escaped quotes in HTML/CSS (models sometimes output \" inside JSON strings)
-  if (theme.theme_html && theme.theme_html.includes('\\"')) theme.theme_html = theme.theme_html.replace(/\\"/g, '"');
-  if (theme.theme_css && theme.theme_css.includes('\\"')) theme.theme_css = theme.theme_css.replace(/\\"/g, '"');
-  if (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\"')) theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\"/g, '"');
+  // Fix multi-level escaped quotes in HTML/CSS (models sometimes output \\\" or deeper nesting)
+  // Loop until stable — one pass of \\" → \" still leaves a backslash-quote
+  while (theme.theme_html && theme.theme_html.includes('\\"')) theme.theme_html = theme.theme_html.replace(/\\"/g, '"');
+  while (theme.theme_css && theme.theme_css.includes('\\"')) theme.theme_css = theme.theme_css.replace(/\\"/g, '"');
+  while (theme.theme_thankyou_html && theme.theme_thankyou_html.includes('\\"')) theme.theme_thankyou_html = theme.theme_thankyou_html.replace(/\\"/g, '"');
   // Fix double-escaped whitespace (models sometimes output \\n inside JSON string values)
   // After JSON.parse, \\n becomes literal backslash-n text — convert to real whitespace
   if (theme.theme_html && theme.theme_html.includes('\\n')) theme.theme_html = theme.theme_html.replace(/\\n/g, '\n');
@@ -1016,19 +1018,93 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid session' });
   }
 
-  // Check generation limits
+  // Check per-event generation limits (free tier: 1 + 1 redo, paid: soft cap 10)
   try {
-    const { checkUserLimits } = await import('./billing.js');
-    const limits = await checkUserLimits(user.id);
-    if (!limits.hasActivePlan) {
-      return res.status(403).json({ error: 'You need an active plan to generate themes.', needsPlan: true });
-    }
-    if (!limits.canGenerate) {
-      return res.status(403).json({ error: limits.reason || 'Generation limit reached for your plan.', limitReached: true });
+    const eventIdForCheck = req.body?.eventId;
+    if (eventIdForCheck) {
+      // Get event payment status + free generation flags
+      const { data: eventForLimit } = await supabase
+        .from('events')
+        .select('payment_status, user_id, free_generation_used, free_redo_used')
+        .eq('id', eventIdForCheck)
+        .single();
+
+      if (eventForLimit && eventForLimit.user_id === user.id) {
+        // Unpaid or refunded events must pay before generating
+        if (eventForLimit.payment_status === 'unpaid' || eventForLimit.payment_status === 'refunded') {
+          return res.status(403).json({
+            error: 'This event requires payment before generating designs. Upgrade for $4.99.',
+            limitReached: true,
+            requiresPayment: true,
+            freeRedoAvailable: false,
+            generationCount: 0,
+            generationLimit: 0
+          });
+        }
+
+        if (eventForLimit.payment_status === 'free') {
+          const freeGenUsed = eventForLimit.free_generation_used;
+          const freeRedoUsed = eventForLimit.free_redo_used;
+          const isFreeRedo = req.body?.freeRedo === true;
+
+          // Column exists and first gen is used
+          if (freeGenUsed === true) {
+            // Allow one redo if the design was completely wrong
+            if (isFreeRedo && freeRedoUsed !== true) {
+              // Allow — redo will be marked as used after success
+              req._isFreeRedo = true;
+            } else {
+              return res.status(403).json({
+                error: freeRedoUsed
+                  ? 'Your free event includes 1 AI design. Upgrade to $4.99 for unlimited designs.'
+                  : 'Your free event includes 1 AI design. If the design was completely wrong, tell me what\'s off and I can try once more.',
+                limitReached: true,
+                requiresPayment: true,
+                freeRedoAvailable: freeRedoUsed !== true,
+                generationCount: 1,
+                generationLimit: 1
+              });
+            }
+          }
+          // Column doesn't exist (null/undefined) — fallback to generation_log count
+          else if (freeGenUsed == null) {
+            const { count: fallbackCount } = await supabase
+              .from('generation_log')
+              .select('id', { count: 'exact', head: true })
+              .eq('event_id', eventIdForCheck)
+              .eq('status', 'success');
+
+            if ((fallbackCount || 0) >= 2) {
+              return res.status(403).json({
+                error: 'Your free event includes 1 AI design. Upgrade to $4.99 for unlimited designs.',
+                limitReached: true,
+                requiresPayment: true,
+                freeRedoAvailable: false,
+                generationCount: fallbackCount,
+                generationLimit: 1
+              });
+            }
+          }
+          // freeGenUsed === false → first generation, allow it
+        }
+
+        // Paid events: soft cap at 10 (include flag but don't block)
+        if (eventForLimit.payment_status === 'paid') {
+          const { count: eventGenCount } = await supabase
+            .from('generation_log')
+            .select('id', { count: 'exact', head: true })
+            .eq('event_id', eventIdForCheck)
+            .eq('status', 'success');
+
+          if ((eventGenCount || 0) >= 10) {
+            res.softCapReached = true;
+          }
+        }
+      }
     }
   } catch (e) {
-    // If billing check fails, allow generation (don't block on billing errors)
-    console.warn('Billing check failed, allowing generation:', e.message);
+    console.error('Generation limit check failed, blocking generation:', e.message);
+    return res.status(500).json({ error: 'Unable to verify generation limits. Please try again.' });
   }
 
   const action = req.query?.action || req.body?.action || 'generate';
@@ -1044,20 +1120,21 @@ export default async function handler(req, res) {
       const fieldList = (existingFields || []).map(f => f.label).join(', ');
       const resp = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 256,
-        system: 'You interpret natural language requests to add RSVP form fields. Return ONLY a JSON object, no markdown.',
+        max_tokens: 512,
+        system: 'You interpret natural language requests to add RSVP form fields. Return ONLY a JSON array, no markdown.',
         messages: [{ role: 'user', content: `The user said: "${userMessage}"
 
 Existing fields: ${fieldList || 'none'}
 
-Return a JSON object for the new field:
-{"label": "Human-readable label", "field_key": "snake_case_key", "field_type": "text|number|textarea|email|phone|select|checkbox", "is_required": false, "placeholder": "helpful placeholder text"}
+Return a JSON array of field objects to add (even if just one):
+[{"label": "Human-readable label", "field_key": "snake_case_key", "field_type": "text|number|textarea|email|phone|select|checkbox", "is_required": false, "placeholder": "helpful placeholder text"}]
 
 Rules:
 - Pick the most appropriate field_type (number for counts/quantities, textarea for messages/notes, etc.)
 - label should be clean and title-case (e.g. "Number of Pets", "Song Request")
 - placeholder should be a helpful example (e.g. "e.g., 2", "Any song that gets you moving!")
-- Do NOT duplicate existing fields` }]
+- Do NOT duplicate existing fields
+- If the user mentions multiple fields, return one object per field` }]
       });
 
       const text = resp.content[0]?.text?.trim();
@@ -1085,16 +1162,17 @@ try {
           }
         } catch (e) { /* non-critical */ }
       }
-      await checkAndChargeAiUsage(user.id).catch(() => {});
+      // AI generation included in $4.99 event price — no per-generation billing
 
-      let field;
+      let fields;
       try {
         const cleaned = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
-        field = JSON.parse(cleaned);
+        const parsed = JSON.parse(cleaned);
+        fields = Array.isArray(parsed) ? parsed : [parsed];
       } catch {
         return res.status(500).json({ error: 'Failed to parse field', raw: text });
       }
-      return res.json({ success: true, field, metadata: { cost: fieldCost } });
+      return res.json({ success: true, fields, field: fields[0], metadata: { cost: fieldCost } });
     } catch (err) {
       console.error('interpretField error:', err);
       return res.status(500).json({ error: err.message });
@@ -1150,7 +1228,7 @@ Rules:
         // If parsing fails, return a conservative "unclear" classification
         classification = { intent: 'unclear', confidence: 0.3, summary: 'Could not classify', clarification: "I want to make sure I get this right — could you tell me a bit more about what you'd like to change?", suggested_options: null };
       }
-      await checkAndChargeAiUsage(user.id).catch(() => {});
+      // AI generation included in $4.99 event price — no per-generation billing
       return res.json({ success: true, ...classification, metadata: { cost: classifyCost } });
     } catch (err) {
       console.error('classifyIntent error:', err);
@@ -1175,17 +1253,20 @@ Rules:
     const hasPhotos = (photoUrls?.length > 0) || photoUrl || photoBase64;
     const designKeywords = [
       'color', 'colour', 'font', 'background', 'layout', 'animation', 'animate',
-      'style', 'theme', 'darker', 'lighter', 'bigger', 'smaller', 'spacing',
+      'style', 'theme', 'themed', 'darker', 'lighter', 'bigger', 'smaller', 'spacing',
       'margin', 'padding', 'border', 'shadow', 'gradient', 'photo', 'image',
       'minimalist', 'maximalist', 'elegant', 'bold', 'modern', 'vintage',
-      'vibe', 'mood', 'swap', 'redesign', 'completely', 'overhaul',
-      'move', 'position', 'align', 'center', 'left', 'right',
+      'vibe', 'mood', 'redesign', 'overhaul',
+      'move', 'position', 'align', 'center',
       'css', 'width', 'height', 'size', 'rounded', 'hover'
     ];
-    // Text swap patterns ("change X to Y") are always light, even if they contain design-ish words
+    // Text swap patterns ("change X to Y") are light ONLY when swapping literal text,
+    // not when requesting a thematic/design change like "change it to toy story themed"
+    const hasDesignKeyword = designKeywords.some(kw => new RegExp('\\b' + kw + '\\b').test(lowerInstructions));
     const isTextSwap = /\b(?:change|replace|update|switch)\b.+\b(?:to|with|for|into)\b/i.test(lowerInstructions)
-      && !/\b(?:color|colour|font|background|layout|theme|style)\s+(?:to|with|for|into)\b/i.test(lowerInstructions);
-    const isLightTweak = isTextSwap || (!hasPhotos && !designKeywords.some(kw => lowerInstructions.includes(kw)));
+      && !/\b(?:color|colour|font|background|layout|theme|style)\s+(?:to|with|for|into)\b/i.test(lowerInstructions)
+      && !hasDesignKeyword;
+    const isLightTweak = isTextSwap || (!hasPhotos && !hasDesignKeyword);
     const tweakModel = isLightTweak ? 'claude-haiku-4-5-20251001' : themeModel;
     const tweakMaxTokens = isLightTweak ? 4096 : 16384;
     console.log(`[tweak] Classified as ${isLightTweak ? 'LIGHT' : 'DESIGN'} tweak, using model: ${tweakModel}`);
@@ -1577,7 +1658,7 @@ Return ONLY a valid JSON object with these keys:
           await supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: chatOnlyCost.totalCostCents })
             .catch(() => {});
         }
-        await checkAndChargeAiUsage(user.id).catch(() => {});
+        // AI generation included in $4.99 event price — no per-generation billing
         return;
       }
 
@@ -1711,9 +1792,17 @@ Return ONLY a valid JSON object with these keys:
         console.error('Tweak theme DB save failed:', saveErr);
       }
 
+      // Mark free redo as used BEFORE sending response (prevents race with next request)
+      if (req._isFreeRedo) {
+        await supabase.from('events')
+          .update({ free_redo_used: true })
+          .eq('id', eventId).eq('payment_status', 'free');
+      }
+
       // Send result to client with real DB ID
       sendSSE('done', {
         success: true,
+        softCapReached: !!res.softCapReached,
         theme: { id: savedTweakThemeId, version: savedTweakVersion, html: theme.theme_html, css: theme.theme_css, config: tweakConfig },
         chatResponse: theme.chat_response || null,
         rsvpFieldChanges: theme.rsvp_field_changes || null,
@@ -1757,6 +1846,7 @@ Return ONLY a valid JSON object with these keys:
           is_tweak: true, event_type: eventDetails?.eventType || '',
           client_ip: tweakMeta.ip, client_geo: tweakMeta.geo, user_agent: tweakMeta.userAgent
 }).catch(() => {});
+        // free_redo_used is already set before res.end() — no need to duplicate here
         // Atomically increment persistent event cost
         try {
           const { error: rpcErr } = await supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: tweakCost.totalCostCents });
@@ -1767,7 +1857,7 @@ Return ONLY a valid JSON object with these keys:
         } catch (e) { /* non-critical */ }
 
         // Check if usage-based AI billing threshold is reached
-        await checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
+        // AI generation included in $4.99 event price — no per-generation billing
       } catch (saveErr) {
         console.error('Tweak DB save error (theme already sent to client):', saveErr);
       }
@@ -2054,12 +2144,22 @@ This is the most common failure mode. Double-check it.`;
       }
     }
 
-    // CRITICAL: Send theme to client and close connection IMMEDIATELY.
-    // res.text() on client buffers until res.end(), so DB saves MUST happen after.
+    // CRITICAL: Mark free generation as used BEFORE sending response to client.
+    // If we wait until after res.end(), the client can fire a tweak request before
+    // the DB update completes, bypassing the free tier limit.
+    const freeUpdate = { free_generation_used: true };
+    if (req._isFreeRedo) freeUpdate.free_redo_used = true;
+    await supabase.from('events')
+      .update(freeUpdate)
+      .eq('id', eventId).eq('payment_status', 'free');
+
+    // Send theme to client and close connection.
+    // res.text() on client buffers until res.end(), so remaining DB saves happen after.
     const genCost = calcGenerationCost(themeModel, genInputTokens, genOutputTokens);
     console.log('[cost] Sending to client:', { genCost, model: themeModel, inputTokens: genInputTokens, outputTokens: genOutputTokens });
     sendSSE('done', {
       success: true,
+      softCapReached: !!res.softCapReached,
       theme: {
         id: 'pending',
         version: 1,
@@ -2077,7 +2177,7 @@ This is the most common failure mode. Double-check it.`;
         cost: genCost
       }
     });
-    res.end(); // Unblock the client NOW — DB saves continue in background
+    res.end(); // Unblock the client NOW — remaining DB saves continue in background
 
     // Background DB saves — client already has the theme and connection is closed
     // CRITICAL: Save theme to DB IMMEDIATELY so resume works if user navigates away.
@@ -2159,10 +2259,10 @@ This is the most common failure mode. Double-check it.`;
         prompt_version_id: activePrompt.promptVersionId || null,
         client_ip: genMeta.ip, client_geo: genMeta.geo, user_agent: genMeta.userAgent
 }).catch(() => {});
-      supabase.from('events')
+      await supabase.from('events')
         .update({ first_generation_at: new Date().toISOString() })
-        .eq('id', eventId).is('first_generation_at', null)
-        .then(() => {}).catch(() => {});
+        .eq('id', eventId).is('first_generation_at', null);
+      // free_generation_used is already set before res.end() — no need to duplicate here
       // Atomically increment persistent event cost
       try {
         const { error: rpcErr } = await supabase.rpc('increment_event_cost', { p_event_id: eventId, p_cost_cents: genCost.totalCostCents });
@@ -2172,8 +2272,7 @@ This is the most common failure mode. Double-check it.`;
         }
       } catch (e) { /* non-critical */ }
 
-      // Check if usage-based AI billing threshold is reached
-      await checkAndChargeAiUsage(user.id).catch(e => console.error('AI billing check error:', e.message));
+      // AI generation included in $4.99 event price — no per-generation billing
     } catch (saveErr) {
       console.error('DB save error (theme already sent to client):', saveErr);
     }

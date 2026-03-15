@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { checkAndChargeSmsUsage } from './billing.js';
 import { Resend } from 'resend';
 
 const supabaseAdmin = createClient(
@@ -10,7 +9,6 @@ const supabaseAdmin = createClient(
 const CLICKSEND_API_URL = 'https://rest.clicksend.com/v3/sms/send';
 const CLICKSEND_USERNAME = process.env.CLICKSEND_USERNAME;
 const CLICKSEND_API_KEY = process.env.CLICKSEND_API_KEY;
-const SMS_COST_CENTS = 10; // $0.10 per message charged to user
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ---- Helpers ----
@@ -87,8 +85,8 @@ async function recordSmsMessages(userId, eventId, sentMessages, messageType, cli
     message_type: messageType,
     status: csMessages[i]?.status === 'SUCCESS' ? 'sent' : 'queued',
     provider_id: csMessages[i]?.message_id || null,
-    cost_cents: SMS_COST_CENTS,
-    billed: false
+    cost_cents: 0, // SMS included in $4.99 event price
+    billed: true
   }));
 
   if (smsRecords.length > 0) {
@@ -112,10 +110,17 @@ async function recordSmsMessages(userId, eventId, sentMessages, messageType, cli
     await supabaseAdmin.from('notification_log').insert(notifRecords);
   }
 
-  // Check billing threshold
-  await checkAndChargeSmsUsage(userId).catch(err => {
-    console.error('SMS billing check failed:', err);
-  });
+  // Increment sms_sent_count on the event
+  if (eventId) {
+    await supabaseAdmin.rpc('increment', { row_id: eventId, table_name: 'events', column_name: 'sms_sent_count', amount: smsRecords.length })
+      .catch(async () => {
+        // Fallback: manual increment if RPC doesn't exist
+        const { data: evt } = await supabaseAdmin.from('events').select('sms_sent_count').eq('id', eventId).single();
+        if (evt) {
+          await supabaseAdmin.from('events').update({ sms_sent_count: (evt.sms_sent_count || 0) + smsRecords.length }).eq('id', eventId);
+        }
+      });
+  }
 
   return smsRecords.length;
 }
@@ -203,6 +208,21 @@ export default async function handler(req, res) {
       const { event, error: ownerError } = await verifyEventOwnership(user.id, eventId);
       if (ownerError) return res.status(403).json({ success: false, error: ownerError });
 
+      // Payment check: SMS not available on free tier
+      const { data: eventData } = await supabaseAdmin
+        .from('events')
+        .select('payment_status, sms_limit, sms_sent_count')
+        .eq('id', eventId)
+        .single();
+
+      if (eventData?.payment_status === 'free') {
+        return res.status(403).json({ success: false, error: 'SMS is not available on the free tier. Upgrade to $4.99 to send SMS invites.', requiresPayment: true });
+      }
+
+      if (eventData?.payment_status !== 'paid') {
+        return res.status(403).json({ success: false, error: 'Payment required to send SMS invites.', requiresPayment: true });
+      }
+
       const { guests, error: guestError } = await fetchGuestsWithPhones(eventId, {
         guestIds: allGuests ? undefined : guestIds
       });
@@ -210,6 +230,20 @@ export default async function handler(req, res) {
 
       if (guests.length === 0) {
         return res.status(400).json({ success: false, error: 'No guests with valid phone numbers found' });
+      }
+
+      // SMS limit check
+      const smsSent = eventData?.sms_sent_count || 0;
+      const smsLimit = eventData?.sms_limit || 1000;
+      if (smsSent + guests.length > smsLimit) {
+        return res.status(403).json({
+          success: false,
+          error: `This batch of ${guests.length} messages would exceed your SMS limit (${smsSent}/${smsLimit} used).`,
+          smsLimitReached: true,
+          smsSentCount: smsSent,
+          smsLimit,
+          batchSize: guests.length
+        });
       }
 
       // Build messages — resolve {name} and {link} per-guest
@@ -268,6 +302,20 @@ export default async function handler(req, res) {
       const { event, error: ownerError } = await verifyEventOwnership(user.id, eventId);
       if (ownerError) return res.status(403).json({ success: false, error: ownerError });
 
+      // Payment check: SMS not available on free tier or unpaid events
+      const { data: updateEventData } = await supabaseAdmin
+        .from('events')
+        .select('payment_status, sms_limit, sms_sent_count')
+        .eq('id', eventId)
+        .single();
+
+      if (updateEventData?.payment_status === 'free') {
+        return res.status(403).json({ success: false, error: 'SMS is not available on the free tier.', requiresPayment: true });
+      }
+      if (updateEventData?.payment_status !== 'paid') {
+        return res.status(403).json({ success: false, error: 'Payment required to send SMS.', requiresPayment: true });
+      }
+
       const { guests, error: guestError } = await fetchGuestsWithPhones(eventId, {
         guestIds,
         recipientFilter: recipientFilter || 'all'
@@ -276,6 +324,20 @@ export default async function handler(req, res) {
 
       if (guests.length === 0) {
         return res.status(400).json({ success: false, error: 'No guests with valid phone numbers found' });
+      }
+
+      // SMS limit check
+      const updateSmsSent = updateEventData?.sms_sent_count || 0;
+      const updateSmsLimit = updateEventData?.sms_limit || 1000;
+      if (updateSmsSent + guests.length > updateSmsLimit) {
+        return res.status(403).json({
+          success: false,
+          error: `This batch would exceed your SMS limit (${updateSmsSent}/${updateSmsLimit} used).`,
+          smsLimitReached: true,
+          smsSentCount: updateSmsSent,
+          smsLimit: updateSmsLimit,
+          batchSize: guests.length
+        });
       }
 
       const updateBaseUrl = req.headers.origin || `https://${req.headers['x-forwarded-host'] || req.headers.host}`;

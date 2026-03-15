@@ -227,18 +227,15 @@ export default async function handler(req, res) {
 
       if (!title) return res.status(400).json({ success: false, error: 'Title is required' });
 
-      // Draft events skip plan checks — paywall gates generation, not drafts
-      const isDraft = settings?.creation_step === 0 || req.body.draft === true;
-      if (!isDraft) {
-        const { checkUserLimits } = await import('./billing.js');
-        const limits = await checkUserLimits(user.id);
-        if (!limits.hasActivePlan) {
-          return res.status(403).json({ success: false, error: 'You need an active plan to create events. Visit the pricing page to get started.', needsPlan: true });
-        }
-        if (!limits.canCreateEvent) {
-          return res.status(403).json({ success: false, error: limits.reason || 'Event limit reached for your plan.', limitReached: true });
-        }
-      }
+      // Under $4.99 model, anyone can create events (payment gate at publish/send time)
+      // Determine if this is the user's first event for free tier
+      const { count: existingEventCount } = await supabaseAdmin
+        .from('events')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .neq('status', 'archived');
+
+      const isFirstEvent = (existingEventCount || 0) === 0;
 
       // Ensure profile exists (may not have been created by trigger)
       const { data: existingProfile } = await supabaseAdmin
@@ -277,14 +274,17 @@ export default async function handler(req, res) {
           timezone: timezone || 'America/New_York',
           slug,
           status: 'draft',
-          settings: settings || { creation_step: 1 }
+          settings: settings || { creation_step: 1 },
+          payment_status: isFirstEvent ? 'free' : 'unpaid',
+          sms_limit: isFirstEvent ? 0 : 1000,
+          sms_sent_count: 0
         })
         .select()
         .single();
 
       if (error) return res.status(400).json({ success: false, error: error.message });
 
-      return res.status(200).json({ success: true, eventId: data.id, slug: data.slug });
+      return res.status(200).json({ success: true, eventId: data.id, slug: data.slug, paymentStatus: data.payment_status });
     }
 
     if (action === 'update') {
@@ -326,6 +326,25 @@ export default async function handler(req, res) {
 
       // Status: frontend sends "Published"/"Draft"/"Archived" — normalize to lowercase enum
       if (updates.status !== undefined) dbUpdates.status = updates.status.toLowerCase();
+
+      // Payment check at publish time (only for unpaid events that aren't already published)
+      if (dbUpdates.status === 'published') {
+        const { data: paymentCheck } = await supabaseAdmin
+          .from('events')
+          .select('payment_status, status')
+          .eq('id', eventId)
+          .single();
+
+        // Only block if truly unpaid AND not already published (re-publishing a live event is always OK)
+        if (paymentCheck?.payment_status === 'unpaid' && paymentCheck?.status !== 'published') {
+          return res.status(403).json({
+            success: false,
+            error: 'Payment required to publish this event. $4.99 per event.',
+            requiresPayment: true,
+            eventPriceCents: 499
+          });
+        }
+      }
 
       // Track generations-to-publish when first published
       if (dbUpdates.status === 'published') {
@@ -1013,13 +1032,9 @@ async function sendRsvpNotification(hostUserId, eventId, eventTitle, guestName, 
       message_type: 'update',
       status: csMsg?.status === 'SUCCESS' ? 'sent' : 'queued',
       provider_id: csMsg?.message_id || null,
-      cost_cents: 10,
-      billed: false
+      cost_cents: 0, // SMS included in $4.99 event price
+      billed: true
     });
-
-    // Trigger billing check (imported dynamically to avoid circular deps)
-    const { checkAndChargeSmsUsage } = await import('./billing.js');
-    await checkAndChargeSmsUsage(hostUserId);
   } catch (err) {
     console.error('RSVP notification error:', err);
   }
@@ -1145,6 +1160,9 @@ function formatEvent(row, theme, customFields) {
       placeholder: f.placeholder,
       sortOrder: f.sort_order
     })),
+    paymentStatus: row.payment_status || 'unpaid',
+    freeGenerationUsed: !!row.free_generation_used,
+    freeRedoUsed: !!row.free_redo_used,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

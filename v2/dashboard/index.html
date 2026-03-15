@@ -27,12 +27,6 @@
     .header-nav a.active { background: rgba(233,69,96,0.08); color: var(--party-coral); font-weight: 600; }
     .header-right { display: flex; gap: 12px; align-items: center; }
 
-    /* Compact usage badge in header */
-    .usage-badge { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #f5f5f5; border-radius: 8px; font-size: 12px; color: #666; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
-    .usage-badge:hover { border-color: #ddd; background: #eee; }
-    .usage-badge-amount { font-weight: 700; color: var(--midnight); font-size: 13px; }
-    .usage-badge-label { font-size: 11px; color: #999; }
-    .usage-badge svg { width: 14px; height: 14px; fill: #999; }
 
     /* Mobile hamburger */
     .mobile-menu-btn { display: none; width: 44px; height: 44px; border: none; background: none; cursor: pointer; padding: 8px; }
@@ -155,6 +149,10 @@
     .status-draft { background: #fff3cd; color: #856404; }
     .status-published { background: #d4edda; color: #155724; }
     .status-archived { background: #e2e3e5; color: #383d41; }
+    .badge-free { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #4ECDC4; color: white; }
+    .badge-paid { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #4ECDC4; color: white; }
+    .badge-payment-required { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #E94560; color: white; cursor: pointer; transition: all 0.2s; }
+    .badge-payment-required:hover { background: #FF6B6B; transform: translateY(-1px); }
     .no-invites-flag { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #fff3cd; border-radius: 6px; font-size: 11px; color: #856404; margin-bottom: 10px; }
     .progress-track { width: 100%; height: 6px; background: #eee; border-radius: 3px; margin: 10px 0 4px; overflow: hidden; }
     .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
@@ -181,19 +179,6 @@
     .share-btn { flex: 1; padding: 10px 8px; border: 1px solid #ddd; background: white; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s; color: var(--midnight); text-decoration: none; font-weight: 500; }
     .share-btn:hover { border-color: var(--party-coral); color: var(--party-coral); }
 
-    /* Usage popover from header badge */
-    .usage-popover { display: none; position: absolute; top: 52px; right: 0; background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); min-width: 280px; z-index: 100; border: 1px solid #eee; padding: 16px; }
-    .usage-popover.open { display: block; }
-    .usage-popover-title { font-weight: 600; font-size: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .usage-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; }
-    .usage-row + .usage-row { border-top: 1px solid #f0f0f0; }
-    .usage-label { color: #666; }
-    .usage-value { font-weight: 600; }
-    .usage-value.credit { color: var(--mint-fizz); }
-    .threshold-bar { margin-top: 10px; }
-    .threshold-track { width: 100%; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
-    .threshold-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
-    .threshold-labels { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #999; }
 
     /* Confirm Modal */
     .confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; align-items: center; justify-content: center; }
@@ -412,7 +397,6 @@
       .header-right { gap: 8px; }
       .header-nav { display: none; }
       .mobile-menu-btn { display: flex; flex-direction: column; justify-content: center; }
-      .usage-badge { display: none; }
       .btn { padding: 10px 14px; font-size: 13px; }
       .container { margin: 20px auto; padding: 0 16px; }
       .section-title { font-size: 24px; }
@@ -459,43 +443,6 @@
         <a href="/v2/inspiration/">Inspiration</a>
       </nav>
       <a href="/v2/create/?new=1" class="btn btn-primary">+ New Event</a>
-      <div class="profile-menu" style="position:relative;">
-        <div class="usage-badge" id="usageBadge" onclick="toggleUsagePopover()" style="display:none;">
-          <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-          <span class="usage-badge-amount" id="usageBadgeAmount">$0.00</span>
-        </div>
-        <div class="usage-popover" id="usagePopover">
-          <div class="usage-popover-title">
-            <span>Usage Summary</span>
-            <a href="/v2/profile/" style="font-size:12px;color:var(--party-coral);text-decoration:none;">Details →</a>
-          </div>
-          <div class="usage-row">
-            <span class="usage-label">AI Generations (<span id="aiGenCount">0</span>)</span>
-            <span class="usage-value" id="aiCostDisplay">$0.00</span>
-          </div>
-          <div class="usage-row">
-            <span class="usage-label">SMS (<span id="smsCount">0</span>)</span>
-            <span class="usage-value" id="smsCostDisplay">$0.00</span>
-          </div>
-          <div class="usage-row" id="creditsRow" style="display:none;">
-            <span class="usage-label">Credits</span>
-            <span class="usage-value credit" id="creditsDisplay">-$0.00</span>
-          </div>
-          <div class="usage-row" style="font-weight:600; border-top: 2px solid #eee; padding-top: 8px; margin-top: 4px;">
-            <span class="usage-label" style="color:var(--midnight);">Total</span>
-            <span class="usage-value" id="usageTotal">$0.00</span>
-          </div>
-          <div class="threshold-bar">
-            <div class="threshold-track">
-              <div class="threshold-fill" id="thresholdFill" style="width:0%;background:var(--mint-fizz);"></div>
-            </div>
-            <div class="threshold-labels">
-              <span>$0</span>
-              <span id="thresholdLabel">Auto-charge at $5.00</span>
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="profile-menu">
         <button class="profile-btn" onclick="toggleProfileMenu()" id="profileBtn">
           <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -533,9 +480,6 @@
     <a href="/v2/create/?new=1">+ New Event</a>
     <a href="/v2/profile/">Profile</a>
     <div class="mobile-nav-divider"></div>
-    <div id="mobileUsageLine" style="padding:14px 16px;font-size:14px;color:#666;display:none;">
-      Usage: <span id="mobileUsageAmount" style="font-weight:700;color:var(--midnight);">$0.00</span>
-    </div>
     <a href="#" onclick="event.preventDefault();closeMobileNav();logout();" style="color:#dc3545;">Log Out</a>
   </div>
 
@@ -589,6 +533,38 @@
       <div class="confirm-actions">
         <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
         <button class="confirm-ok" id="confirmOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Gate Modal -->
+  <div class="confirm-overlay" id="paymentGateOverlay" style="display:none">
+    <div class="confirm-box" style="max-width: 440px;">
+      <h3 style="margin:0 0 12px; font-family: 'Playfair Display', serif;">Unlock Full Features</h3>
+      <p style="color: #6B7280; margin: 0 0 20px; line-height: 1.6;">Your first event was free. Additional events are <strong>$4.99 each</strong> — everything included, no hidden fees.</p>
+      <ul style="text-align: left; margin: 0 0 24px; padding-left: 20px; color: #1A1A2E; line-height: 1.8;">
+        <li>Unlimited AI-designed invitations</li>
+        <li>SMS + email delivery</li>
+        <li>Full RSVP tracking & guest management</li>
+        <li>Custom RSVP fields</li>
+      </ul>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button onclick="dismissPaymentGate()" style="padding: 10px 24px; border: 1px solid #ddd; border-radius: 50px; background: white; cursor: pointer; font-size: 14px;">Maybe Later</button>
+        <button onclick="proceedToPayment()" style="padding: 10px 24px; border: none; border-radius: 50px; background: #E94560; color: white; cursor: pointer; font-size: 14px; font-weight: 600;">Continue to Payment — $4.99</button>
+      </div>
+      <p style="color: #D1D5DB; font-size: 12px; margin: 16px 0 0;">Powered by Stripe</p>
+    </div>
+  </div>
+
+  <!-- SMS Limit Reached Modal -->
+  <div class="confirm-overlay" id="smsLimitOverlay" style="display:none">
+    <div class="confirm-box" style="max-width: 440px;">
+      <h3 style="margin:0 0 12px; font-family: 'Playfair Display', serif;">SMS Limit Reached</h3>
+      <p id="smsLimitMessage" style="color: #6B7280; margin: 0 0 16px; line-height: 1.6;"></p>
+      <p style="color: #6B7280; margin: 0 0 20px; font-size: 14px;">This is just a quick approval process — you can still send invites via email or shareable link in the meantime.</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button onclick="dismissSmsLimit()" style="padding: 10px 24px; border: 1px solid #ddd; border-radius: 50px; background: white; cursor: pointer; font-size: 14px;">Dismiss</button>
+        <button id="requestApprovalBtn" onclick="requestSmsApproval()" style="padding: 10px 24px; border: none; border-radius: 50px; background: #E94560; color: white; cursor: pointer; font-size: 14px; font-weight: 600;">Request Approval</button>
       </div>
     </div>
   </div>
@@ -677,16 +653,6 @@
     var params = new URLSearchParams(window.location.search);
     if (params.get('published')) {
       showToast('Event published successfully!');
-      window.history.replaceState({}, '', '/v2/dashboard/');
-    }
-    if (params.get('purchased')) {
-      showToast('Plan purchased! You can now create your event.');
-      // Refresh user profile to pick up new subscription
-      fetch('/api/v2/auth?action=profile', { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(function(r) { return r.json(); })
-        .then(function(result) {
-          if (result.success) { user = result.user; localStorage.setItem('v2_user', JSON.stringify(user)); }
-        }).catch(function(){});
       window.history.replaceState({}, '', '/v2/dashboard/');
     }
 
@@ -890,7 +856,12 @@
           + '<div class="event-card-body">'
           + '<div class="event-meta">'
           + '<span>' + escapeHtml(event.locationName || 'No location') + '</span>'
+          + '<span>'
+          + (event.payment_status === 'free' ? '<span class="badge-free">Free</span> ' : '')
+          + (event.payment_status === 'paid' ? '<span class="badge-paid">Paid</span> ' : '')
+          + (event.payment_status === 'unpaid' ? '<span class="badge-payment-required" onclick="event.stopPropagation();showPaymentGate(\'' + event.id + '\')">$4.99</span> ' : '')
           + '<span class="status-badge ' + statusClass + '">' + (event.status || 'Draft') + '</span>'
+          + '</span>'
           + '</div>'
           + buildRsvpMiniStats(event.rsvpCounts)
           + progressHtml
@@ -1759,62 +1730,6 @@
     }
     window.addEventListener('resize', rescalePreviewIframes);
 
-    // ---- Usage Cost Badge (compact, in header) ----
-    function formatCents(cents) {
-      return '$' + (cents / 100).toFixed(2);
-    }
-
-    function toggleUsagePopover() {
-      document.getElementById('usagePopover').classList.toggle('open');
-    }
-
-    // Close usage popover on outside click
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('#usageBadge') && !e.target.closest('#usagePopover')) {
-        document.getElementById('usagePopover').classList.remove('open');
-      }
-    });
-
-    async function loadUsageSummary() {
-      try {
-        var res = await authFetch('/api/v2/billing?action=usage_summary');
-        var result = await res.json();
-        if (!result.success || !result.usage) return;
-
-        var u = result.usage;
-        var totalAllTime = u.totalAllTimeCents || 0;
-        if (totalAllTime === 0 && u.totalUnbilledCents === 0 && u.totalPaidToDateCents === 0 && u.credits.availableCents === 0) return;
-
-        // Show badge in header
-        var badge = document.getElementById('usageBadge');
-        badge.style.display = 'flex';
-        document.getElementById('usageBadgeAmount').textContent = formatCents(totalAllTime);
-
-        // Also show on mobile nav
-        document.getElementById('mobileUsageLine').style.display = 'block';
-        document.getElementById('mobileUsageAmount').textContent = formatCents(totalAllTime);
-
-        // Popover details
-        document.getElementById('usageTotal').textContent = formatCents(totalAllTime);
-        document.getElementById('aiGenCount').textContent = u.ai.totalCount || u.ai.unbilledCount;
-        document.getElementById('aiCostDisplay').textContent = formatCents(u.ai.allTimeCents || u.ai.totalCents);
-        document.getElementById('smsCount').textContent = u.sms.unbilledCount;
-        document.getElementById('smsCostDisplay').textContent = formatCents(u.sms.allTimeCents || u.sms.totalCents);
-
-        if (u.credits.availableCents > 0) {
-          document.getElementById('creditsRow').style.display = 'flex';
-          document.getElementById('creditsDisplay').textContent = '-' + formatCents(u.credits.availableCents);
-        }
-
-        var pct = u.threshold.pctToThreshold;
-        var fill = document.getElementById('thresholdFill');
-        fill.style.width = pct + '%';
-        fill.style.background = pct >= 80 ? 'var(--party-coral)' : pct >= 50 ? 'var(--confetti-gold)' : 'var(--mint-fizz)';
-        document.getElementById('thresholdLabel').textContent = 'Auto-charge at ' + formatCents(u.threshold.cents);
-      } catch (e) {
-        console.error('Usage summary load error:', e);
-      }
-    }
 
     // ---- Mobile nav ----
     function toggleMobileNav() {
@@ -1826,8 +1741,116 @@
       document.getElementById('mobileNavOverlay').classList.remove('open');
     }
 
+    // ============================================================
+    // Payment Gate
+    // ============================================================
+    let paymentGateEventId = null;
+
+    function showPaymentGate(eventId) {
+      paymentGateEventId = eventId;
+      document.getElementById('paymentGateOverlay').style.display = 'flex';
+    }
+
+    function dismissPaymentGate() {
+      document.getElementById('paymentGateOverlay').style.display = 'none';
+      paymentGateEventId = null;
+    }
+
+    async function proceedToPayment() {
+      if (!paymentGateEventId) return;
+      const btn = document.querySelector('#paymentGateOverlay button:last-child');
+      btn.textContent = 'Redirecting...';
+      btn.disabled = true;
+      try {
+        const resp = await authFetch('/api/v2/billing?action=checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: paymentGateEventId })
+        });
+        const data = await resp.json();
+        if (data.checkoutUrl || data.url) {
+          window.location.href = data.checkoutUrl || data.url;
+        } else if (data.alreadyPaid) {
+          showToast('Event already paid!');
+          dismissPaymentGate();
+          loadDashboard();
+        } else {
+          showToast('Error: ' + (data.error || 'Could not create checkout'));
+          btn.textContent = 'Continue to Payment — $4.99';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        showToast('Error creating checkout session');
+        btn.textContent = 'Continue to Payment — $4.99';
+        btn.disabled = false;
+      }
+    }
+
+    // ============================================================
+    // SMS Limit Modal
+    // ============================================================
+    let smsLimitEventId = null;
+
+    function showSmsLimitModal(eventId, smsSent, smsLimit) {
+      smsLimitEventId = eventId;
+      document.getElementById('smsLimitMessage').textContent =
+        'You\'ve sent ' + smsSent + ' of ' + smsLimit + ' SMS messages for this event. We just need to do a quick approval — you\'ll hear from us shortly.';
+      document.getElementById('smsLimitOverlay').style.display = 'flex';
+    }
+
+    function dismissSmsLimit() {
+      document.getElementById('smsLimitOverlay').style.display = 'none';
+      smsLimitEventId = null;
+    }
+
+    async function requestSmsApproval() {
+      if (!smsLimitEventId) return;
+      const btn = document.getElementById('requestApprovalBtn');
+      btn.textContent = 'Submitting...';
+      btn.disabled = true;
+      try {
+        // Request SMS limit increase
+        await authFetch('/api/v2/billing?action=requestSMSIncrease', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: smsLimitEventId })
+        });
+        // Alert admin
+        await fetch('/api/v2/admin-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: smsLimitEventId })
+        });
+        btn.textContent = 'Request Submitted!';
+        showToast('Request submitted! We\'ll review and get back to you shortly via email.');
+        setTimeout(function() { dismissSmsLimit(); }, 2000);
+      } catch (e) {
+        showToast('Error submitting request');
+        btn.textContent = 'Request Approval';
+        btn.disabled = false;
+      }
+    }
+
+    // ============================================================
+    // Payment success return from Stripe
+    // ============================================================
+    (function() {
+      var urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('payment') === 'success') {
+        var sessionId = urlParams.get('session_id');
+        if (sessionId) {
+          authFetch('/api/v2/billing?action=verify-session&session_id=' + encodeURIComponent(sessionId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId })
+          }).catch(function() {});
+        }
+        showToast('Payment confirmed! Your event is now fully unlocked.');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    })();
+
     loadDashboard();
-    loadUsageSummary();
 
     // Refresh dashboard when user returns to the tab (e.g. after regenerating a theme)
     document.addEventListener('visibilitychange', function() {

@@ -25,10 +25,6 @@
     {
       "path": "/api/v2/sms-cron",
       "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/v2/billing?action=monthly-sweep",
-      "schedule": "0 6 1 * *"
     }
   ],
   "functions": {
@@ -54,8 +50,26 @@
     },
     "api/v2/blog.js": {
       "maxDuration": 60
+    },
+    "api/v2/admin-alert.js": {
+      "maxDuration": 30
+    },
+    "api/v2/user-notification.js": {
+      "maxDuration": 30
     }
   },
+  "redirects": [
+    {
+      "source": "/pricing",
+      "destination": "/v2/pricing/",
+      "permanent": true
+    },
+    {
+      "source": "/pricing/",
+      "destination": "/v2/pricing/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",
