@@ -228,14 +228,31 @@ export default async function handler(req, res) {
       if (!title) return res.status(400).json({ success: false, error: 'Title is required' });
 
       // Under $4.99 model, anyone can create events (payment gate at publish/send time)
-      // Determine if this is the user's first event for free tier
-      const { count: existingEventCount } = await supabaseAdmin
+      // Check if user has EVER had a free event (regardless of archive status)
+      const { count: freeEventCount } = await supabaseAdmin
         .from('events')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .neq('status', 'archived');
+        .eq('payment_status', 'free');
 
-      const isFirstEvent = (existingEventCount || 0) === 0;
+      let isFirstEvent = (freeEventCount || 0) === 0;
+
+      // If not first event, check for admin-granted free credits
+      if (!isFirstEvent) {
+        const { data: profileData } = await supabaseAdmin
+          .from('profiles')
+          .select('free_event_credits')
+          .eq('id', user.id)
+          .single();
+
+        if (profileData && (profileData.free_event_credits || 0) > 0) {
+          isFirstEvent = true;
+          await supabaseAdmin
+            .from('profiles')
+            .update({ free_event_credits: (profileData.free_event_credits || 0) - 1 })
+            .eq('id', user.id);
+        }
+      }
 
       // Ensure profile exists (may not have been created by trigger)
       const { data: existingProfile } = await supabaseAdmin

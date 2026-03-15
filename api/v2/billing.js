@@ -182,13 +182,6 @@ export default async function handler(req, res) {
       if (!event) return res.status(404).json({ error: 'Event not found' });
       if (event.user_id !== user.id) return res.status(403).json({ error: 'Not your event' });
 
-      // Count user's total non-archived events
-      const { count: totalEvents } = await supabaseAdmin
-        .from('events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .neq('status', 'archived');
-
       // Count generations for this specific event
       const { count: genCount } = await supabaseAdmin
         .from('generation_log')
@@ -196,7 +189,7 @@ export default async function handler(req, res) {
         .eq('event_id', eventId)
         .eq('status', 'success');
 
-      const isFirstEvent = (totalEvents || 0) <= 1;
+      const isFirstEvent = event.payment_status === 'free';
       const isFreeEvent = event.payment_status === 'free';
       const isPaid = event.payment_status === 'paid';
       const requiresPayment = !isFreeEvent && !isPaid;
@@ -551,8 +544,7 @@ export default async function handler(req, res) {
       const { data: events } = await supabaseAdmin
         .from('events')
         .select('id, payment_status')
-        .eq('user_id', user.id)
-        .neq('status', 'archived');
+        .eq('user_id', user.id);
 
       const totalEvents = (events || []).length;
       const paidEvents = (events || []).filter(e => e.payment_status === 'paid').length;
@@ -730,8 +722,7 @@ export default async function handler(req, res) {
       // Get event counts per user
       const { data: events } = await supabaseAdmin
         .from('events')
-        .select('user_id, payment_status')
-        .neq('status', 'archived');
+        .select('user_id, payment_status');
 
       // Get SMS counts per user
       const { data: smsData } = await supabaseAdmin
@@ -1017,8 +1008,7 @@ export async function checkUserLimits(userId) {
   const { count: eventCount } = await supabaseAdmin
     .from('events')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .neq('status', 'archived');
+    .eq('user_id', userId);
 
   // Under the new model, users can always create events.
   // Payment gate appears at publish/send time, not creation.
