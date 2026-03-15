@@ -1120,20 +1120,21 @@ export default async function handler(req, res) {
       const fieldList = (existingFields || []).map(f => f.label).join(', ');
       const resp = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 256,
-        system: 'You interpret natural language requests to add RSVP form fields. Return ONLY a JSON object, no markdown.',
+        max_tokens: 512,
+        system: 'You interpret natural language requests to add RSVP form fields. Return ONLY a JSON array, no markdown.',
         messages: [{ role: 'user', content: `The user said: "${userMessage}"
 
 Existing fields: ${fieldList || 'none'}
 
-Return a JSON object for the new field:
-{"label": "Human-readable label", "field_key": "snake_case_key", "field_type": "text|number|textarea|email|phone|select|checkbox", "is_required": false, "placeholder": "helpful placeholder text"}
+Return a JSON array of field objects to add (even if just one):
+[{"label": "Human-readable label", "field_key": "snake_case_key", "field_type": "text|number|textarea|email|phone|select|checkbox", "is_required": false, "placeholder": "helpful placeholder text"}]
 
 Rules:
 - Pick the most appropriate field_type (number for counts/quantities, textarea for messages/notes, etc.)
 - label should be clean and title-case (e.g. "Number of Pets", "Song Request")
 - placeholder should be a helpful example (e.g. "e.g., 2", "Any song that gets you moving!")
-- Do NOT duplicate existing fields` }]
+- Do NOT duplicate existing fields
+- If the user mentions multiple fields, return one object per field` }]
       });
 
       const text = resp.content[0]?.text?.trim();
@@ -1163,14 +1164,15 @@ try {
       }
       // AI generation included in $4.99 event price — no per-generation billing
 
-      let field;
+      let fields;
       try {
         const cleaned = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
-        field = JSON.parse(cleaned);
+        const parsed = JSON.parse(cleaned);
+        fields = Array.isArray(parsed) ? parsed : [parsed];
       } catch {
         return res.status(500).json({ error: 'Failed to parse field', raw: text });
       }
-      return res.json({ success: true, field, metadata: { cost: fieldCost } });
+      return res.json({ success: true, fields, field: fields[0], metadata: { cost: fieldCost } });
     } catch (err) {
       console.error('interpretField error:', err);
       return res.status(500).json({ error: err.message });

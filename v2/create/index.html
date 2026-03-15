@@ -4890,17 +4890,24 @@
           if (interpretRes.ok) {
             var interpretData = await interpretRes.json();
             if (interpretData.metadata) updateCostFromGeneration(interpretData);
-            if (interpretData.success && interpretData.field) {
-              var f = interpretData.field;
-              var exists = enabledFields.some(function(ef) {
-                return (ef.field_key || '').toLowerCase() === (f.field_key || '').toLowerCase();
-              });
-              if (!exists) {
-                applyRsvpFieldChanges([{ action: 'add', field_key: f.field_key, label: f.label, field_type: f.field_type || 'text', is_required: f.is_required || false, placeholder: f.placeholder || null }]);
-                renderPreview(themeVersions[activeVersionIndex]);
-                designChatHistory.push({ role: 'assistant', content: 'Done! ' + syncNote + 'Added a "' + f.label + '" field to your RSVP form.\n\nWant to make any more changes?' });
+            var fields = interpretData.fields || (interpretData.field ? [interpretData.field] : []);
+            if (interpretData.success && fields.length > 0) {
+              var addedLabels = [];
+              var enabledKeys = enabledFields.map(function(ef) { return (ef.field_key || '').toLowerCase(); });
+              for (var fi = 0; fi < fields.length; fi++) {
+                var f = fields[fi];
+                if (enabledKeys.indexOf((f.field_key || '').toLowerCase()) === -1) {
+                  applyRsvpFieldChanges([{ action: 'add', field_key: f.field_key, label: f.label, field_type: f.field_type || 'text', is_required: f.is_required || false, placeholder: f.placeholder || null }]);
+                  enabledKeys.push((f.field_key || '').toLowerCase());
+                  addedLabels.push(f.label);
+                }
+              }
+              renderPreview(themeVersions[activeVersionIndex]);
+              if (addedLabels.length > 0) {
+                var fieldListStr = addedLabels.map(function(l) { return '"' + l + '"'; }).join(' and ');
+                designChatHistory.push({ role: 'assistant', content: 'Done! ' + syncNote + 'Added ' + fieldListStr + ' to your RSVP form.\n\nWant to make any more changes?' });
               } else {
-                designChatHistory.push({ role: 'assistant', content: syncNote + 'That field already exists in your RSVP form!\n\nWant to make any other changes?' });
+                designChatHistory.push({ role: 'assistant', content: syncNote + 'Those fields already exist in your RSVP form!\n\nWant to make any other changes?' });
               }
               clearDesignChatPhoto();
               sendBtn.disabled = false;
