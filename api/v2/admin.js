@@ -938,19 +938,25 @@ export default async function handler(req, res) {
       }
 
       if (id) {
-        // Update existing item
+        // Update existing item (preserve existing design_group_id)
         const { error } = await supabaseAdmin
           .from('style_library')
           .update(row)
           .eq('id', id);
         if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
       } else {
-        // Insert new item
+        // Insert new item — each new style starts its own design group
         row.id = 'style_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
         row.added_by = admin.email;
-        const { error } = await supabaseAdmin
+        row.design_group_id = row.id;
+        let { error } = await supabaseAdmin
           .from('style_library')
           .insert(row);
+        // Retry without design_group_id if column doesn't exist yet
+        if (error && error.message?.includes('design_group_id')) {
+          delete row.design_group_id;
+          ({ error } = await supabaseAdmin.from('style_library').insert(row));
+        }
         if (error) return res.status(500).json({ error: 'Failed to insert: ' + error.message });
       }
 
@@ -1440,6 +1446,8 @@ export default async function handler(req, res) {
       }
       if (testSessionId) {
         insertData.test_session_id = testSessionId;
+        // Lab tests in the same session are variations — share a design group
+        insertData.design_group_id = testSessionId;
       }
       if (sessionPosition !== undefined) {
         insertData.session_position = sessionPosition;
@@ -1451,12 +1459,20 @@ export default async function handler(req, res) {
         .select('id')
         .single();
 
+      // If no session, set design_group_id to own id (needs the inserted id)
+      if (!error && insertedRun?.id && !testSessionId) {
+        await supabaseAdmin.from('prompt_test_runs')
+          .update({ design_group_id: insertedRun.id.toString() })
+          .eq('id', insertedRun.id);
+      }
+
       // Retry without new columns if migration hasn't been run
-      if (error && (error.message?.includes('style_library_ids') || error.message?.includes('result_thankyou_html') || error.message?.includes('test_session_id') || error.message?.includes('session_position'))) {
+      if (error && (error.message?.includes('style_library_ids') || error.message?.includes('result_thankyou_html') || error.message?.includes('test_session_id') || error.message?.includes('session_position') || error.message?.includes('design_group_id'))) {
         delete insertData.style_library_ids;
         delete insertData.result_thankyou_html;
         delete insertData.test_session_id;
         delete insertData.session_position;
+        delete insertData.design_group_id;
         ({ data: insertedRun, error } = await supabaseAdmin
           .from('prompt_test_runs')
           .insert(insertData)
@@ -1679,11 +1695,20 @@ export default async function handler(req, res) {
     // ---- TEST RUN STATS / REPORTING ----
     if (action === 'testRunStats') {
       // Get all scored test runs with prompt version info
-      const { data: runs, error } = await supabaseAdmin
+      let { data: runs, error } = await supabaseAdmin
         .from('prompt_test_runs')
         .select('id, prompt_version_id, model, event_type, score, input_tokens, output_tokens, latency_ms, style_library_ids, test_session_id, created_at')
         .not('score', 'is', null)
         .order('created_at', { ascending: false });
+
+      // Retry without optional columns if migrations haven't been run
+      if (error && (error.message?.includes('style_library_ids') || error.message?.includes('test_session_id'))) {
+        ({ data: runs, error } = await supabaseAdmin
+          .from('prompt_test_runs')
+          .select('id, prompt_version_id, model, event_type, score, input_tokens, output_tokens, latency_ms, created_at')
+          .not('score', 'is', null)
+          .order('created_at', { ascending: false }));
+      }
 
       if (error) return res.status(400).json({ error: error.message });
 
@@ -1957,6 +1982,26 @@ export default async function handler(req, res) {
 
       if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
       return res.status(200).json({ success: true, excluded: exclude });
+    }
+
+    // ---- SET DESIGN GROUP (link variations together) ----
+    if (action === 'setDesignGroup') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+      const { id, source, designGroupId } = req.body;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      if (!designGroupId) return res.status(400).json({ error: 'designGroupId required' });
+
+      const table = source === 'lab' ? 'prompt_test_runs'
+                  : source === 'style' ? 'style_library'
+                  : 'event_themes';
+
+      const { error } = await supabaseAdmin
+        .from(table)
+        .update({ design_group_id: designGroupId })
+        .eq('id', id);
+
+      if (error) return res.status(500).json({ error: 'Failed to update: ' + error.message });
+      return res.status(200).json({ success: true });
     }
 
     // ---- THEME QUALITY STATS (across all real generations) ----
