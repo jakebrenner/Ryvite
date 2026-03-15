@@ -391,6 +391,7 @@ export default async function handler(req, res) {
           referralSource: profile.referral_source,
           stripeCustomerId: profile.stripe_customer_id,
           freeEventCredits: profile.free_event_credits || 0,
+          purchasedEventCredits: profile.purchased_event_credits || 0,
           createdAt: profile.created_at,
           updatedAt: profile.updated_at,
           isBanned

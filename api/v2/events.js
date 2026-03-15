@@ -236,16 +236,25 @@ export default async function handler(req, res) {
         .eq('payment_status', 'free');
 
       let isFirstEvent = (freeEventCount || 0) === 0;
+      let isPrepaid = false;
 
-      // If not first event, check for admin-granted free credits
+      // If not first event, check for purchased or admin-granted credits
       if (!isFirstEvent) {
         const { data: profileData } = await supabaseAdmin
           .from('profiles')
-          .select('free_event_credits')
+          .select('purchased_event_credits, free_event_credits')
           .eq('id', user.id)
           .single();
 
-        if (profileData && (profileData.free_event_credits || 0) > 0) {
+        if (profileData && (profileData.purchased_event_credits || 0) > 0) {
+          // Purchased credits → mark as paid (user already paid)
+          isPrepaid = true;
+          await supabaseAdmin
+            .from('profiles')
+            .update({ purchased_event_credits: (profileData.purchased_event_credits || 0) - 1 })
+            .eq('id', user.id);
+        } else if (profileData && (profileData.free_event_credits || 0) > 0) {
+          // Admin-granted free credits
           isFirstEvent = true;
           await supabaseAdmin
             .from('profiles')
@@ -292,7 +301,8 @@ export default async function handler(req, res) {
           slug,
           status: 'draft',
           settings: settings || { creation_step: 1 },
-          payment_status: isFirstEvent ? 'free' : 'unpaid',
+          payment_status: isFirstEvent ? 'free' : (isPrepaid ? 'paid' : 'unpaid'),
+          paid_at: isPrepaid ? new Date().toISOString() : null,
           sms_limit: isFirstEvent ? 0 : 1000,
           sms_sent_count: 0
         })

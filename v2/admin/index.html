@@ -3082,6 +3082,7 @@
       document.getElementById('udAccountInfo').innerHTML =
         detailItem('User ID', '<span style="font-family:monospace;font-size:11px;">' + escapeHtml(u.id) + '</span>')
         + detailItem('Stripe Customer', u.stripeCustomerId ? '<span style="font-family:monospace;font-size:11px;">' + escapeHtml(u.stripeCustomerId) + '</span>' : '—')
+        + detailItem('Purchased Event Credits', '<span>' + (u.purchasedEventCredits || 0) + '</span>')
         + detailItem('Free Event Credits', '<span id="udFreeCredits">' + (u.freeEventCredits || 0) + '</span> <button class="btn btn-secondary btn-sm" onclick="showGrantCreditsUI()" style="margin-left:8px;font-size:11px;padding:2px 8px;">Add</button><div id="grantCreditsForm" style="display:none;margin-top:8px;"></div>')
         + detailItem('Created', formatDate(u.createdAt))
         + detailItem('Last Updated', u.updatedAt ? formatDate(u.updatedAt) : '—');

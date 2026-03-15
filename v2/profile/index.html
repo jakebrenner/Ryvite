@@ -243,48 +243,23 @@
       </div>
     </div>
 
-    <!-- Plan & Billing -->
+    <!-- Events & Billing -->
     <div class="settings-card">
-      <div class="settings-card-title">Plan & Billing</div>
-      <div class="settings-card-desc">Manage your subscription and usage</div>
-      <div class="plan-row">
-        <div class="plan-info">
-          <div class="plan-name" id="planName">No Plan</div>
-          <div class="plan-detail" id="planDetail">Purchase a plan to start creating events</div>
+      <div class="settings-card-title">Events & Billing</div>
+      <div class="settings-card-desc">Track your event usage and purchase more</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="background:#f9f9f9;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">Events Created</div>
+          <div style="font-size:28px;font-weight:700;" id="eventsUsedCount">-</div>
         </div>
-        <a href="/v2/pricing/" class="btn btn-primary" id="upgradePlanBtn">Get a Plan</a>
+        <div style="background:#f9f9f9;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">Credits Available</div>
+          <div style="font-size:28px;font-weight:700;color:var(--mint-fizz);" id="creditsAvailCount">-</div>
+          <div style="font-size:11px;color:#999;margin-top:2px;" id="creditsBreakdown"></div>
+        </div>
       </div>
-      <div id="usageSection" style="display:none;margin-top:20px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Usage</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div style="background:#f9f9f9;border-radius:8px;padding:14px;">
-            <div style="font-size:12px;color:#888;margin-bottom:4px;">Events</div>
-            <div style="font-size:20px;font-weight:700;" id="usageEvents">0 / 0</div>
-            <div style="height:4px;background:#eee;border-radius:2px;margin-top:8px;overflow:hidden;">
-              <div id="eventsBar" style="height:100%;background:var(--mint-fizz);border-radius:2px;width:0%;transition:width 0.3s;"></div>
-            </div>
-          </div>
-          <div style="background:#f9f9f9;border-radius:8px;padding:14px;">
-            <div style="font-size:12px;color:#888;margin-bottom:4px;">AI Generations</div>
-            <div style="font-size:20px;font-weight:700;" id="usageGenerations">0 / 0</div>
-            <div style="height:4px;background:#eee;border-radius:2px;margin-top:8px;overflow:hidden;">
-              <div id="gensBar" style="height:100%;background:var(--confetti-gold);border-radius:2px;width:0%;transition:width 0.3s;"></div>
-            </div>
-          </div>
-        </div>
-        <div style="margin-top:12px;">
-          <div style="background:#f9f9f9;border-radius:8px;padding:14px;display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div style="font-size:12px;color:#888;margin-bottom:4px;">Text Messages Sent</div>
-              <div style="font-size:20px;font-weight:700;" id="usageSms">0</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:12px;color:#888;margin-bottom:4px;">SMS Cost</div>
-              <div style="font-size:20px;font-weight:700;color:var(--party-coral);" id="usageSmsCost">$0.00</div>
-              <div style="font-size:11px;color:#999;" id="usageSmsPrice">$0.05 per text</div>
-            </div>
-          </div>
-        </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="buyMoreEvents()" id="buyCreditsBtn">Buy More Events — $4.99 each</button>
       </div>
     </div>
 
@@ -328,17 +303,6 @@
       document.getElementById('displayName').value = u.displayName || '';
       document.getElementById('emailField').value = u.email || '';
       document.getElementById('phoneField').value = u.phone || '';
-
-      // Plan info — initial display from cached user data, real data loaded async
-      if (u.hasActivePlan && u.subscription) {
-        document.getElementById('planName').textContent = u.subscription.planName || 'Active Plan';
-        document.getElementById('planDetail').textContent = 'Active plan';
-        document.getElementById('upgradePlanBtn').textContent = 'View Plans';
-      } else {
-        document.getElementById('planName').textContent = 'No Plan';
-        document.getElementById('planDetail').textContent = 'Purchase a plan to start creating events';
-        document.getElementById('upgradePlanBtn').textContent = 'Get a Plan';
-      }
 
       // Member since
       if (u.createdAt) {
@@ -439,31 +403,23 @@
     async function loadBillingData() {
       if (!token) return;
       try {
-        // Load subscription info
+        // Load subscription/usage info
         var subRes = await authFetch('/api/v2/billing?action=subscription');
         var subResult = await subRes.json();
         if (subResult.success) {
-          var sub = subResult.subscription;
-          var usage = subResult.usage;
-          if (sub) {
-            document.getElementById('planName').textContent = sub.plan?.display_name || 'Active Plan';
-            var paidStr = sub.amountPaidCents > 0 ? ' — $' + (sub.amountPaidCents / 100).toFixed(2) + ' paid' : ' — Complimentary';
-            document.getElementById('planDetail').textContent = (sub.plan?.display_name || 'Plan') + paidStr;
-            document.getElementById('upgradePlanBtn').textContent = 'View Plans';
+          var usage = subResult.usage || {};
+          var credits = subResult.credits || {};
 
-            // Show usage
-            document.getElementById('usageSection').style.display = 'block';
-            document.getElementById('usageEvents').textContent = usage.eventsUsed + ' / ' + usage.maxEvents;
-            document.getElementById('usageGenerations').textContent = usage.generationsUsed + ' / ' + usage.maxGenerations;
-            document.getElementById('eventsBar').style.width = (usage.maxEvents > 0 ? Math.min(100, usage.eventsUsed / usage.maxEvents * 100) : 0) + '%';
-            document.getElementById('gensBar').style.width = (usage.maxGenerations > 0 ? Math.min(100, usage.generationsUsed / usage.maxGenerations * 100) : 0) + '%';
+          document.getElementById('eventsUsedCount').textContent = usage.totalEvents || 0;
+          var totalCredits = credits.total || 0;
+          document.getElementById('creditsAvailCount').textContent = totalCredits;
+          document.getElementById('creditsAvailCount').style.color = totalCredits > 0 ? 'var(--mint-fizz)' : '#ccc';
 
-            // SMS usage
-            document.getElementById('usageSms').textContent = usage.smsSent || 0;
-            document.getElementById('usageSmsCost').textContent = '$' + ((usage.smsCostCents || 0) / 100).toFixed(2);
-            var smsPriceCents = usage.smsPriceCents || 10;
-            document.getElementById('usageSmsPrice').textContent = '$' + (smsPriceCents / 100).toFixed(2) + ' per text';
-          }
+          // Credits breakdown
+          var parts = [];
+          if (credits.purchased > 0) parts.push(credits.purchased + ' purchased');
+          if (credits.free > 0) parts.push(credits.free + ' free');
+          document.getElementById('creditsBreakdown').textContent = parts.length > 0 ? parts.join(' + ') : '';
         }
 
         // Load billing history
@@ -490,6 +446,31 @@
         }
       } catch (err) {
         // Non-critical — billing data just won't show
+      }
+    }
+
+    async function buyMoreEvents() {
+      var btn = document.getElementById('buyCreditsBtn');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting to checkout...';
+      try {
+        var res = await authFetch('/api/v2/billing?action=buy-credits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: 1, returnUrl: '/v2/profile/' })
+        });
+        var result = await res.json();
+        if (result.success && result.checkoutUrl) {
+          window.location.href = result.checkoutUrl;
+        } else {
+          showToast(result.error || 'Failed to start checkout');
+          btn.disabled = false;
+          btn.textContent = 'Buy More Events — $4.99 each';
+        }
+      } catch (e) {
+        showToast('Error starting checkout');
+        btn.disabled = false;
+        btn.textContent = 'Buy More Events — $4.99 each';
       }
     }
 
@@ -708,6 +689,24 @@
           await refreshToken();
         }
       } catch (err) {}
+
+      // Handle payment success redirect
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('payment') === 'success' && params.get('session_id')) {
+        try {
+          var verifyRes = await authFetch('/api/v2/billing?action=verify-session&session_id=' + params.get('session_id'));
+          var verifyResult = await verifyRes.json();
+          if (verifyResult.success) {
+            showToast('Event credits purchased successfully!');
+          }
+        } catch (e) { /* Webhook will handle it */ }
+        // Clean up URL
+        window.history.replaceState({}, '', '/v2/profile/');
+      } else if (params.get('payment') === 'cancelled') {
+        showToast('Payment cancelled');
+        window.history.replaceState({}, '', '/v2/profile/');
+      }
+
       // Load billing data and payment method after auth is confirmed
       loadBillingData();
       loadPaymentMethod();
