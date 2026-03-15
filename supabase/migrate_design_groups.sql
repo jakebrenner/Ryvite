@@ -12,7 +12,13 @@ ALTER TABLE event_themes ADD COLUMN IF NOT EXISTS design_group_id text;
 UPDATE style_library SET design_group_id = id WHERE design_group_id IS NULL;
 
 -- 3. Backfill prompt_test_runs: group by test_session_id when available, else own id
-UPDATE prompt_test_runs SET design_group_id = COALESCE(test_session_id, id::text) WHERE design_group_id IS NULL;
+-- Uses DO block to gracefully handle case where test_session_id column doesn't exist yet
+DO $$
+BEGIN
+  EXECUTE 'UPDATE prompt_test_runs SET design_group_id = COALESCE(test_session_id, id::text) WHERE design_group_id IS NULL';
+EXCEPTION WHEN undefined_column THEN
+  UPDATE prompt_test_runs SET design_group_id = id::text WHERE design_group_id IS NULL;
+END $$;
 
 -- 4. Backfill event_themes: each theme is its own group (future inserts will set properly)
 UPDATE event_themes SET design_group_id = id::text WHERE design_group_id IS NULL;
