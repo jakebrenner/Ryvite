@@ -2223,7 +2223,20 @@ This is the most common failure mode. Double-check it.`;
         prompt_version_id: activePrompt.promptVersionId || null,
         style_library_ids: usedStyleIds
       };
-      if (basedOnThemeId) genInsert.based_on_theme_id = basedOnThemeId;
+      if (basedOnThemeId) {
+        genInsert.based_on_theme_id = basedOnThemeId;
+        // "Start from Design" inherits the source theme's design group
+        try {
+          const { data: sourceTheme } = await supabase
+            .from('event_themes')
+            .select('design_group_id')
+            .eq('id', basedOnThemeId)
+            .single();
+          if (sourceTheme?.design_group_id) {
+            genInsert.design_group_id = sourceTheme.design_group_id;
+          }
+        } catch (e) { /* proceed without group inheritance */ }
+      }
       let { data: newTheme, error: themeError } = await supabase
         .from('event_themes').insert(genInsert).select().single();
       if (themeError && (themeError.message?.includes('prompt_version_id') || themeError.message?.includes('style_library_ids') || themeError.message?.includes('design_group_id'))) {
@@ -2235,8 +2248,8 @@ This is the most common failure mode. Double-check it.`;
       }
       if (themeError) console.error('Failed to save theme:', themeError.message);
 
-      // New full generation starts its own design group
-      if (newTheme?.id && !themeError) {
+      // New full generation (not based on existing) starts its own design group
+      if (newTheme?.id && !themeError && !basedOnThemeId) {
         await supabase.from('event_themes')
           .update({ design_group_id: newTheme.id.toString() })
           .eq('id', newTheme.id);
