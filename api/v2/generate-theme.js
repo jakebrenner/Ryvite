@@ -1760,12 +1760,14 @@ Return ONLY a valid JSON object with these keys:
       try {
         const { data: existingThemes } = await supabase
           .from('event_themes')
-          .select('id, version')
+          .select('id, version, design_group_id')
           .eq('event_id', eventId)
           .order('version', { ascending: false })
           .limit(1);
 
         const nextVersion = existingThemes?.length > 0 ? existingThemes[0].version + 1 : 1;
+        // Tweaks inherit the design group from the theme being tweaked
+        const parentGroupId = existingThemes?.[0]?.design_group_id || null;
 
         await supabase
           .from('event_themes')
@@ -1781,8 +1783,15 @@ Return ONLY a valid JSON object with these keys:
           output_tokens: tweakOutputTokens, latency_ms: latency
         };
         if (basedOnThemeId) tweakInsert.based_on_theme_id = basedOnThemeId;
+        if (parentGroupId) tweakInsert.design_group_id = parentGroupId;
         var { data: newTweakTheme, error: tweakThemeError } = await supabase
           .from('event_themes').insert(tweakInsert).select().single();
+        // If design_group_id column doesn't exist yet, retry without it
+        if (tweakThemeError && tweakThemeError.message?.includes('design_group_id')) {
+          delete tweakInsert.design_group_id;
+          ({ data: newTweakTheme, error: tweakThemeError } = await supabase
+            .from('event_themes').insert(tweakInsert).select().single());
+        }
         if (tweakThemeError) console.error('Failed to save tweak theme:', tweakThemeError.message);
         if (newTweakTheme) {
           savedTweakThemeId = newTweakTheme.id;
@@ -2217,13 +2226,21 @@ This is the most common failure mode. Double-check it.`;
       if (basedOnThemeId) genInsert.based_on_theme_id = basedOnThemeId;
       let { data: newTheme, error: themeError } = await supabase
         .from('event_themes').insert(genInsert).select().single();
-      if (themeError && (themeError.message?.includes('prompt_version_id') || themeError.message?.includes('style_library_ids'))) {
+      if (themeError && (themeError.message?.includes('prompt_version_id') || themeError.message?.includes('style_library_ids') || themeError.message?.includes('design_group_id'))) {
         delete genInsert.prompt_version_id;
         delete genInsert.style_library_ids;
+        delete genInsert.design_group_id;
         ({ data: newTheme, error: themeError } = await supabase
           .from('event_themes').insert(genInsert).select().single());
       }
       if (themeError) console.error('Failed to save theme:', themeError.message);
+
+      // New full generation starts its own design group
+      if (newTheme?.id && !themeError) {
+        await supabase.from('event_themes')
+          .update({ design_group_id: newTheme.id.toString() })
+          .eq('id', newTheme.id);
+      }
 
       await supabase.from('events')
         .update({ first_generation_at: new Date().toISOString() })
