@@ -3082,6 +3082,8 @@
       document.getElementById('udAccountInfo').innerHTML =
         detailItem('User ID', '<span style="font-family:monospace;font-size:11px;">' + escapeHtml(u.id) + '</span>')
         + detailItem('Stripe Customer', u.stripeCustomerId ? '<span style="font-family:monospace;font-size:11px;">' + escapeHtml(u.stripeCustomerId) + '</span>' : '—')
+        + detailItem('Purchased Event Credits', '<span>' + (u.purchasedEventCredits || 0) + '</span>')
+        + detailItem('Free Event Credits', '<span id="udFreeCredits">' + (u.freeEventCredits || 0) + '</span> <button class="btn btn-secondary btn-sm" onclick="showGrantCreditsUI()" style="margin-left:8px;font-size:11px;padding:2px 8px;">Add</button><div id="grantCreditsForm" style="display:none;margin-top:8px;"></div>')
         + detailItem('Created', formatDate(u.createdAt))
         + detailItem('Last Updated', u.updatedAt ? formatDate(u.updatedAt) : '—');
 
@@ -3189,6 +3191,47 @@
       } catch (e) {
         alert('Error: ' + e.message);
         btn.textContent = 'Save Changes';
+        btn.disabled = false;
+      }
+    }
+
+    function showGrantCreditsUI() {
+      var form = document.getElementById('grantCreditsForm');
+      if (!form) return;
+      if (form.style.display !== 'none') { form.style.display = 'none'; return; }
+      form.style.display = 'block';
+      form.innerHTML = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+        + '<input type="number" id="grantCreditsNum" min="1" value="1" style="width:60px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;" />'
+        + '<input type="text" id="grantCreditsReason" placeholder="Reason (optional)" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;" />'
+        + '<button class="btn btn-primary btn-sm" id="grantCreditsBtn" onclick="grantFreeCredits()" style="font-size:11px;padding:4px 12px;">Grant</button>'
+        + '</div>';
+    }
+
+    async function grantFreeCredits() {
+      if (!currentUserDetail) return;
+      var credits = parseInt(document.getElementById('grantCreditsNum').value);
+      var reason = document.getElementById('grantCreditsReason').value.trim();
+      if (!credits || credits < 1) { alert('Enter a valid number of credits'); return; }
+      var btn = document.getElementById('grantCreditsBtn');
+      btn.textContent = 'Granting...';
+      btn.disabled = true;
+      try {
+        var res = await adminFetch('grantFreeEvents', {
+          method: 'POST',
+          body: { userId: currentUserDetail.user.id, credits: credits, reason: reason || undefined }
+        });
+        if (res.success) {
+          document.getElementById('udFreeCredits').textContent = res.newBalance;
+          currentUserDetail.user.freeEventCredits = res.newBalance;
+          document.getElementById('grantCreditsForm').style.display = 'none';
+        } else {
+          alert('Failed: ' + (res.error || 'Unknown error'));
+          btn.textContent = 'Grant';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+        btn.textContent = 'Grant';
         btn.disabled = false;
       }
     }

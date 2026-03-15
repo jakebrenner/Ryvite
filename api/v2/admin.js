@@ -390,6 +390,8 @@ export default async function handler(req, res) {
           tier: profile.tier,
           referralSource: profile.referral_source,
           stripeCustomerId: profile.stripe_customer_id,
+          freeEventCredits: profile.free_event_credits || 0,
+          purchasedEventCredits: profile.purchased_event_credits || 0,
           createdAt: profile.created_at,
           updatedAt: profile.updated_at,
           isBanned
@@ -2334,6 +2336,42 @@ export default async function handler(req, res) {
         success: true,
         updated: Object.keys(updateData).filter(k => k !== 'updated_at'),
         tierSync: tierSyncResult
+      });
+    }
+
+    // ---- GRANT FREE EVENT CREDITS ----
+    if (action === 'grantFreeEvents') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { userId, credits, reason } = req.body;
+      if (!userId) return res.status(400).json({ error: 'userId required' });
+      if (!credits || credits < 1 || !Number.isInteger(credits)) {
+        return res.status(400).json({ error: 'credits must be a positive integer' });
+      }
+
+      const { data: profile, error: pErr } = await supabaseAdmin
+        .from('profiles')
+        .select('free_event_credits')
+        .eq('id', userId)
+        .single();
+
+      if (pErr || !profile) return res.status(404).json({ error: 'User not found' });
+
+      const newBalance = (profile.free_event_credits || 0) + credits;
+
+      const { error: uErr } = await supabaseAdmin
+        .from('profiles')
+        .update({ free_event_credits: newBalance, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (uErr) return res.status(400).json({ error: uErr.message });
+
+      return res.status(200).json({
+        success: true,
+        previousBalance: profile.free_event_credits || 0,
+        creditsAdded: credits,
+        newBalance,
+        reason: reason || null
       });
     }
 

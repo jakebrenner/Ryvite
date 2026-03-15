@@ -182,13 +182,6 @@ export default async function handler(req, res) {
       if (!event) return res.status(404).json({ error: 'Event not found' });
       if (event.user_id !== user.id) return res.status(403).json({ error: 'Not your event' });
 
-      // Count user's total non-archived events
-      const { count: totalEvents } = await supabaseAdmin
-        .from('events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .neq('status', 'archived');
-
       // Count generations for this specific event
       const { count: genCount } = await supabaseAdmin
         .from('generation_log')
@@ -196,7 +189,7 @@ export default async function handler(req, res) {
         .eq('event_id', eventId)
         .eq('status', 'success');
 
-      const isFirstEvent = (totalEvents || 0) <= 1;
+      const isFirstEvent = event.payment_status === 'free';
       const isFreeEvent = event.payment_status === 'free';
       const isPaid = event.payment_status === 'paid';
       const requiresPayment = !isFreeEvent && !isPaid;
@@ -479,6 +472,127 @@ export default async function handler(req, res) {
       });
     }
 
+    // ---- BUY EVENT CREDITS (pre-purchase) ----
+    if (action === 'buy-credits') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+
+      const { quantity: rawQty, couponCode } = req.body || {};
+      const quantity = Math.max(1, Math.min(10, parseInt(rawQty) || 1));
+
+      let discount = null;
+      let coupon = null;
+      let discountCents = 0;
+      if (couponCode) {
+        const couponResult = await validateCoupon(couponCode, 'event_499', user.id, user.email);
+        if (!couponResult.valid) {
+          return res.status(400).json({ error: couponResult.error });
+        }
+        coupon = couponResult.coupon;
+        discount = couponResult.discount;
+      }
+
+      let unitPriceCents = EVENT_PRICE_CENTS;
+      if (discount) {
+        if (discount.type === 'percent') {
+          discountCents = Math.round(EVENT_PRICE_CENTS * discount.percent / 100);
+        } else {
+          discountCents = discount.amountCents;
+        }
+        unitPriceCents = Math.max(0, EVENT_PRICE_CENTS - discountCents);
+      }
+
+      const totalCents = unitPriceCents * quantity;
+      const customerId = await getOrCreateStripeCustomer(user);
+
+      // Check for saved payment method — charge instantly if available
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+        limit: 1
+      });
+
+      if (paymentMethods.data.length > 0) {
+        // Instant charge with saved card
+        const savedCard = paymentMethods.data[0];
+        try {
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: totalCents,
+            currency: 'usd',
+            customer: customerId,
+            payment_method: savedCard.id,
+            off_session: true,
+            confirm: true,
+            metadata: {
+              supabase_user_id: user.id,
+              checkout_type: 'credit_purchase',
+              quantity: String(quantity),
+              coupon_id: coupon?.id || '',
+              coupon_code: couponCode || '',
+              original_amount_cents: String(EVENT_PRICE_CENTS),
+              discount_cents: String(discountCents)
+            }
+          });
+
+          if (paymentIntent.status === 'succeeded') {
+            // Process immediately — increment credits, billing history
+            await processCreditPurchase(user.id, quantity, totalCents, paymentIntent.id, customerId, coupon?.id);
+            return res.status(200).json({
+              success: true,
+              charged: true,
+              quantity,
+              amountCents: totalCents,
+              cardLast4: savedCard.card.last4,
+              cardBrand: savedCard.card.brand
+            });
+          }
+
+          // 3D Secure or other action required — fall through to embedded checkout
+        } catch (cardErr) {
+          // Card declined or error — fall through to embedded checkout
+          console.error('Saved card charge failed:', cardErr.message);
+        }
+      }
+
+      // No saved card or charge failed — use embedded checkout
+      const baseUrl = getBaseUrl(req);
+      const sessionParams = {
+        customer: customerId,
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: quantity === 1 ? 'Ryvite Event Credit' : `Ryvite Event Credits (×${quantity})`,
+              description: 'Pre-purchase event credits for AI-designed invitations with unlimited guests, SMS + email delivery, and RSVP tracking.'
+            },
+            unit_amount: unitPriceCents
+          },
+          quantity
+        }],
+        mode: 'payment',
+        ui_mode: 'embedded',
+        redirect_on_completion: 'never',
+        payment_intent_data: { setup_future_usage: 'off_session' },
+        metadata: {
+          supabase_user_id: user.id,
+          checkout_type: 'credit_purchase',
+          quantity: String(quantity),
+          coupon_id: coupon?.id || '',
+          coupon_code: couponCode || '',
+          original_amount_cents: String(EVENT_PRICE_CENTS),
+          discount_cents: String(discountCents)
+        }
+      };
+
+      const session = await stripe.checkout.sessions.create(sessionParams);
+
+      return res.status(200).json({
+        success: true,
+        charged: false,
+        sessionId: session.id,
+        clientSecret: session.client_secret
+      });
+    }
+
     // ---- GET SAVED PAYMENT METHOD ----
     if (action === 'payment-method') {
       const { data: profile } = await supabaseAdmin
@@ -547,30 +661,20 @@ export default async function handler(req, res) {
 
     // ---- GET USER SUBSCRIPTION / PAYMENT INFO ----
     if (action === 'subscription') {
-      // Count events by payment status
-      const { data: events } = await supabaseAdmin
-        .from('events')
-        .select('id, payment_status')
-        .eq('user_id', user.id)
-        .neq('status', 'archived');
+      // Count events by payment status and get credit balances in parallel
+      const [eventsRes, genRes, smsRes, profileRes] = await Promise.all([
+        supabaseAdmin.from('events').select('id, payment_status').eq('user_id', user.id),
+        supabaseAdmin.from('generation_log').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'success').not('event_id', 'is', null),
+        supabaseAdmin.from('sms_messages').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabaseAdmin.from('profiles').select('purchased_event_credits, free_event_credits').eq('id', user.id).single()
+      ]);
 
-      const totalEvents = (events || []).length;
-      const paidEvents = (events || []).filter(e => e.payment_status === 'paid').length;
-      const freeEvents = (events || []).filter(e => e.payment_status === 'free').length;
-
-      // Generation count
-      const { count: genCount } = await supabaseAdmin
-        .from('generation_log')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'success')
-        .not('event_id', 'is', null);
-
-      // SMS count
-      const { count: smsCount } = await supabaseAdmin
-        .from('sms_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+      const events = eventsRes.data || [];
+      const totalEvents = events.length;
+      const paidEvents = events.filter(e => e.payment_status === 'paid').length;
+      const freeEvents = events.filter(e => e.payment_status === 'free').length;
+      const purchasedCredits = profileRes.data?.purchased_event_credits || 0;
+      const freeCredits = profileRes.data?.free_event_credits || 0;
 
       return res.status(200).json({
         success: true,
@@ -582,8 +686,13 @@ export default async function handler(req, res) {
           totalEvents,
           paidEvents,
           freeEvents,
-          generationsUsed: genCount || 0,
-          smsSent: smsCount || 0
+          generationsUsed: genRes.count || 0,
+          smsSent: smsRes.count || 0
+        },
+        credits: {
+          purchased: purchasedCredits,
+          free: freeCredits,
+          total: purchasedCredits + freeCredits
         }
       });
     }
@@ -603,15 +712,38 @@ export default async function handler(req, res) {
         }
 
         const metadata = session.metadata || {};
-        const eventId = metadata.event_id;
         const metaUserId = metadata.supabase_user_id;
+        const checkoutType = metadata.checkout_type || 'event_payment';
 
-        if (!eventId || !metaUserId) {
+        if (!metaUserId) {
           return res.status(400).json({ success: false, error: 'Missing metadata in checkout session' });
         }
 
         if (metaUserId !== user.id) {
           return res.status(403).json({ success: false, error: 'Session does not belong to this user' });
+        }
+
+        // Credit purchase — no event to check
+        if (checkoutType === 'credit_purchase') {
+          // Check if already processed by looking at billing_history
+          const { data: existing } = await supabaseAdmin
+            .from('billing_history')
+            .select('id')
+            .eq('stripe_payment_intent_id', session.payment_intent)
+            .single();
+
+          if (existing) {
+            return res.status(200).json({ success: true, type: 'credit_purchase', source: 'already_processed' });
+          }
+
+          await processEventPayment(session);
+          return res.status(200).json({ success: true, type: 'credit_purchase', source: 'verified' });
+        }
+
+        // Standard event payment
+        const eventId = metadata.event_id;
+        if (!eventId) {
+          return res.status(400).json({ success: false, error: 'Missing eventId in checkout session' });
         }
 
         // Check if already processed
@@ -730,8 +862,7 @@ export default async function handler(req, res) {
       // Get event counts per user
       const { data: events } = await supabaseAdmin
         .from('events')
-        .select('user_id, payment_status')
-        .neq('status', 'archived');
+        .select('user_id, payment_status');
 
       // Get SMS counts per user
       const { data: smsData } = await supabaseAdmin
@@ -819,17 +950,133 @@ async function handleWebhook(req, res) {
   }
 }
 
+// ---- PROCESS CREDIT PURCHASE (direct charge) ----
+// Called when saved card is charged instantly for credit purchase
+async function processCreditPurchase(userId, quantity, amountCents, paymentIntentId, customerId, couponId) {
+  // Increment purchased_event_credits
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('purchased_event_credits')
+    .eq('id', userId)
+    .single();
+
+  await supabaseAdmin
+    .from('profiles')
+    .update({
+      purchased_event_credits: ((profile?.purchased_event_credits || 0) + quantity),
+      stripe_customer_id: customerId
+    })
+    .eq('id', userId);
+
+  // Create billing history record
+  let receiptUrl = null;
+  if (paymentIntentId) {
+    try {
+      const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (pi.latest_charge) {
+        const charge = await stripe.charges.retrieve(pi.latest_charge);
+        receiptUrl = charge.receipt_url || null;
+      }
+    } catch (e) { /* Non-critical */ }
+  }
+
+  await supabaseAdmin
+    .from('billing_history')
+    .insert({
+      user_id: userId,
+      stripe_payment_intent_id: paymentIntentId,
+      amount_cents: amountCents,
+      currency: 'usd',
+      status: 'succeeded',
+      description: quantity === 1 ? 'Event credit purchase' : `Event credit purchase (×${quantity})`,
+      receipt_url: receiptUrl
+    });
+
+  // Handle coupon redemption
+  if (couponId) {
+    await supabaseAdmin.from('coupon_redemptions').insert({ coupon_id: couponId, user_id: userId });
+    await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: couponId }).catch(async () => {
+      const { data: c } = await supabaseAdmin.from('coupons').select('times_used').eq('id', couponId).single();
+      if (c) await supabaseAdmin.from('coupons').update({ times_used: (c.times_used || 0) + 1 }).eq('id', couponId);
+    });
+  }
+}
+
 // ---- PROCESS EVENT PAYMENT ----
-// Called by webhook or verify-session to mark event as paid
+// Called by webhook or verify-session to mark event as paid or add credits
 async function processEventPayment(session) {
   const metadata = session.metadata || {};
   const userId = metadata.supabase_user_id;
-  const eventId = metadata.event_id;
+  const checkoutType = metadata.checkout_type || 'event_payment';
   const couponId = metadata.coupon_id || null;
   const discountCents = parseInt(metadata.discount_cents) || 0;
 
-  if (!userId || !eventId) {
-    console.error('Missing userId or eventId in checkout metadata');
+  if (!userId) {
+    console.error('Missing userId in checkout metadata');
+    return;
+  }
+
+  // Handle credit pre-purchase (no specific event)
+  if (checkoutType === 'credit_purchase') {
+    const quantity = parseInt(metadata.quantity) || 1;
+
+    // Increment purchased_event_credits
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('purchased_event_credits')
+      .eq('id', userId)
+      .single();
+
+    await supabaseAdmin
+      .from('profiles')
+      .update({
+        purchased_event_credits: ((profile?.purchased_event_credits || 0) + quantity),
+        stripe_customer_id: session.customer
+      })
+      .eq('id', userId);
+
+    // Create billing history record
+    await supabaseAdmin
+      .from('billing_history')
+      .insert({
+        user_id: userId,
+        stripe_payment_intent_id: session.payment_intent,
+        amount_cents: session.amount_total || (EVENT_PRICE_CENTS * quantity),
+        currency: session.currency || 'usd',
+        status: 'succeeded',
+        description: quantity === 1 ? 'Event credit purchase' : `Event credit purchase (×${quantity})`,
+        receipt_url: null
+      });
+
+    // Handle coupon redemption
+    if (couponId) {
+      await supabaseAdmin.from('coupon_redemptions').insert({ coupon_id: couponId, user_id: userId });
+      await supabaseAdmin.rpc('increment_coupon_usage', { coupon_uuid: couponId }).catch(async () => {
+        const { data: c } = await supabaseAdmin.from('coupons').select('times_used').eq('id', couponId).single();
+        if (c) await supabaseAdmin.from('coupons').update({ times_used: (c.times_used || 0) + 1 }).eq('id', couponId);
+      });
+    }
+
+    // Try to get receipt URL
+    if (session.payment_intent) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+        if (paymentIntent.latest_charge) {
+          const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
+          if (charge.receipt_url) {
+            await supabaseAdmin.from('billing_history').update({ receipt_url: charge.receipt_url }).eq('stripe_payment_intent_id', session.payment_intent);
+          }
+        }
+      } catch (e) { /* Non-critical */ }
+    }
+
+    return;
+  }
+
+  // Standard event payment flow
+  const eventId = metadata.event_id;
+  if (!eventId) {
+    console.error('Missing eventId in checkout metadata');
     return;
   }
 
@@ -1017,8 +1264,7 @@ export async function checkUserLimits(userId) {
   const { count: eventCount } = await supabaseAdmin
     .from('events')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .neq('status', 'archived');
+    .eq('user_id', userId);
 
   // Under the new model, users can always create events.
   // Payment gate appears at publish/send time, not creation.

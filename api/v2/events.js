@@ -228,14 +228,40 @@ export default async function handler(req, res) {
       if (!title) return res.status(400).json({ success: false, error: 'Title is required' });
 
       // Under $4.99 model, anyone can create events (payment gate at publish/send time)
-      // Determine if this is the user's first event for free tier
-      const { count: existingEventCount } = await supabaseAdmin
+      // Check if user has EVER had a free event (regardless of archive status)
+      const { count: freeEventCount } = await supabaseAdmin
         .from('events')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .neq('status', 'archived');
+        .eq('payment_status', 'free');
 
-      const isFirstEvent = (existingEventCount || 0) === 0;
+      let isFirstEvent = (freeEventCount || 0) === 0;
+      let isPrepaid = false;
+
+      // If not first event, check for purchased or admin-granted credits
+      if (!isFirstEvent) {
+        const { data: profileData } = await supabaseAdmin
+          .from('profiles')
+          .select('purchased_event_credits, free_event_credits')
+          .eq('id', user.id)
+          .single();
+
+        if (profileData && (profileData.purchased_event_credits || 0) > 0) {
+          // Purchased credits → mark as paid (user already paid)
+          isPrepaid = true;
+          await supabaseAdmin
+            .from('profiles')
+            .update({ purchased_event_credits: (profileData.purchased_event_credits || 0) - 1 })
+            .eq('id', user.id);
+        } else if (profileData && (profileData.free_event_credits || 0) > 0) {
+          // Admin-granted free credits
+          isFirstEvent = true;
+          await supabaseAdmin
+            .from('profiles')
+            .update({ free_event_credits: (profileData.free_event_credits || 0) - 1 })
+            .eq('id', user.id);
+        }
+      }
 
       // Ensure profile exists (may not have been created by trigger)
       const { data: existingProfile } = await supabaseAdmin
@@ -275,7 +301,8 @@ export default async function handler(req, res) {
           slug,
           status: 'draft',
           settings: settings || { creation_step: 1 },
-          payment_status: isFirstEvent ? 'free' : 'unpaid',
+          payment_status: isFirstEvent ? 'free' : (isPrepaid ? 'paid' : 'unpaid'),
+          paid_at: isPrepaid ? new Date().toISOString() : null,
           sms_limit: isFirstEvent ? 0 : 1000,
           sms_sent_count: 0
         })
