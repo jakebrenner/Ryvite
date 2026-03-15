@@ -3821,6 +3821,7 @@
     var designChatHistory = [];
     var pendingRatingThemeId = null;
     var justUpgraded = false; // Set when returning from Stripe payment
+    var pendingUpgradeMessage = null; // Holds user's blocked message to replay after payment
     var designChatPhotoBase64 = null;
     var designChatPhotoUrl = null;
     var designChatPhotoUrls = []; // Support multiple photo uploads
@@ -3911,13 +3912,25 @@
         pendingRatingThemeId = null;
         renderDesignChat();
       }
-      // Show upgrade success message after returning from Stripe payment
+      // Show upgrade success message after returning from Stripe payment (fallback for page reload)
       if (justUpgraded) {
         justUpgraded = false;
-        // Remove any previous upgrade upsell cards
         designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'upgrade'; });
-        designChatHistory.push({ role: 'assistant', content: "Awesome, you've upgraded! Thanks so much for helping support Ryvite.\n\nLet's get back to customizing your invite. What can I help you with?" });
-        renderDesignChat();
+        // Check if there was a pending message saved before the page reload
+        var savedPendingMsg = sessionStorage.getItem('ryvite_pending_upgrade_msg');
+        if (savedPendingMsg) {
+          sessionStorage.removeItem('ryvite_pending_upgrade_msg');
+          var input = document.getElementById('designChatInput');
+          if (input) {
+            input.value = savedPendingMsg;
+            designChatHistory.push({ role: 'assistant', content: "Awesome, you've upgraded! Thanks so much for helping support Ryvite. Let me work on that for you now..." });
+            renderDesignChat();
+            setTimeout(function() { sendDesignChat(); }, 500);
+          }
+        } else {
+          designChatHistory.push({ role: 'assistant', content: "Awesome, you've upgraded! Thanks so much for helping support Ryvite.\n\nLet's get back to customizing your invite. What can I help you with?" });
+          renderDesignChat();
+        }
       }
     }
 
@@ -4630,6 +4643,8 @@
 
       // ── Free/unpaid tier gate: block design chat if generation limit reached ──
       if (currentEvent && (currentEvent.paymentStatus === 'unpaid' || currentEvent.paymentStatus === 'refunded')) {
+        pendingUpgradeMessage = text;
+        sessionStorage.setItem('ryvite_pending_upgrade_msg', text);
         designChatHistory.push({ role: 'user', content: text });
         designChatHistory.push({ role: 'upgrade', content: "This event requires a $4.99 upgrade before you can make design changes. Upgrade to unlock AI designs, SMS delivery, and everything you need." });
         renderDesignChat();
@@ -4642,6 +4657,8 @@
         var rsvpFieldPattern = /\b(remove|delete|drop|hide|add|include|make .+ (required|optional))\b.{0,30}\b(field|name|email|phone|dietary|allergies|plus.?one|song|meal|kids|guests?|notes?|message|comment)\b/i;
         var textSwapPattern = /\b(change|replace|swap|switch)\b.{0,10}["'\u201C\u201D].+["'\u201C\u201D]\s*(to|with|for)\s*["'\u201C\u201D]/i;
         if (!rsvpFieldPattern.test(text) && !textSwapPattern.test(text)) {
+          pendingUpgradeMessage = text;
+          sessionStorage.setItem('ryvite_pending_upgrade_msg', text);
           designChatHistory.push({ role: 'user', content: text });
           if (!currentEvent.freeRedoUsed) {
             designChatHistory.push({ role: 'upgrade', content: "I can't make design tweaks on the free plan, but if the design was completely off from what you asked for, I can generate a brand new one \u2014 just tell me what's wrong.\n\nOr upgrade for $4.99 to unlock unlimited design changes." });
@@ -6532,10 +6549,27 @@
       // Verify session in background
       authFetch('/api/v2/billing?action=verify-session').catch(function() {});
 
-      // Remove upgrade upsell cards and add welcome-back message
+      // Remove upgrade upsell cards
       designChatHistory = designChatHistory.filter(function(m) { return m.role !== 'upgrade'; });
-      designChatHistory.push({ role: 'assistant', content: "Awesome, you've upgraded! Thanks so much for helping support Ryvite.\n\nLet's get back to customizing your invite. What can I help you with?" });
-      renderDesignChat();
+
+      // If user had a pending request that was blocked, replay it automatically
+      if (pendingUpgradeMessage) {
+        var replayMsg = pendingUpgradeMessage;
+        pendingUpgradeMessage = null;
+        sessionStorage.removeItem('ryvite_pending_upgrade_msg');
+        // The user's message is already in chat history — just replay through the design chat
+        var input = document.getElementById('designChatInput');
+        if (input) {
+          input.value = replayMsg;
+          designChatHistory.push({ role: 'assistant', content: "Awesome, you've upgraded! Thanks so much for helping support Ryvite. Let me work on that for you now..." });
+          renderDesignChat();
+          // Small delay so the user sees the message before the request fires
+          setTimeout(function() { sendDesignChat(); }, 500);
+        }
+      } else {
+        designChatHistory.push({ role: 'assistant', content: "Awesome, you've upgraded! Thanks so much for helping support Ryvite.\n\nLet's get back to customizing your invite. What can I help you with?" });
+        renderDesignChat();
+      }
     }
   </script>
 

@@ -456,6 +456,7 @@ export default async function handler(req, res) {
 
       if (embedded) {
         sessionParams.ui_mode = 'embedded';
+        sessionParams.redirect_on_completion = 'if_required';
         sessionParams.return_url = `${baseUrl}${returnUrl || '/v2/dashboard/'}?event=${eventId}&payment=success&session_id={CHECKOUT_SESSION_ID}`;
       } else {
         // Allow custom redirect URLs (e.g., back to create page after design-chat upgrade)
